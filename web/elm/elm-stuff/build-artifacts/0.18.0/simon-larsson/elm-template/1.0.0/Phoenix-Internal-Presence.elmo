@@ -1,0 +1,136 @@
+var _simon_larsson$elm_template$Phoenix_Internal_Presence$getPresenceState = function (presenceState) {
+	var getMetas = function (_p0) {
+		var _p1 = _p0;
+		return _p1.metas;
+	};
+	var getPayload = F2(
+		function (presenceKey, presenceStateMetaWrapper) {
+			return A2(
+				_elm_lang$core$List$map,
+				function (_) {
+					return _.payload;
+				},
+				getMetas(presenceStateMetaWrapper));
+		});
+	return A2(_elm_lang$core$Dict$map, getPayload, presenceState);
+};
+var _simon_larsson$elm_template$Phoenix_Internal_Presence$PresenceDiff = F2(
+	function (a, b) {
+		return {leaves: a, joins: b};
+	});
+var _simon_larsson$elm_template$Phoenix_Internal_Presence$PresenceStateMetaWrapper = function (a) {
+	return {metas: a};
+};
+var _simon_larsson$elm_template$Phoenix_Internal_Presence$syncPresenceDiff = F2(
+	function (presenceDiff, presenceState) {
+		var mergeLeaves = F2(
+			function (leaves, state) {
+				var mergeMetaWrappers = F3(
+					function (leaves, stateKey, stateMetaWrapper) {
+						var _p2 = A2(_elm_lang$core$Dict$get, stateKey, leaves);
+						if (_p2.ctor === 'Nothing') {
+							return stateMetaWrapper;
+						} else {
+							var leaveRefs = A2(
+								_elm_lang$core$List$map,
+								function (_) {
+									return _.phx_ref;
+								},
+								_p2._0.metas);
+							return _simon_larsson$elm_template$Phoenix_Internal_Presence$PresenceStateMetaWrapper(
+								A2(
+									_elm_lang$core$List$filter,
+									function (metaValue) {
+										return !A2(
+											_elm_lang$core$List$any,
+											function (phx_ref) {
+												return _elm_lang$core$Native_Utils.eq(metaValue.phx_ref, phx_ref);
+											},
+											leaveRefs);
+									},
+									stateMetaWrapper.metas));
+						}
+					});
+				return A2(
+					_elm_lang$core$Dict$filter,
+					F2(
+						function (_p3, metaWrapper) {
+							return !_elm_lang$core$Native_Utils.eq(
+								metaWrapper.metas,
+								{ctor: '[]'});
+						}),
+					A2(
+						_elm_lang$core$Dict$map,
+						mergeMetaWrappers(leaves),
+						state));
+			});
+		var mergeJoins = F2(
+			function (joins, state) {
+				var unchangedStep = F3(
+					function (key, stateMetaWrapper, addedMetaWrappers) {
+						return A3(_elm_lang$core$Dict$insert, key, stateMetaWrapper, addedMetaWrappers);
+					});
+				var addedStep = F3(
+					function (key, joinMetaWrapper, addedMetaWrappers) {
+						return A3(_elm_lang$core$Dict$insert, key, joinMetaWrapper, addedMetaWrappers);
+					});
+				var mergeMetaWrappers = F2(
+					function (joinMetaWrapper, stateMetaWrapper) {
+						return _simon_larsson$elm_template$Phoenix_Internal_Presence$PresenceStateMetaWrapper(
+							A2(_elm_lang$core$Basics_ops['++'], joinMetaWrapper.metas, stateMetaWrapper.metas));
+					});
+				var retainedStep = F4(
+					function (key, joinMetaWrapper, stateMetaWrapper, addedMetaWrappers) {
+						return A3(
+							_elm_lang$core$Dict$insert,
+							key,
+							A2(mergeMetaWrappers, joinMetaWrapper, stateMetaWrapper),
+							addedMetaWrappers);
+					});
+				return A6(_elm_lang$core$Dict$merge, addedStep, retainedStep, unchangedStep, joins, state, _elm_lang$core$Dict$empty);
+			});
+		return A2(
+			mergeLeaves,
+			presenceDiff.leaves,
+			A2(mergeJoins, presenceDiff.joins, presenceState));
+	});
+var _simon_larsson$elm_template$Phoenix_Internal_Presence$PresenceStateMetaValue = F2(
+	function (a, b) {
+		return {phx_ref: a, payload: b};
+	});
+var _simon_larsson$elm_template$Phoenix_Internal_Presence$presenceStateMetaValueDecoder = function () {
+	var createFinalRecord = F2(
+		function (phxRef, payload) {
+			return _elm_lang$core$Json_Decode$succeed(
+				A2(_simon_larsson$elm_template$Phoenix_Internal_Presence$PresenceStateMetaValue, phxRef, payload));
+		});
+	var decodeWithPhxRef = function (phxRef) {
+		return A2(
+			_elm_lang$core$Json_Decode$andThen,
+			createFinalRecord(phxRef),
+			_elm_lang$core$Json_Decode$value);
+	};
+	return A2(
+		_elm_lang$core$Json_Decode$andThen,
+		decodeWithPhxRef,
+		A2(_elm_lang$core$Json_Decode$field, 'phx_ref', _elm_lang$core$Json_Decode$string));
+}();
+var _simon_larsson$elm_template$Phoenix_Internal_Presence$presenceStateMetaWrapperDecoder = A2(
+	_elm_lang$core$Json_Decode$map,
+	_simon_larsson$elm_template$Phoenix_Internal_Presence$PresenceStateMetaWrapper,
+	A2(
+		_elm_lang$core$Json_Decode$field,
+		'metas',
+		_elm_lang$core$Json_Decode$list(_simon_larsson$elm_template$Phoenix_Internal_Presence$presenceStateMetaValueDecoder)));
+var _simon_larsson$elm_template$Phoenix_Internal_Presence$presenceStateDecoder = _elm_lang$core$Json_Decode$dict(_simon_larsson$elm_template$Phoenix_Internal_Presence$presenceStateMetaWrapperDecoder);
+var _simon_larsson$elm_template$Phoenix_Internal_Presence$decodePresenceState = function (payload) {
+	return A2(_elm_lang$core$Json_Decode$decodeValue, _simon_larsson$elm_template$Phoenix_Internal_Presence$presenceStateDecoder, payload);
+};
+var _simon_larsson$elm_template$Phoenix_Internal_Presence$presenceDiffDecoder = A3(
+	_elm_lang$core$Json_Decode$map2,
+	_simon_larsson$elm_template$Phoenix_Internal_Presence$PresenceDiff,
+	A2(_elm_lang$core$Json_Decode$field, 'leaves', _simon_larsson$elm_template$Phoenix_Internal_Presence$presenceStateDecoder),
+	A2(_elm_lang$core$Json_Decode$field, 'joins', _simon_larsson$elm_template$Phoenix_Internal_Presence$presenceStateDecoder));
+var _simon_larsson$elm_template$Phoenix_Internal_Presence$decodePresenceDiff = function (payload) {
+	return A2(_elm_lang$core$Json_Decode$decodeValue, _simon_larsson$elm_template$Phoenix_Internal_Presence$presenceDiffDecoder, payload);
+};

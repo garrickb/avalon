@@ -1,0 +1,54 @@
+var _simon_larsson$elm_template$Phoenix_Push$map = F2(
+	function (func, push) {
+		var f = _elm_lang$core$Maybe$map(
+			F2(
+				function (x, y) {
+					return function (_p0) {
+						return x(
+							y(_p0));
+					};
+				})(func));
+		return _elm_lang$core$Native_Utils.update(
+			push,
+			{
+				onOk: f(push.onOk),
+				onError: f(push.onError)
+			});
+	});
+var _simon_larsson$elm_template$Phoenix_Push$onError = F2(
+	function (cb, push) {
+		return _elm_lang$core$Native_Utils.update(
+			push,
+			{
+				onError: _elm_lang$core$Maybe$Just(cb)
+			});
+	});
+var _simon_larsson$elm_template$Phoenix_Push$onOk = F2(
+	function (cb, push) {
+		return _elm_lang$core$Native_Utils.update(
+			push,
+			{
+				onOk: _elm_lang$core$Maybe$Just(cb)
+			});
+	});
+var _simon_larsson$elm_template$Phoenix_Push$withPayload = F2(
+	function (payload, push) {
+		return _elm_lang$core$Native_Utils.update(
+			push,
+			{payload: payload});
+	});
+var _simon_larsson$elm_template$Phoenix_Push$PhoenixPush = F5(
+	function (a, b, c, d, e) {
+		return {topic: a, event: b, payload: c, onOk: d, onError: e};
+	});
+var _simon_larsson$elm_template$Phoenix_Push$init = F2(
+	function (topic, event) {
+		return A5(
+			_simon_larsson$elm_template$Phoenix_Push$PhoenixPush,
+			topic,
+			event,
+			_elm_lang$core$Json_Encode$object(
+				{ctor: '[]'}),
+			_elm_lang$core$Maybe$Nothing,
+			_elm_lang$core$Maybe$Nothing);
+	});

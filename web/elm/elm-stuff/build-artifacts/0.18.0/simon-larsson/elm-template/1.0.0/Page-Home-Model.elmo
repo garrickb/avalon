@@ -1,0 +1,4 @@
+var _simon_larsson$elm_template$Page_Home_Model$Model = F2(
+	function (a, b) {
+		return {username: a, lobbyname: b};
+	});

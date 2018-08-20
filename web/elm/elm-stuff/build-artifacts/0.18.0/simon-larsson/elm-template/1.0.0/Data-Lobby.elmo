@@ -1,0 +1,4 @@
+var _simon_larsson$elm_template$Data_Lobby$Lobby = F2(
+	function (a, b) {
+		return {name: a, socket: b};
+	});

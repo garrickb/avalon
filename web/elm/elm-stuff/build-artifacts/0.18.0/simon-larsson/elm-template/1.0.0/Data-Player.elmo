@@ -1,0 +1,8 @@
+var _simon_larsson$elm_template$Data_Player$defaultPlayer = {username: ''};
+var _simon_larsson$elm_template$Data_Player$Player = function (a) {
+	return {username: a};
+};
+var _simon_larsson$elm_template$Data_Player$PlayerPresence = F2(
+	function (a, b) {
+		return {online_at: a, device: b};
+	});

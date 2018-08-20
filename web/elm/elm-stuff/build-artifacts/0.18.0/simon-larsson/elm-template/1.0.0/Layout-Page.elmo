@@ -1,0 +1,95 @@
+var _simon_larsson$elm_template$Layout_Page$viewFooter = A2(
+	_elm_lang$html$Html$footer,
+	{ctor: '[]'},
+	{
+		ctor: '::',
+		_0: A2(
+			_elm_lang$html$Html$div,
+			{ctor: '[]'},
+			{ctor: '[]'}),
+		_1: {ctor: '[]'}
+	});
+var _simon_larsson$elm_template$Layout_Page$viewHeader = function (page) {
+	return A2(
+		_elm_lang$html$Html$nav,
+		{ctor: '[]'},
+		{
+			ctor: '::',
+			_0: A2(
+				_elm_lang$html$Html$div,
+				{ctor: '[]'},
+				{
+					ctor: '::',
+					_0: A2(
+						_elm_lang$html$Html$a,
+						{
+							ctor: '::',
+							_0: _simon_larsson$elm_template$Route$href(_simon_larsson$elm_template$Route$Home),
+							_1: {ctor: '[]'}
+						},
+						{
+							ctor: '::',
+							_0: _elm_lang$html$Html$text('Home'),
+							_1: {ctor: '[]'}
+						}),
+					_1: {
+						ctor: '::',
+						_0: _elm_lang$html$Html$text(' | '),
+						_1: {
+							ctor: '::',
+							_0: A2(
+								_elm_lang$html$Html$a,
+								{
+									ctor: '::',
+									_0: _simon_larsson$elm_template$Route$href(_simon_larsson$elm_template$Route$About),
+									_1: {ctor: '[]'}
+								},
+								{
+									ctor: '::',
+									_0: _elm_lang$html$Html$text('About'),
+									_1: {ctor: '[]'}
+								}),
+							_1: {ctor: '[]'}
+						}
+					}
+				}),
+			_1: {
+				ctor: '::',
+				_0: A2(
+					_elm_lang$html$Html$hr,
+					{ctor: '[]'},
+					{ctor: '[]'}),
+				_1: {ctor: '[]'}
+			}
+		});
+};
+var _simon_larsson$elm_template$Layout_Page$layout = F2(
+	function (page, content) {
+		return A2(
+			_elm_lang$html$Html$div,
+			{ctor: '[]'},
+			{
+				ctor: '::',
+				_0: _simon_larsson$elm_template$Layout_Page$viewHeader(page),
+				_1: {
+					ctor: '::',
+					_0: A2(
+						_elm_lang$html$Html$div,
+						{ctor: '[]'},
+						{
+							ctor: '::',
+							_0: content,
+							_1: {ctor: '[]'}
+						}),
+					_1: {
+						ctor: '::',
+						_0: _simon_larsson$elm_template$Layout_Page$viewFooter,
+						_1: {ctor: '[]'}
+					}
+				}
+			});
+	});
+var _simon_larsson$elm_template$Layout_Page$Lobby = {ctor: 'Lobby'};
+var _simon_larsson$elm_template$Layout_Page$About = {ctor: 'About'};
+var _simon_larsson$elm_template$Layout_Page$Home = {ctor: 'Home'};
+var _simon_larsson$elm_template$Layout_Page$Other = {ctor: 'Other'};

@@ -1,0 +1,3 @@
+var _simon_larsson$elm_template$Model_Dummy$Dummy = function (a) {
+	return {name: a};
+};

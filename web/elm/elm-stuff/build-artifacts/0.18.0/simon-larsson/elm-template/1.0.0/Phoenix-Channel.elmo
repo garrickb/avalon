@@ -1,0 +1,171 @@
+var _simon_larsson$elm_template$Phoenix_Channel$withDebug = function (channel) {
+	return _elm_lang$core$Native_Utils.update(
+		channel,
+		{debug: true});
+};
+var _simon_larsson$elm_template$Phoenix_Channel$map = F2(
+	function (func, chan) {
+		var f = _elm_lang$core$Maybe$map(
+			F2(
+				function (x, y) {
+					return function (_p0) {
+						return x(
+							y(_p0));
+					};
+				})(func));
+		var channel = _elm_lang$core$Native_Utils.update(
+			chan,
+			{
+				onRequestJoin: A2(_elm_lang$core$Maybe$map, func, chan.onRequestJoin),
+				onJoin: f(chan.onJoin),
+				onJoinError: f(chan.onJoinError),
+				onError: A2(_elm_lang$core$Maybe$map, func, chan.onError),
+				onDisconnect: A2(_elm_lang$core$Maybe$map, func, chan.onDisconnect),
+				onRejoin: f(chan.onRejoin),
+				onLeave: f(chan.onLeave),
+				onLeaveError: f(chan.onLeaveError),
+				presence: A2(
+					_elm_lang$core$Maybe$map,
+					_simon_larsson$elm_template$Phoenix_Presence$map(func),
+					chan.presence),
+				on: A2(
+					_elm_lang$core$Dict$map,
+					F2(
+						function (_p1, a) {
+							return function (_p2) {
+								return func(
+									a(_p2));
+							};
+						}),
+					chan.on)
+			});
+		return channel;
+	});
+var _simon_larsson$elm_template$Phoenix_Channel$withPresence = F2(
+	function (presence, chan) {
+		return _elm_lang$core$Native_Utils.update(
+			chan,
+			{
+				presence: _elm_lang$core$Maybe$Just(presence)
+			});
+	});
+var _simon_larsson$elm_template$Phoenix_Channel$onLeaveError = F2(
+	function (onLeaveError_, chan) {
+		return _elm_lang$core$Native_Utils.update(
+			chan,
+			{
+				onLeaveError: _elm_lang$core$Maybe$Just(onLeaveError_)
+			});
+	});
+var _simon_larsson$elm_template$Phoenix_Channel$onLeave = F2(
+	function (onLeave_, chan) {
+		return _elm_lang$core$Native_Utils.update(
+			chan,
+			{
+				onLeave: _elm_lang$core$Maybe$Just(onLeave_)
+			});
+	});
+var _simon_larsson$elm_template$Phoenix_Channel$onRejoin = F2(
+	function (onRejoin_, chan) {
+		return _elm_lang$core$Native_Utils.update(
+			chan,
+			{
+				onRejoin: _elm_lang$core$Maybe$Just(onRejoin_)
+			});
+	});
+var _simon_larsson$elm_template$Phoenix_Channel$onDisconnect = F2(
+	function (onDisconnect_, chan) {
+		return _elm_lang$core$Native_Utils.update(
+			chan,
+			{
+				onDisconnect: _elm_lang$core$Maybe$Just(onDisconnect_)
+			});
+	});
+var _simon_larsson$elm_template$Phoenix_Channel$onError = F2(
+	function (onError_, chan) {
+		return _elm_lang$core$Native_Utils.update(
+			chan,
+			{
+				onError: _elm_lang$core$Maybe$Just(onError_)
+			});
+	});
+var _simon_larsson$elm_template$Phoenix_Channel$onJoinError = F2(
+	function (onJoinError_, chan) {
+		return _elm_lang$core$Native_Utils.update(
+			chan,
+			{
+				onJoinError: _elm_lang$core$Maybe$Just(onJoinError_)
+			});
+	});
+var _simon_larsson$elm_template$Phoenix_Channel$onJoin = F2(
+	function (onJoin_, chan) {
+		var _p3 = chan.onRejoin;
+		if (_p3.ctor === 'Nothing') {
+			return _elm_lang$core$Native_Utils.update(
+				chan,
+				{
+					onJoin: _elm_lang$core$Maybe$Just(onJoin_),
+					onRejoin: _elm_lang$core$Maybe$Just(onJoin_)
+				});
+		} else {
+			return _elm_lang$core$Native_Utils.update(
+				chan,
+				{
+					onJoin: _elm_lang$core$Maybe$Just(onJoin_)
+				});
+		}
+	});
+var _simon_larsson$elm_template$Phoenix_Channel$onRequestJoin = F2(
+	function (onRequestJoin_, chan) {
+		return _elm_lang$core$Native_Utils.update(
+			chan,
+			{
+				onRequestJoin: _elm_lang$core$Maybe$Just(onRequestJoin_)
+			});
+	});
+var _simon_larsson$elm_template$Phoenix_Channel$on = F3(
+	function (event, cb, chan) {
+		return _elm_lang$core$Native_Utils.update(
+			chan,
+			{
+				on: A3(_elm_lang$core$Dict$insert, event, cb, chan.on)
+			});
+	});
+var _simon_larsson$elm_template$Phoenix_Channel$withPayload = F2(
+	function (payload_, chan) {
+		return _elm_lang$core$Native_Utils.update(
+			chan,
+			{
+				payload: _elm_lang$core$Maybe$Just(payload_)
+			});
+	});
+var _simon_larsson$elm_template$Phoenix_Channel$init = function (topic) {
+	return {topic: topic, payload: _elm_lang$core$Maybe$Nothing, onRequestJoin: _elm_lang$core$Maybe$Nothing, onJoin: _elm_lang$core$Maybe$Nothing, onJoinError: _elm_lang$core$Maybe$Nothing, onDisconnect: _elm_lang$core$Maybe$Nothing, onError: _elm_lang$core$Maybe$Nothing, onRejoin: _elm_lang$core$Maybe$Nothing, onLeave: _elm_lang$core$Maybe$Nothing, onLeaveError: _elm_lang$core$Maybe$Nothing, on: _elm_lang$core$Dict$empty, presence: _elm_lang$core$Maybe$Nothing, debug: false};
+};
+var _simon_larsson$elm_template$Phoenix_Channel$PhoenixChannel = function (a) {
+	return function (b) {
+		return function (c) {
+			return function (d) {
+				return function (e) {
+					return function (f) {
+						return function (g) {
+							return function (h) {
+								return function (i) {
+									return function (j) {
+										return function (k) {
+											return function (l) {
+												return function (m) {
+													return {topic: a, payload: b, onRequestJoin: c, onJoin: d, onJoinError: e, onDisconnect: f, onError: g, onRejoin: h, onLeave: i, onLeaveError: j, on: k, presence: l, debug: m};
+												};
+											};
+										};
+									};
+								};
+							};
+						};
+					};
+				};
+			};
+		};
+	};
+};
