@@ -1,15 +1,15 @@
 module Data.Session exposing (Session, initialSession)
 
 import Data.Lobby exposing (Lobby)
-import Data.Player exposing (Player)
+import Data.User exposing (User)
 
 
 type alias Session =
-    { player : Maybe Player
+    { user : Maybe User
     , lobby : Maybe Lobby
     }
 
 
 initialSession : Session
 initialSession =
-    { player = Nothing, lobby = Nothing }
+    { user = Nothing, lobby = Nothing }

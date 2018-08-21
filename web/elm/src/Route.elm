@@ -10,25 +10,16 @@ import UrlParser as Url exposing ((</>), Parser, oneOf, parseHash, s, string)
 
 
 type Route
-    = Home
-    | About
-    | Lobby String
+    = Root
+    | Home
+    | Lobby
 
 
-
---    When needing parameters on the form base/item/id
---   | Item String
-
-
-routeMatcher : Parser (Route -> a) a
-routeMatcher =
+route : Parser (Route -> a) a
+route =
     oneOf
         [ Url.map Home (s "")
-        , Url.map About (s "about")
-        , Url.map Lobby (s "lobby" </> string)
-
-        --    When needing parameters on the form base/item/3
-        --    , Url.map Item (s "item" </> string)
+        , Url.map Lobby (s "lobby")
         ]
 
 
@@ -37,28 +28,20 @@ routeMatcher =
 
 
 routeToString : Route -> String
-routeToString page =
+routeToString route =
     let
-        pagePath =
-            case page of
+        pieces =
+            case route of
                 Home ->
                     []
 
-                About ->
-                    [ "about" ]
+                Root ->
+                    []
 
-                Lobby name ->
-                    [ "lobby", name ]
-
-        --    When needing parameters on the form base/item/3
-        --                    Item id ->
-        --                    [ "item",  id ]
+                Lobby ->
+                    [ "lobby" ]
     in
-    "#/" ++ String.join "/" pagePath
-
-
-
--- PUBLIC HELPERS --
+    "#/" ++ String.join "/" pieces
 
 
 href : Route -> Attribute msg
@@ -74,6 +57,6 @@ modifyUrl =
 fromLocation : Location -> Maybe Route
 fromLocation location =
     if String.isEmpty location.hash then
-        Just Home
+        Just Root
     else
-        parseHash routeMatcher location
+        parseHash route location

@@ -1,6 +1,5 @@
 module Data.Lobby exposing (Lobby)
 
-import Data.Player exposing (Player)
 import Phoenix.Socket as Socket
 
 

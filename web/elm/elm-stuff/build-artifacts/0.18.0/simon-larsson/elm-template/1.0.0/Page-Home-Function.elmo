@@ -1,4 +1,0 @@
-var _simon_larsson$elm_template$Page_Home_Function$initWithName = function (defaultName) {
-	return {username: defaultName, lobbyname: ''};
-};
-var _simon_larsson$elm_template$Page_Home_Function$init = {username: '', lobbyname: ''};

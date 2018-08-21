@@ -1,7 +1,0 @@
-var _simon_larsson$elm_template$Page_Home_Message$LobbyName = function (a) {
-	return {ctor: 'LobbyName', _0: a};
-};
-var _simon_larsson$elm_template$Page_Home_Message$UserName = function (a) {
-	return {ctor: 'UserName', _0: a};
-};
-var _simon_larsson$elm_template$Page_Home_Message$JoinLobby = {ctor: 'JoinLobby'};

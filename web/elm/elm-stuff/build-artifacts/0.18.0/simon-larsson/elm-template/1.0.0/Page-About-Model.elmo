@@ -1,4 +1,0 @@
-var _simon_larsson$elm_template$Page_About_Model$Model = F2(
-	function (a, b) {
-		return {pageTitle: a, pageBody: b};
-	});
