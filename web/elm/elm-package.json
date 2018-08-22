@@ -1,7 +1,7 @@
 {
     "version": "1.0.0",
-    "summary": "Simple template for a app with several pages",
-    "repository": "https://github.com/simon-larsson/elm-template.git",
+    "summary": "Avalon Game Web App",
+    "repository": "https://github.com/garrickb/avalon.git",
     "license": "BSD3",
     "source-directories": [
         "src",

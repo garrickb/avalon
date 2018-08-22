@@ -1,5 +1,6 @@
 module Scene.Home exposing (ExternalMsg(..), Model, Msg, init, update, view)
 
+import Data.LobbyName as LobbyName
 import Data.Session exposing (Session)
 import Html exposing (..)
 import Html.Attributes exposing (..)

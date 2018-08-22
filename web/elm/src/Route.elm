@@ -1,5 +1,6 @@
 module Route exposing (Route(..), fromLocation, href, modifyUrl)
 
+import Data.LobbyName as LobbyName exposing (LobbyName)
 import Html exposing (Attribute)
 import Html.Attributes as Attr
 import Navigation exposing (Location)
@@ -15,11 +16,17 @@ type Route
     | Lobby
 
 
+
+-- | Lobby LobbyName
+
+
 route : Parser (Route -> a) a
 route =
     oneOf
         [ Url.map Home (s "")
         , Url.map Lobby (s "lobby")
+
+        -- , Url.map Lobby (s "lobby" </> LobbyName.urlParser)
         ]
 
 
@@ -40,6 +47,9 @@ routeToString route =
 
                 Lobby ->
                     [ "lobby" ]
+
+        -- Lobby lobbyName ->
+        --     [ "lobby", LobbyName.toString lobbyName ]
     in
     "#/" ++ String.join "/" pieces
 

@@ -1,0 +1,3 @@
+var _garrickb$avalon$Data_User$User = function (a) {
+	return {username: a};
+};

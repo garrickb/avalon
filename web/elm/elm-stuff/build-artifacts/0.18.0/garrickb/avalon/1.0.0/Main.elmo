@@ -1,0 +1,200 @@
+var _garrickb$avalon$Main$stateSubscriptions = function (state) {
+	var _p0 = state;
+	switch (_p0.ctor) {
+		case 'Blank':
+			return _elm_lang$core$Platform_Sub$none;
+		case 'NotFound':
+			return _elm_lang$core$Platform_Sub$none;
+		case 'Lobby':
+			return _elm_lang$core$Platform_Sub$none;
+		default:
+			return _elm_lang$core$Platform_Sub$none;
+	}
+};
+var _garrickb$avalon$Main$subscriptions = function (model) {
+	return _elm_lang$core$Platform_Sub$batch(
+		{
+			ctor: '::',
+			_0: _garrickb$avalon$Main$stateSubscriptions(model.state),
+			_1: {ctor: '[]'}
+		});
+};
+var _garrickb$avalon$Main$Model = F2(
+	function (a, b) {
+		return {session: a, state: b};
+	});
+var _garrickb$avalon$Main$Lobby = function (a) {
+	return {ctor: 'Lobby', _0: a};
+};
+var _garrickb$avalon$Main$Home = function (a) {
+	return {ctor: 'Home', _0: a};
+};
+var _garrickb$avalon$Main$NotFound = {ctor: 'NotFound'};
+var _garrickb$avalon$Main$setRoute = F2(
+	function (maybeRoute, model) {
+		var transition = F2(
+			function (toMsg, task) {
+				return {
+					ctor: '_Tuple2',
+					_0: model,
+					_1: A2(_elm_lang$core$Task$attempt, toMsg, task)
+				};
+			});
+		var _p1 = maybeRoute;
+		if (_p1.ctor === 'Nothing') {
+			return {
+				ctor: '_Tuple2',
+				_0: _elm_lang$core$Native_Utils.update(
+					model,
+					{state: _garrickb$avalon$Main$NotFound}),
+				_1: _elm_lang$core$Platform_Cmd$none
+			};
+		} else {
+			switch (_p1._0.ctor) {
+				case 'Root':
+					return {
+						ctor: '_Tuple2',
+						_0: _elm_lang$core$Native_Utils.update(
+							model,
+							{
+								state: _garrickb$avalon$Main$Home(_garrickb$avalon$Scene_Home$init)
+							}),
+						_1: _garrickb$avalon$Route$modifyUrl(_garrickb$avalon$Route$Home)
+					};
+				case 'Home':
+					return {
+						ctor: '_Tuple2',
+						_0: _elm_lang$core$Native_Utils.update(
+							model,
+							{
+								state: _garrickb$avalon$Main$Home(_garrickb$avalon$Scene_Home$init)
+							}),
+						_1: _elm_lang$core$Platform_Cmd$none
+					};
+				default:
+					return {
+						ctor: '_Tuple2',
+						_0: _elm_lang$core$Native_Utils.update(
+							model,
+							{
+								state: _garrickb$avalon$Main$Lobby(
+									_garrickb$avalon$Scene_Lobby$init(model.session))
+							}),
+						_1: _elm_lang$core$Platform_Cmd$none
+					};
+			}
+		}
+	});
+var _garrickb$avalon$Main$Blank = {ctor: 'Blank'};
+var _garrickb$avalon$Main$initialState = _garrickb$avalon$Main$Blank;
+var _garrickb$avalon$Main$init = F2(
+	function (val, location) {
+		return A2(
+			_garrickb$avalon$Main$setRoute,
+			_garrickb$avalon$Route$fromLocation(location),
+			{
+				session: {user: _elm_lang$core$Maybe$Nothing, lobby: _elm_lang$core$Maybe$Nothing},
+				state: _garrickb$avalon$Main$initialState
+			});
+	});
+var _garrickb$avalon$Main$HomeMsg = function (a) {
+	return {ctor: 'HomeMsg', _0: a};
+};
+var _garrickb$avalon$Main$LobbyMsg = function (a) {
+	return {ctor: 'LobbyMsg', _0: a};
+};
+var _garrickb$avalon$Main$viewState = F2(
+	function (session, state) {
+		var _p2 = state;
+		switch (_p2.ctor) {
+			case 'Blank':
+				return _elm_lang$html$Html$text('');
+			case 'NotFound':
+				return _elm_lang$html$Html$text('Not Found');
+			case 'Lobby':
+				return A2(
+					_elm_lang$html$Html$map,
+					_garrickb$avalon$Main$LobbyMsg,
+					A2(_garrickb$avalon$Scene_Lobby$view, session, _p2._0));
+			default:
+				return A2(
+					_elm_lang$html$Html$map,
+					_garrickb$avalon$Main$HomeMsg,
+					A2(_garrickb$avalon$Scene_Home$view, session, _p2._0));
+		}
+	});
+var _garrickb$avalon$Main$view = function (model) {
+	return _garrickb$avalon$Views_State$frame(
+		A2(_garrickb$avalon$Main$viewState, model.session, model.state));
+};
+var _garrickb$avalon$Main$updateState = F3(
+	function (state, msg, model) {
+		var _p3 = {ctor: '_Tuple2', _0: msg, _1: state};
+		_v3_3:
+		do {
+			switch (_p3._0.ctor) {
+				case 'SetRoute':
+					return A2(_garrickb$avalon$Main$setRoute, _p3._0._0, model);
+				case 'HomeMsg':
+					if (_p3._1.ctor === 'Home') {
+						var _p4 = A2(_garrickb$avalon$Scene_Home$update, _p3._0._0, _p3._1._0);
+						var stateModel = _p4._0._0;
+						var cmd = _p4._0._1;
+						var msgFromPage = _p4._1;
+						var newModel = function () {
+							var _p5 = msgFromPage;
+							if (_p5.ctor === 'NoOp') {
+								return model;
+							} else {
+								return _elm_lang$core$Native_Utils.update(
+									model,
+									{session: _p5._0});
+							}
+						}();
+						return {
+							ctor: '_Tuple2',
+							_0: _elm_lang$core$Native_Utils.update(
+								newModel,
+								{
+									state: _garrickb$avalon$Main$Home(stateModel)
+								}),
+							_1: A2(_elm_lang$core$Platform_Cmd$map, _garrickb$avalon$Main$HomeMsg, cmd)
+						};
+					} else {
+						break _v3_3;
+					}
+				default:
+					if (_p3._1.ctor === 'Lobby') {
+						var _p6 = A2(_garrickb$avalon$Scene_Lobby$update, _p3._0._0, _p3._1._0);
+						var stateModel = _p6._0;
+						var cmd = _p6._1;
+						return {
+							ctor: '_Tuple2',
+							_0: _elm_lang$core$Native_Utils.update(
+								model,
+								{
+									state: _garrickb$avalon$Main$Lobby(stateModel)
+								}),
+							_1: A2(_elm_lang$core$Platform_Cmd$map, _garrickb$avalon$Main$LobbyMsg, cmd)
+						};
+					} else {
+						break _v3_3;
+					}
+			}
+		} while(false);
+		return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+	});
+var _garrickb$avalon$Main$update = F2(
+	function (msg, model) {
+		return A3(_garrickb$avalon$Main$updateState, model.state, msg, model);
+	});
+var _garrickb$avalon$Main$SetRoute = function (a) {
+	return {ctor: 'SetRoute', _0: a};
+};
+var _garrickb$avalon$Main$main = A2(
+	_elm_lang$navigation$Navigation$programWithFlags,
+	function (_p7) {
+		return _garrickb$avalon$Main$SetRoute(
+			_garrickb$avalon$Route$fromLocation(_p7));
+	},
+	{init: _garrickb$avalon$Main$init, view: _garrickb$avalon$Main$view, update: _garrickb$avalon$Main$update, subscriptions: _garrickb$avalon$Main$subscriptions})(_elm_lang$core$Json_Decode$value);

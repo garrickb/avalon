@@ -1,0 +1,5 @@
+var _simon_larsson$elm_template$Data_Session$initialSession = {user: _elm_lang$core$Maybe$Nothing, lobby: _elm_lang$core$Maybe$Nothing};
+var _simon_larsson$elm_template$Data_Session$Session = F2(
+	function (a, b) {
+		return {user: a, lobby: b};
+	});

@@ -121,7 +121,12 @@ setRoute maybeRoute model =
             ( { model | state = Home Home.init }, Cmd.none )
 
         Just Route.Lobby ->
-            ( { model | state = Lobby Lobby.init }, Cmd.none )
+            ( { model | state = Lobby (Lobby.init model.session) }, Cmd.none )
+
+
+
+-- Just (Route.Lobby lobbyName) ->
+--     ( { model | state = Lobby (Lobby.init lobbyName) }, Cmd.none )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -146,12 +151,16 @@ updateState state msg model =
                             model
 
                         Home.SetSession session ->
-                            { model | session = session, state = Lobby Lobby.init }
+                            { model | session = session }
             in
             ( { newModel | state = Home stateModel }, Cmd.map HomeMsg cmd )
 
         ( LobbyMsg subMsg, Lobby subModel ) ->
-            ( model, Cmd.none )
+            let
+                ( stateModel, cmd ) =
+                    Lobby.update subMsg subModel
+            in
+            ( { model | state = Lobby stateModel }, Cmd.map LobbyMsg cmd )
 
         ( _, _ ) ->
             ( model, Cmd.none )

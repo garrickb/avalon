@@ -1,0 +1,8 @@
+var _simon_larsson$elm_template$Scene_Lobby$view = F2(
+	function (session, model) {
+		return _elm_lang$html$Html$text('hello lobby');
+	});
+var _simon_larsson$elm_template$Scene_Lobby$init = {};
+var _simon_larsson$elm_template$Scene_Lobby$Model = {};
+var _simon_larsson$elm_template$Scene_Lobby$DoThing = {ctor: 'DoThing'};
+var _simon_larsson$elm_template$Scene_Lobby$NoOp = {ctor: 'NoOp'};
