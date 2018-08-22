@@ -1,3 +1,0 @@
-var _simon_larsson$elm_template$Data_User$User = function (a) {
-	return {username: a};
-};
