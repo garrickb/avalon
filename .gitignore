@@ -9,7 +9,6 @@ erl_crash.dump
 
 # Static artifacts
 /node_modules
-/web/elm/elm_stuff
 /web/static/vendor/main.js
 
 # Since we are building assets from web/static,
