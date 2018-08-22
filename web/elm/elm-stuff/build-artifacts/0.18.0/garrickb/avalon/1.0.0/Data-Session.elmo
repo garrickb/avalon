@@ -1,0 +1,13 @@
+var _garrickb$avalon$Data_Session$getLobbyName = function (session) {
+	var _p0 = session.lobby;
+	if (_p0.ctor === 'Nothing') {
+		return 'Invalid Lobby';
+	} else {
+		return _p0._0.name;
+	}
+};
+var _garrickb$avalon$Data_Session$initialSession = {user: _elm_lang$core$Maybe$Nothing, lobby: _elm_lang$core$Maybe$Nothing};
+var _garrickb$avalon$Data_Session$Session = F2(
+	function (a, b) {
+		return {user: a, lobby: b};
+	});

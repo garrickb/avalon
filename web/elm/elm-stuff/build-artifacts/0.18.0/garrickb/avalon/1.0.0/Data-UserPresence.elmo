@@ -1,0 +1,5 @@
+var _garrickb$avalon$Data_UserPresence$init = {online_at: '', device: ''};
+var _garrickb$avalon$Data_UserPresence$Model = F2(
+	function (a, b) {
+		return {online_at: a, device: b};
+	});

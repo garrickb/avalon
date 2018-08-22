@@ -54,10 +54,12 @@ viewState : Session -> State -> Html Msg
 viewState session state =
     case state of
         Blank ->
+            -- TODO: Display a spinner to show the page is loading
             Html.text ""
 
         NotFound ->
-            Html.text "Not Found"
+            -- TODO: Route to home with an error visible
+            Html.text "Page Not Found"
 
         Lobby subModel ->
             Lobby.view session subModel
@@ -121,12 +123,16 @@ setRoute maybeRoute model =
             ( { model | state = Home Home.init }, Cmd.none )
 
         Just Route.Lobby ->
-            ( { model | state = Lobby (Lobby.init model.session) }, Cmd.none )
+            let
+                ( newState, cmd ) =
+                    case model.session.lobby of
+                        Nothing ->
+                            ( Home Home.init, Route.modifyUrl Route.Home )
 
-
-
--- Just (Route.Lobby lobbyName) ->
---     ( { model | state = Lobby (Lobby.init lobbyName) }, Cmd.none )
+                        Just lobby ->
+                            ( Lobby (Lobby.init model.session), Cmd.none )
+            in
+            ( { model | state = newState }, cmd )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )

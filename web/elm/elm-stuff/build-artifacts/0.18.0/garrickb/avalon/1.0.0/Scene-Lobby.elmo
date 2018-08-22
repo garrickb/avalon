@@ -1,0 +1,174 @@
+var _garrickb$avalon$Scene_Lobby$update = F2(
+	function (msg, model) {
+		var _p0 = msg;
+		if (_p0.ctor === 'MessageInput') {
+			var newChat = {chatInput: _p0._0, messages: model.chat.messages};
+			return {
+				ctor: '_Tuple2',
+				_0: _elm_lang$core$Native_Utils.update(
+					model,
+					{chat: newChat}),
+				_1: _elm_lang$core$Platform_Cmd$none
+			};
+		} else {
+			var newMessages = A2(
+				_elm_lang$core$Basics_ops['++'],
+				model.chat.messages,
+				{
+					ctor: '::',
+					_0: model.chat.chatInput,
+					_1: {ctor: '[]'}
+				});
+			var newChat = {chatInput: '', messages: newMessages};
+			return {
+				ctor: '_Tuple2',
+				_0: _elm_lang$core$Native_Utils.update(
+					model,
+					{chat: newChat}),
+				_1: _elm_lang$core$Platform_Cmd$none
+			};
+		}
+	});
+var _garrickb$avalon$Scene_Lobby$viewMessages = function (messages) {
+	return A2(
+		_elm_lang$html$Html$ul,
+		{ctor: '[]'},
+		A2(
+			_elm_lang$core$List$map,
+			function (message) {
+				return A2(
+					_elm_lang$html$Html$li,
+					{ctor: '[]'},
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html$text(message),
+						_1: {ctor: '[]'}
+					});
+			},
+			messages));
+};
+var _garrickb$avalon$Scene_Lobby$init = function (session) {
+	return {
+		session: session,
+		chat: {
+			messages: {
+				ctor: '::',
+				_0: 'welcome to da lobby my man',
+				_1: {ctor: '[]'}
+			},
+			chatInput: ''
+		}
+	};
+};
+var _garrickb$avalon$Scene_Lobby$ChatModel = F2(
+	function (a, b) {
+		return {messages: a, chatInput: b};
+	});
+var _garrickb$avalon$Scene_Lobby$Model = F2(
+	function (a, b) {
+		return {session: a, chat: b};
+	});
+var _garrickb$avalon$Scene_Lobby$SubmitMessage = {ctor: 'SubmitMessage'};
+var _garrickb$avalon$Scene_Lobby$MessageInput = function (a) {
+	return {ctor: 'MessageInput', _0: a};
+};
+var _garrickb$avalon$Scene_Lobby$viewChatBox = function (currentValue) {
+	return A2(
+		_elm_lang$html$Html$div,
+		{ctor: '[]'},
+		{
+			ctor: '::',
+			_0: A2(
+				_elm_lang$html$Html$input,
+				{
+					ctor: '::',
+					_0: _elm_lang$html$Html_Attributes$placeholder('Message'),
+					_1: {
+						ctor: '::',
+						_0: _elm_lang$html$Html_Events$onInput(_garrickb$avalon$Scene_Lobby$MessageInput),
+						_1: {
+							ctor: '::',
+							_0: _elm_lang$html$Html_Attributes$value(currentValue),
+							_1: {ctor: '[]'}
+						}
+					}
+				},
+				{ctor: '[]'}),
+			_1: {
+				ctor: '::',
+				_0: A2(
+					_elm_lang$html$Html$button,
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html_Events$onClick(_garrickb$avalon$Scene_Lobby$SubmitMessage),
+						_1: {ctor: '[]'}
+					},
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html$text('Submit'),
+						_1: {ctor: '[]'}
+					}),
+				_1: {ctor: '[]'}
+			}
+		});
+};
+var _garrickb$avalon$Scene_Lobby$viewChat = function (chatModel) {
+	return A2(
+		_elm_lang$html$Html$div,
+		{ctor: '[]'},
+		{
+			ctor: '::',
+			_0: _elm_lang$html$Html$text('this is the chat'),
+			_1: {
+				ctor: '::',
+				_0: _garrickb$avalon$Scene_Lobby$viewMessages(chatModel.messages),
+				_1: {
+					ctor: '::',
+					_0: _garrickb$avalon$Scene_Lobby$viewChatBox(chatModel.chatInput),
+					_1: {ctor: '[]'}
+				}
+			}
+		});
+};
+var _garrickb$avalon$Scene_Lobby$view = F2(
+	function (session, model) {
+		var _p1 = session.lobby;
+		if (_p1.ctor === 'Nothing') {
+			return A2(
+				_elm_lang$html$Html$div,
+				{ctor: '[]'},
+				{
+					ctor: '::',
+					_0: A2(
+						_elm_lang$html$Html$h2,
+						{ctor: '[]'},
+						{
+							ctor: '::',
+							_0: _elm_lang$html$Html$text('you should probably go to the home page and join a lobby, my main man.'),
+							_1: {ctor: '[]'}
+						}),
+					_1: {ctor: '[]'}
+				});
+		} else {
+			return A2(
+				_elm_lang$html$Html$div,
+				{ctor: '[]'},
+				{
+					ctor: '::',
+					_0: A2(
+						_elm_lang$html$Html$h1,
+						{ctor: '[]'},
+						{
+							ctor: '::',
+							_0: _elm_lang$html$Html$text(
+								_garrickb$avalon$Data_Session$getLobbyName(session)),
+							_1: {ctor: '[]'}
+						}),
+					_1: {
+						ctor: '::',
+						_0: _garrickb$avalon$Scene_Lobby$viewChat(model.chat),
+						_1: {ctor: '[]'}
+					}
+				});
+		}
+	});

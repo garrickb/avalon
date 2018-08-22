@@ -1,0 +1,130 @@
+var _garrickb$avalon$Scene_Home$init = {userName: '', lobbyName: ''};
+var _garrickb$avalon$Scene_Home$Model = F2(
+	function (a, b) {
+		return {userName: a, lobbyName: b};
+	});
+var _garrickb$avalon$Scene_Home$JoinLobby = {ctor: 'JoinLobby'};
+var _garrickb$avalon$Scene_Home$InputUserName = function (a) {
+	return {ctor: 'InputUserName', _0: a};
+};
+var _garrickb$avalon$Scene_Home$InputLobbyName = function (a) {
+	return {ctor: 'InputLobbyName', _0: a};
+};
+var _garrickb$avalon$Scene_Home$view = F2(
+	function (session, model) {
+		return A2(
+			_elm_lang$html$Html$div,
+			{ctor: '[]'},
+			{
+				ctor: '::',
+				_0: A2(
+					_elm_lang$html$Html$h1,
+					{ctor: '[]'},
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html$text('Join a Lobby'),
+						_1: {ctor: '[]'}
+					}),
+				_1: {
+					ctor: '::',
+					_0: A2(
+						_elm_lang$html$Html$input,
+						{
+							ctor: '::',
+							_0: _elm_lang$html$Html_Events$onInput(_garrickb$avalon$Scene_Home$InputLobbyName),
+							_1: {
+								ctor: '::',
+								_0: _elm_lang$html$Html_Attributes$placeholder('User Name'),
+								_1: {ctor: '[]'}
+							}
+						},
+						{ctor: '[]'}),
+					_1: {
+						ctor: '::',
+						_0: A2(
+							_elm_lang$html$Html$input,
+							{
+								ctor: '::',
+								_0: _elm_lang$html$Html_Events$onInput(_garrickb$avalon$Scene_Home$InputUserName),
+								_1: {
+									ctor: '::',
+									_0: _elm_lang$html$Html_Attributes$placeholder('Lobby Name'),
+									_1: {ctor: '[]'}
+								}
+							},
+							{ctor: '[]'}),
+						_1: {
+							ctor: '::',
+							_0: A2(
+								_elm_lang$html$Html$button,
+								{
+									ctor: '::',
+									_0: _elm_lang$html$Html_Events$onClick(_garrickb$avalon$Scene_Home$JoinLobby),
+									_1: {ctor: '[]'}
+								},
+								{
+									ctor: '::',
+									_0: _elm_lang$html$Html$text('go to lobby'),
+									_1: {ctor: '[]'}
+								}),
+							_1: {ctor: '[]'}
+						}
+					}
+				}
+			});
+	});
+var _garrickb$avalon$Scene_Home$SetSession = function (a) {
+	return {ctor: 'SetSession', _0: a};
+};
+var _garrickb$avalon$Scene_Home$NoOp = {ctor: 'NoOp'};
+var _garrickb$avalon$Scene_Home$update = F2(
+	function (msg, model) {
+		var _p0 = msg;
+		switch (_p0.ctor) {
+			case 'InputLobbyName':
+				return {
+					ctor: '_Tuple2',
+					_0: {
+						ctor: '_Tuple2',
+						_0: _elm_lang$core$Native_Utils.update(
+							model,
+							{lobbyName: _p0._0}),
+						_1: _elm_lang$core$Platform_Cmd$none
+					},
+					_1: _garrickb$avalon$Scene_Home$NoOp
+				};
+			case 'InputUserName':
+				return {
+					ctor: '_Tuple2',
+					_0: {
+						ctor: '_Tuple2',
+						_0: _elm_lang$core$Native_Utils.update(
+							model,
+							{userName: _p0._0}),
+						_1: _elm_lang$core$Platform_Cmd$none
+					},
+					_1: _garrickb$avalon$Scene_Home$NoOp
+				};
+			default:
+				var lobby = {name: model.lobbyName, socket: _elm_lang$core$Maybe$Nothing};
+				var user = {username: model.userName};
+				var session = {
+					user: _elm_lang$core$Maybe$Just(user),
+					lobby: _elm_lang$core$Maybe$Just(lobby)
+				};
+				return {
+					ctor: '_Tuple2',
+					_0: {
+						ctor: '_Tuple2',
+						_0: model,
+						_1: _elm_lang$core$Platform_Cmd$batch(
+							{
+								ctor: '::',
+								_0: _garrickb$avalon$Route$modifyUrl(_garrickb$avalon$Route$Lobby),
+								_1: {ctor: '[]'}
+							})
+					},
+					_1: _garrickb$avalon$Scene_Home$SetSession(session)
+				};
+		}
+	});
