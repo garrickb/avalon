@@ -1,4 +1,0 @@
-var _garrickb$avalon$Data_Lobby$Lobby = F2(
-	function (a, b) {
-		return {name: a, socket: b};
-	});
