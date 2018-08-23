@@ -82,7 +82,7 @@ view session model =
 
 socketUrl : String
 socketUrl =
-    "room:lobby"
+    "ws://localhost:4000"
 
 
 initSocket : Session -> String -> Socket Msg
