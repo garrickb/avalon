@@ -66,7 +66,7 @@ update msg model =
                     { username = model.userName }
 
                 lobby =
-                    { name = model.lobbyName, socket = Nothing }
+                    { name = model.lobbyName }
 
                 session =
                     { user = Just user, lobby = Just lobby }

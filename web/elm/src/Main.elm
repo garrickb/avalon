@@ -74,15 +74,20 @@ viewState session state =
 -- SUBSCRIPTION --
 
 
+socketUrl : String
+socketUrl =
+    "ws://localhost:4000/ws"
+
+
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ stateSubscriptions model.state ]
+        [ stateSubscriptions model ]
 
 
-stateSubscriptions : State -> Sub Msg
-stateSubscriptions state =
-    case state of
+stateSubscriptions : Model -> Sub Msg
+stateSubscriptions model =
+    case model.state of
         Blank ->
             Sub.none
 
@@ -90,7 +95,7 @@ stateSubscriptions state =
             Sub.none
 
         Lobby _ ->
-            Sub.none
+            Sub.map LobbyMsg (Lobby.subscription model.session)
 
         Home _ ->
             Sub.none

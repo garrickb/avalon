@@ -2,7 +2,7 @@ defmodule Avalon.UserSocket do
   use Phoenix.Socket
 
   ## Channels
-  # channel "room:*", Avalon.RoomChannel
+  channel "room:lobby", Avalon.RoomChannel
 
   ## Transports
   transport :websocket, Phoenix.Transports.WebSocket
