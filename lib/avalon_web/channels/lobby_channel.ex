@@ -1,5 +1,5 @@
-defmodule AvalonWeb.LobbyChannel do
-  use AvalonWeb, :channel
+defmodule Avalon.Web.LobbyChannel do
+  use Avalon.Web, :channel
 
   def join("lobby:lobby", payload, socket) do
     if authorized?(payload) do

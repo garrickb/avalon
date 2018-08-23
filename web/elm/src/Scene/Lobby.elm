@@ -5,7 +5,9 @@ import Data.Session exposing (Session, getLobbyName)
 import Html exposing (Html, button, div, h1, h2, input, li, text, ul)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
+import Json.Encode as JE
 import Phoenix
+import Phoenix.Channel as Channel exposing (Channel)
 import Phoenix.Socket as Socket exposing (Socket)
 
 
@@ -82,7 +84,7 @@ view session model =
 
 socketUrl : String
 socketUrl =
-    "ws://localhost:4000"
+    "ws://localhost:4000/socket/websocket"
 
 
 initSocket : Session -> String -> Socket Msg
@@ -101,13 +103,40 @@ initSocket session socketUrl =
         |> Socket.onOpen SocketOpened
         |> Socket.onClose (\_ -> SocketClosed)
         |> Socket.onAbnormalClose (\_ -> SocketClosedAbnormally)
+        |> Socket.reconnectTimer (\backoffIteration -> (backoffIteration + 1) * 5000 |> toFloat)
+
+
+getLobby : Session -> Channel Msg
+getLobby session =
+    let
+        params =
+            case session.user of
+                Just user ->
+                    [ ( "username", JE.string user.username ) ]
+
+                Nothing ->
+                    []
+    in
+    Channel.init "lobby:lobby"
+        |> Channel.withPayload (JE.object params)
+        --        |> Channel.onRequestJoin (UpdateState JoiningLobby)
+        --        |> Channel.onJoin (\_ -> UpdateState JoinedLobby)
+        --        |> Channel.onLeave (\_ -> UpdateState LeftLobby)
+        --        |> Channel.on "new_msg" (\msg -> NewMsg msg)
+        --        |> Channel.withPresence presence
+        |> Channel.withDebug
 
 
 subscription : Session -> Sub Msg
 subscription session =
     let
         phoenixSubscriptions =
-            [ Phoenix.connect (initSocket session socketUrl) [] ]
+            case session.lobby of
+                Nothing ->
+                    [ Phoenix.connect (initSocket session socketUrl) [] ]
+
+                Just lobby ->
+                    [ Phoenix.connect (initSocket session socketUrl) [ getLobby session ] ]
 
         -- more subscriptions unrelated to the socket connection setup here
     in
