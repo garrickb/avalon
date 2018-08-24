@@ -1,7 +1,9 @@
 module Scene.Home exposing (ExternalMsg(..), Model, Msg, init, update, view)
 
+import Data.Lobby as Lobby
 import Data.LobbyName as LobbyName
 import Data.Session exposing (Session)
+import Data.User as User
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
@@ -48,7 +50,7 @@ type Msg
 
 type ExternalMsg
     = NoOp
-    | SetSession Session
+    | SetSessionInfo (Maybe Lobby.Lobby) (Maybe User.User)
 
 
 update : Msg -> Model -> ( ( Model, Cmd Msg ), ExternalMsg )
@@ -67,8 +69,5 @@ update msg model =
 
                 lobby =
                     { name = model.lobbyName }
-
-                session =
-                    { user = Just user, lobby = Just lobby }
             in
-            ( ( model, Cmd.batch [ Route.modifyUrl Route.Lobby ] ), SetSession session )
+            ( ( model, Cmd.batch [ Route.modifyUrl Route.Lobby ] ), SetSessionInfo (Just lobby) (Just user) )

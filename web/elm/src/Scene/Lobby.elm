@@ -1,13 +1,17 @@
 module Scene.Lobby exposing (Model, Msg, init, subscription, update, view)
 
-import Data.LobbyName as LobbyName
+import Data.Channel exposing (ChannelState(..), lobbyChannel)
+import Data.ChatMessage exposing (ChatMsg, decodeChatMsg)
 import Data.Session exposing (Session, getLobbyName)
+import Data.Socket exposing (SocketState(..), socketUrl)
 import Html exposing (Html, button, div, h1, h2, input, li, text, ul)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
+import Json.Decode as JD exposing (Decoder)
 import Json.Encode as JE
 import Phoenix
 import Phoenix.Channel as Channel exposing (Channel)
+import Phoenix.Push as Push
 import Phoenix.Socket as Socket exposing (Socket)
 
 
@@ -15,24 +19,26 @@ import Phoenix.Socket as Socket exposing (Socket)
 
 
 type alias ChatModel =
-    { messages : List String
+    { messages : List ChatMsg
     , chatInput : String
     }
 
 
 type alias Model =
-    { session : Session
-    , chat : ChatModel
+    { chat : ChatModel
+    , socketState : SocketState
+    , channelState : ChannelState
     }
 
 
-init : Session -> Model
-init session =
-    { session = session
-    , chat =
-        { messages = [ "welcome to da lobby my man" ]
+init : Model
+init =
+    { chat =
+        { messages = []
         , chatInput = ""
         }
+    , socketState = SocketClosed
+    , channelState = LeftChannel
     }
 
 
@@ -40,10 +46,10 @@ init session =
 -- VIEW --
 
 
-viewMessages : List String -> Html Msg
+viewMessages : List ChatMsg -> Html Msg
 viewMessages messages =
     messages
-        |> List.map (\message -> li [] [ text message ])
+        |> List.map (\message -> li [] [ text message.message ])
         |> ul []
 
 
@@ -82,11 +88,6 @@ view session model =
 -- SUBSCRIPTION --
 
 
-socketUrl : String
-socketUrl =
-    "ws://localhost:4000/socket/websocket"
-
-
 initSocket : Session -> String -> Socket Msg
 initSocket session socketUrl =
     let
@@ -100,14 +101,14 @@ initSocket session socketUrl =
     in
     Socket.init socketUrl
         |> Socket.withParams params
-        |> Socket.onOpen SocketOpened
-        |> Socket.onClose (\_ -> SocketClosed)
-        |> Socket.onAbnormalClose (\_ -> SocketClosedAbnormally)
+        |> Socket.onOpen (SetSocketState SocketOpened)
+        |> Socket.onClose (\_ -> SetSocketState SocketClosed)
+        |> Socket.onAbnormalClose (\_ -> SetSocketState SocketClosed)
         |> Socket.reconnectTimer (\backoffIteration -> (backoffIteration + 1) * 5000 |> toFloat)
 
 
-getLobby : Session -> Channel Msg
-getLobby session =
+getChannel : Session -> Channel Msg
+getChannel session =
     let
         params =
             case session.user of
@@ -119,11 +120,11 @@ getLobby session =
     in
     Channel.init "lobby:lobby"
         |> Channel.withPayload (JE.object params)
-        --        |> Channel.onRequestJoin (UpdateState JoiningLobby)
-        --        |> Channel.onJoin (\_ -> UpdateState JoinedLobby)
-        --        |> Channel.onLeave (\_ -> UpdateState LeftLobby)
-        --        |> Channel.on "new_msg" (\msg -> NewMsg msg)
-        --        |> Channel.withPresence presence
+        |> Channel.onRequestJoin (SetChannelState JoiningChannel)
+        |> Channel.onJoin (\_ -> SetChannelState JoinedChannel)
+        |> Channel.onLeave (\_ -> SetChannelState LeftChannel)
+        |> Channel.on "shout" (\msg -> NewMsg msg)
+        --|> Channel.withPresence presence
         |> Channel.withDebug
 
 
@@ -131,14 +132,12 @@ subscription : Session -> Sub Msg
 subscription session =
     let
         phoenixSubscriptions =
-            case session.lobby of
+            case session.user of
                 Nothing ->
                     [ Phoenix.connect (initSocket session socketUrl) [] ]
 
                 Just lobby ->
-                    [ Phoenix.connect (initSocket session socketUrl) [ getLobby session ] ]
-
-        -- more subscriptions unrelated to the socket connection setup here
+                    [ Phoenix.connect (initSocket session socketUrl) [ getChannel session ] ]
     in
     Sub.batch phoenixSubscriptions
 
@@ -150,9 +149,13 @@ subscription session =
 type Msg
     = MessageInput String
     | SubmitMessage
-    | SocketOpened
-    | SocketClosed
-    | SocketClosedAbnormally
+    | SetSocketState SocketState
+    | SetChannelState ChannelState
+    | NewMsg JD.Value
+
+
+
+--| SetChannel (Channel Msg)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -163,47 +166,36 @@ update msg model =
                 newChat =
                     { chatInput = input, messages = model.chat.messages }
             in
-            ( { model | chat = newChat }, Cmd.none )
+            { model | chat = newChat } ! []
 
         SubmitMessage ->
             let
-                newMessages =
-                    model.chat.messages ++ [ model.chat.chatInput ]
-
                 newChat =
-                    { chatInput = "", messages = newMessages }
+                    { chatInput = "", messages = model.chat.messages }
+
+                push =
+                    Push.init "lobby:lobby" "shout"
+                        |> Push.withPayload (JE.object [ ( "msg", JE.string model.chat.chatInput ) ])
             in
-            ( { model | chat = newChat }, Cmd.none )
+            { model | chat = newChat } ! [ Phoenix.push socketUrl push ]
 
-        SocketOpened ->
-            -- TODO
-            let
-                newMessages =
-                    model.chat.messages ++ [ "Socket Opened" ]
+        SetSocketState newSocketState ->
+            { model | socketState = newSocketState } ! []
 
-                newChat =
-                    { chatInput = "", messages = newMessages }
-            in
-            ( { model | chat = newChat }, Cmd.none )
+        SetChannelState newChannelState ->
+            { model | channelState = newChannelState } ! []
 
-        SocketClosed ->
-            -- TODO
-            let
-                newMessages =
-                    model.chat.messages ++ [ "Socket Closed" ]
+        NewMsg payload ->
+            case JD.decodeValue decodeChatMsg payload of
+                Ok msg ->
+                    let
+                        newMessages =
+                            model.chat.messages ++ [ msg ]
 
-                newChat =
-                    { chatInput = "", messages = newMessages }
-            in
-            ( { model | chat = newChat }, Cmd.none )
+                        newChat =
+                            { chatInput = model.chat.chatInput, messages = newMessages }
+                    in
+                    { model | chat = newChat } ! [ Cmd.none ]
 
-        SocketClosedAbnormally ->
-            -- TODO
-            let
-                newMessages =
-                    model.chat.messages ++ [ "Socket Closed Abnormally" ]
-
-                newChat =
-                    { chatInput = "", messages = newMessages }
-            in
-            ( { model | chat = newChat }, Cmd.none )
+                Err err ->
+                    model ! []

@@ -1,6 +1,6 @@
 module Main exposing (main)
 
-import Data.Session exposing (Session)
+import Data.Session exposing (Session, initialSession)
 import Html exposing (..)
 import Json.Decode as Decode exposing (Value)
 import Navigation exposing (Location)
@@ -30,7 +30,7 @@ type State
 init : Value -> Location -> ( Model, Cmd Msg )
 init val location =
     setRoute (Route.fromLocation location)
-        { session = { user = Nothing, lobby = Nothing }
+        { session = initialSession
         , state = initialState
         }
 
@@ -72,11 +72,6 @@ viewState session state =
 
 
 -- SUBSCRIPTION --
-
-
-socketUrl : String
-socketUrl =
-    "ws://localhost:4000/ws"
 
 
 subscriptions : Model -> Sub Msg
@@ -135,7 +130,7 @@ setRoute maybeRoute model =
                             ( Home Home.init, Route.modifyUrl Route.Home )
 
                         Just lobby ->
-                            ( Lobby (Lobby.init model.session), Cmd.none )
+                            ( Lobby Lobby.init, Cmd.none )
             in
             ( { model | state = newState }, cmd )
 
@@ -161,8 +156,15 @@ updateState state msg model =
                         Home.NoOp ->
                             model
 
-                        Home.SetSession session ->
-                            { model | session = session }
+                        Home.SetSessionInfo lobby user ->
+                            let
+                                oldSession =
+                                    model.session
+
+                                newSession =
+                                    { oldSession | user = user, lobby = lobby }
+                            in
+                            { model | session = newSession }
             in
             ( { newModel | state = Home stateModel }, Cmd.map HomeMsg cmd )
 
