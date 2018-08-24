@@ -1,9 +1,9 @@
 defmodule Avalon.Web.LobbyChannel do
   use Avalon.Web, :channel
 
-  def join("lobby:lobby", %{"username" => username}, socket) do
+  def join("lobby:" <> lobby_name, %{"username" => username}, socket) do
     send(self(), {:after_join, username})
-    {:ok, socket}
+    {:ok, %{channel: "lobby:#{lobby_name}"}, assign(socket, :lobby_name, lobby_name)}
   end
 
   # Channels can be used in a request/response fashion
@@ -15,8 +15,10 @@ defmodule Avalon.Web.LobbyChannel do
   # It is also common to receive messages from the client and
   # broadcast to everyone in the current topic (lobby:lobby).
   def handle_in("shout", %{"msg" => msg}, socket) do
+    lobby_name = socket.assigns[:lobby_name]
     username = socket.assigns[:username]
-    broadcast(socket, "shout", %{msg: msg, username: username})
+    broadcast(socket, "lobby:#{lobby_name}:shout", %{msg: msg, username: username})
+    IO.puts "lobby:#{lobby_name}:shout"
     {:noreply, socket}
   end
 

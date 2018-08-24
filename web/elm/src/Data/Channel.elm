@@ -5,7 +5,7 @@ import Data.Lobby exposing (Lobby)
 
 lobbyChannel : Lobby -> String
 lobbyChannel lobby =
-    "lobby:lobby"
+    "lobby:" ++ lobby.name
 
 
 type ChannelState

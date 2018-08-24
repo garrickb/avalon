@@ -171,7 +171,7 @@ updateState state msg model =
         ( LobbyMsg subMsg, Lobby subModel ) ->
             let
                 ( stateModel, cmd ) =
-                    Lobby.update subMsg subModel
+                    Lobby.update model.session subMsg subModel
             in
             ( { model | state = Lobby stateModel }, Cmd.map LobbyMsg cmd )
 

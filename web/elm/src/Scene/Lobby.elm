@@ -117,13 +117,21 @@ getChannel session =
 
                 Nothing ->
                     []
+
+        lobbyRoute =
+            case session.lobby of
+                Nothing ->
+                    "lobby:lobby"
+
+                Just lobby ->
+                    lobbyChannel lobby
     in
-    Channel.init "lobby:lobby"
+    Channel.init lobbyRoute
         |> Channel.withPayload (JE.object params)
         |> Channel.onRequestJoin (SetChannelState JoiningChannel)
         |> Channel.onJoin (\_ -> SetChannelState JoinedChannel)
         |> Channel.onLeave (\_ -> SetChannelState LeftChannel)
-        |> Channel.on "shout" (\msg -> NewMsg msg)
+        |> Channel.on (lobbyRoute ++ ":shout") (\msg -> NewMsg msg)
         --|> Channel.withPresence presence
         |> Channel.withDebug
 
@@ -158,8 +166,8 @@ type Msg
 --| SetChannel (Channel Msg)
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
+update : Session -> Msg -> Model -> ( Model, Cmd Msg )
+update session msg model =
     case msg of
         MessageInput input ->
             let
@@ -169,15 +177,20 @@ update msg model =
             { model | chat = newChat } ! []
 
         SubmitMessage ->
-            let
-                newChat =
-                    { chatInput = "", messages = model.chat.messages }
+            case session.lobby of
+                Nothing ->
+                    model ! []
 
-                push =
-                    Push.init "lobby:lobby" "shout"
-                        |> Push.withPayload (JE.object [ ( "msg", JE.string model.chat.chatInput ) ])
-            in
-            { model | chat = newChat } ! [ Phoenix.push socketUrl push ]
+                Just lobby ->
+                    let
+                        newChat =
+                            { chatInput = "", messages = model.chat.messages }
+
+                        push =
+                            Push.init (lobbyChannel lobby) "shout"
+                                |> Push.withPayload (JE.object [ ( "msg", JE.string model.chat.chatInput ) ])
+                    in
+                    { model | chat = newChat } ! [ Phoenix.push socketUrl push ]
 
         SetSocketState newSocketState ->
             { model | socketState = newSocketState } ! []
