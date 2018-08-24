@@ -4,9 +4,9 @@ import Data.Channel exposing (ChannelState(..), lobbyChannel)
 import Data.ChatMessage exposing (ChatMsg, decodeChatMsg)
 import Data.Session exposing (Session, getLobbyName)
 import Data.Socket exposing (SocketState(..), socketUrl)
-import Html exposing (Html, button, div, h1, h2, input, li, text, ul)
+import Html exposing (Html, button, div, h1, h2, img, input, li, span, table, tbody, td, text, tr, ul)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick, onInput)
+import Html.Events exposing (keyCode, on, onClick, onInput)
 import Json.Decode as JD exposing (Decoder)
 import Json.Encode as JE
 import Phoenix
@@ -48,15 +48,36 @@ init =
 
 viewMessages : List ChatMsg -> Html Msg
 viewMessages messages =
-    messages
-        |> List.map (\message -> li [] [ text message.message ])
-        |> ul []
+    table [ class "table table-striped" ]
+        [ tbody []
+            (messages
+                |> List.map
+                    (\message ->
+                        let
+                            avatarUrl =
+                                "https://api.adorable.io/avatars/40/" ++ message.userName ++ ".png"
+                        in
+                        tr []
+                            [ td []
+                                [ img [ src avatarUrl, style [ ( "margin_right", "20px" ) ] ] []
+                                , text message.userName
+                                , div [] [ text message.message ]
+                                ]
+                            ]
+                    )
+            )
+        ]
+
+
+onKeyDown : (Int -> msg) -> Html.Attribute msg
+onKeyDown tagger =
+    on "keydown" (JD.map tagger keyCode)
 
 
 viewChatBox : String -> Html Msg
 viewChatBox currentValue =
     div []
-        [ input [ placeholder "Message", onInput MessageInput, value currentValue ] []
+        [ input [ placeholder "Message", onInput MessageInput, onKeyDown MessageKeyDown, value currentValue ] []
         , button [ onClick SubmitMessage ] [ text "Submit" ]
         ]
 
@@ -156,6 +177,7 @@ subscription session =
 
 type Msg
     = MessageInput String
+    | MessageKeyDown Int
     | SubmitMessage
     | SetSocketState SocketState
     | SetChannelState ChannelState
@@ -176,21 +198,30 @@ update session msg model =
             in
             { model | chat = newChat } ! []
 
+        MessageKeyDown key ->
+            if key == 13 then
+                update session SubmitMessage model
+            else
+                model ! []
+
         SubmitMessage ->
             case session.lobby of
                 Nothing ->
                     model ! []
 
                 Just lobby ->
-                    let
-                        newChat =
-                            { chatInput = "", messages = model.chat.messages }
+                    if String.length model.chat.chatInput == 0 then
+                        model ! []
+                    else
+                        let
+                            newChat =
+                                { chatInput = "", messages = model.chat.messages }
 
-                        push =
-                            Push.init (lobbyChannel lobby) "shout"
-                                |> Push.withPayload (JE.object [ ( "msg", JE.string model.chat.chatInput ) ])
-                    in
-                    { model | chat = newChat } ! [ Phoenix.push socketUrl push ]
+                            push =
+                                Push.init (lobbyChannel lobby) "shout"
+                                    |> Push.withPayload (JE.object [ ( "msg", JE.string model.chat.chatInput ) ])
+                        in
+                        { model | chat = newChat } ! [ Phoenix.push socketUrl push ]
 
         SetSocketState newSocketState ->
             { model | socketState = newSocketState } ! []
