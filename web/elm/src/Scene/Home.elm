@@ -32,8 +32,8 @@ view : Session -> Model -> Html Msg
 view session model =
     div []
         [ h1 [] [ text "Join a Lobby" ]
-        , input [ onInput InputLobbyName, placeholder "User Name" ] []
-        , input [ onInput InputUserName, placeholder "Lobby Name" ] []
+        , input [ onInput InputUserName, placeholder "User Name" ] []
+        , input [ onInput InputLobbyName, placeholder "Lobby Name" ] []
         , button [ onClick JoinLobby ] [ text "go to lobby" ]
         ]
 

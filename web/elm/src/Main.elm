@@ -8,7 +8,6 @@ import Route exposing (Route)
 import Scene.Home as Home
 import Scene.Lobby as Lobby
 import Task
-import Views.State exposing (frame)
 
 
 -- MODEL --
@@ -47,7 +46,6 @@ initialState =
 view : Model -> Html Msg
 view model =
     viewState model.session model.state
-        |> frame
 
 
 viewState : Session -> State -> Html Msg

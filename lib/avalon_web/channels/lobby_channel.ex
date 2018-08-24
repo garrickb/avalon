@@ -18,7 +18,6 @@ defmodule Avalon.Web.LobbyChannel do
     lobby_name = socket.assigns[:lobby_name]
     username = socket.assigns[:username]
     broadcast(socket, "lobby:#{lobby_name}:shout", %{msg: msg, username: username})
-    IO.puts "lobby:#{lobby_name}:shout"
     {:noreply, socket}
   end
 
