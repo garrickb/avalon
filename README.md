@@ -1,20 +1,20 @@
 # Avalon
 
-To start your Phoenix app:
+Short-Term Goals (ordered by priority)
+--
+- [x] Allow users to join a room (no auth; just provide a username)
+- [x] Allow basic chat functionality after joining a room.
+- [ ] Migrate away from the Phoenix framework and instead use Elixir with Cowboy for socket communications. Agent for storing game state? This also invovles moving the Elm code into a seperate folder.
+- [ ] Implement Presense to see players currently active in a room.
+- [ ] Start actually implementing game logic. Look into using fsm (finite state machine) library available in elixir.
+- [ ] Allow a game to 'start'. This means that players can terminate the connection, but they will be able to join back without interruption. New players cannot join (but may be able to spectate in future).
 
-  * Install dependencies with `mix deps.get`
-  * Create and migrate your database with `mix ecto.create && mix ecto.migrate`
-  * Install Node.js dependencies with `npm install`
-  * Start Phoenix endpoint with `mix phoenix.server`
+Future Goals
+---
+- [ ] Dockerize for easier development/deployment
+- [ ] Add a 'board' mode that will allow you to view the central Avalon game board. Imagine playing around a table with friends in real life. It'd be cool to have a tablet in the center of the table with the game board on it, right?
 
-Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
-
-Ready to run in production? Please [check our deployment guides](http://www.phoenixframework.org/docs/deployment).
-
-## Learn more
-
-  * Official website: http://www.phoenixframework.org/
-  * Guides: http://phoenixframework.org/docs/overview
-  * Docs: https://hexdocs.pm/phoenix
-  * Mailing list: http://groups.google.com/group/phoenix-talk
-  * Source: https://github.com/phoenixframework/phoenix
+Far Future Goals
+---
+- [ ] Permform visualization on game data
+- [ ] AI players by using some kind of ML on said game data
