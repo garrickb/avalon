@@ -1,0 +1,10 @@
+version: '3.4'
+services:
+  client:
+    build: client/
+    ports:
+      - "8000:8000"
+  server:
+    build: server/
+    ports:
+      - 4000:4000
