@@ -6,8 +6,10 @@ Short-Term Goals (ordered by priority)
 - [x] Allow basic chat functionality after joining a room.
 - [x] Remove unused Phoenix parts, and move the Elm webapp into separate source folder.
 - [x] Dockerize for easier development and deployment.
-- [ ] Start actually implementing game logic. Potentially using fsm (finite state machine) library available in elixir.
-- [ ] Allow a game to 'start'. This means that players can terminate the connection, but they will be able to join back without interruption. New players cannot join (but may be able to spectate in future).
+- [x] Implement basic game flow using fsm (finite state machine) library.
+- [ ] Allow a game to 'start'. This means that players can terminate the connection, but they will be able to join back without interruption or loss of data. New players are unable to join a started game.
+- [ ] Track game state (only current "king" to start) using Agent
+- [ ] Allow current "king" to end his turn, moving onto the next player
 
 Future Goals
 ---
