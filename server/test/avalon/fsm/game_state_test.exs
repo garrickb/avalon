@@ -87,6 +87,20 @@ defmodule Avalon.FsmGameStateTest do
     assert game.state == :evil_wins
   end
 
+
+  test "three fails will result in an evil win even with two successes" do
+    game = State.new |> State.start_game
+    |> State.selected |> State.accept |> State.succeed
+    |> State.selected |> State.accept |> State.succeed
+    |> State.selected |> State.accept |> State.fail
+    |> State.selected |> State.accept |> State.fail
+    |> State.selected |> State.accept |> State.fail
+
+    assert game.data.succeeded_count == 2
+    assert game.data.failed_count == 3
+    assert game.state == :evil_wins
+  end
+
   test "restart game after an evil win" do
     game = State.new |> State.start_game
     |> State.selected |> State.accept |> State.fail
@@ -118,6 +132,19 @@ defmodule Avalon.FsmGameStateTest do
     |> State.selected |> State.accept |> State.succeed
 
     assert game.data.succeeded_count == 3
+    assert game.state == :good_wins
+  end
+
+  test "three successes will result in a good win even with two fails" do
+    game = State.new |> State.start_game
+    |> State.selected |> State.accept |> State.fail
+    |> State.selected |> State.accept |> State.fail
+    |> State.selected |> State.accept |> State.succeed
+    |> State.selected |> State.accept |> State.succeed
+    |> State.selected |> State.accept |> State.succeed
+
+    assert game.data.succeeded_count == 3
+    assert game.data.failed_count == 2
     assert game.state == :good_wins
   end
 
