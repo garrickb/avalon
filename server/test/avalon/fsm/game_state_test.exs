@@ -87,6 +87,19 @@ defmodule Avalon.FsmGameStateTest do
     assert game.state == :evil_wins
   end
 
+  test "restart game after an evil win" do
+    game = State.new |> State.start_game
+    |> State.selected |> State.accept |> State.fail
+    |> State.selected |> State.accept |> State.fail
+    |> State.selected |> State.accept |> State.fail
+    |> State.restart
+
+    assert game.data.succeeded_count == 0
+    assert game.data.failed_count == 0
+    assert game.data.reject_count == 0
+    assert game.state == :waiting
+  end
+
   # Succeeding a quest
 
   test "succeeding a quest will direct to selection state" do
@@ -106,5 +119,18 @@ defmodule Avalon.FsmGameStateTest do
 
     assert game.data.succeeded_count == 3
     assert game.state == :good_wins
+  end
+
+  test "restart game after good win" do
+    game = State.new |> State.start_game
+    |> State.selected |> State.accept |> State.succeed
+    |> State.selected |> State.accept |> State.succeed
+    |> State.selected |> State.accept |> State.succeed
+    |> State.restart
+
+    assert game.data.succeeded_count == 0
+    assert game.data.failed_count == 0
+    assert game.data.reject_count == 0
+    assert game.state == :waiting
   end
 end
