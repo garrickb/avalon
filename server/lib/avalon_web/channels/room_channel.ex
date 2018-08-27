@@ -3,17 +3,24 @@ defmodule AvalonWeb.RoomChannel do
   alias Phoenix.Socket
 
   def join("room:" <> room_id, %{"username" => username}, socket) do
-    {:ok, room_id, assign_username(socket, username)}
+    if valid?(room_id) do
+      {:ok, room_id, assign_username(socket, username)}
+    else
+      {:error, "Invalid room id."}
+    end
   end
 
-  def handle_in("shout", %{"msg" => msg}, socket) do
+  def handle_in("message", %{"msg" => msg}, socket) do
     %Socket{
-      topic: "room:" <> room_id,
       assigns: %{username: username}
     } = socket
 
-    broadcast socket, "room:#{room_id}:shout", %{msg: msg, username: username}
+    broadcast socket, "message", %{msg: msg, username: username}
     {:noreply, socket}
+  end
+
+  defp valid?(room_id)do
+    (String.length room_id) != 0
   end
 
   defp assign_username(socket, username) do
