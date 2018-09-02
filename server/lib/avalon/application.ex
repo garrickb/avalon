@@ -9,6 +9,7 @@ defmodule Avalon.Application do
     # Define workers and child supervisors to be supervised
     children = [
       supervisor(AvalonWeb.Endpoint, []),
+      Avalon.Presence,
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
