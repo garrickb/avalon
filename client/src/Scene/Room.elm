@@ -1,9 +1,17 @@
 module Scene.Room exposing (Model, Msg, init, subscription, update, view)
 
+import Bootstrap.Badge as Badge
+import Bootstrap.Card as Card
+import Bootstrap.Card.Block as Block
+import Bootstrap.Grid as Grid
+import Bootstrap.Grid.Col as Col
+import Bootstrap.ListGroup as ListGroup
+import Bootstrap.Utilities.Spacing as Spacing
 import Data.ChatMessage exposing (ChatMsg, decodeChatMsg)
 import Data.Room.Channel as RoomChannel exposing (RoomState(..), roomChannel)
 import Data.Session exposing (Session)
 import Data.Socket exposing (SocketState(..), socketUrl)
+import Dict exposing (Dict)
 import Html exposing (Html, button, div, h1, h2, img, input, li, span, table, tbody, td, text, tr, ul)
 import Html.Attributes exposing (..)
 import Html.Events exposing (keyCode, on, onClick, onInput)
@@ -11,23 +19,26 @@ import Json.Decode as JD exposing (Decoder)
 import Json.Encode as JE
 import Phoenix
 import Phoenix.Channel as Channel exposing (Channel)
+import Phoenix.Presence as Presence exposing (Presence)
 import Phoenix.Push as Push
 import Phoenix.Socket as Socket exposing (Socket)
+import Route
 
 
 -- MODEL --
-
-
-type alias ChatModel =
-    { messages : List ChatMsg
-    , chatInput : String
-    }
 
 
 type alias Model =
     { chat : ChatModel
     , socketState : SocketState
     , roomState : RoomState
+    , presence : Dict String (List JD.Value)
+    }
+
+
+type alias ChatModel =
+    { messages : List ChatMsg
+    , chatInput : String
     }
 
 
@@ -39,6 +50,7 @@ init =
         }
     , socketState = SocketClosed
     , roomState = LeftRoom
+    , presence = Dict.empty
     }
 
 
@@ -46,25 +58,32 @@ init =
 -- VIEW --
 
 
-viewMessages : List ChatMsg -> Html Msg
-viewMessages messages =
+viewMessage : String -> ChatMsg -> Html Msg
+viewMessage name message =
+    if name == "SYSTEM" then
+        div []
+            [ div [] [ text message.userName ]
+            , ListGroup.ul [ ListGroup.li [ ListGroup.info ] [ text message.message ] ]
+            ]
+    else if name == message.userName then
+        div []
+            [ div [] [ text message.userName, Badge.pillPrimary [ Spacing.ml1 ] [ text "you" ] ]
+            , ListGroup.ul [ ListGroup.li [] [ text message.message ] ]
+            ]
+    else
+        div []
+            [ text message.userName
+            , ListGroup.ul [ ListGroup.li [] [ text message.message ] ]
+            ]
+
+
+viewMessages : String -> List ChatMsg -> Html Msg
+viewMessages name messages =
     table [ class "table table-striped" ]
         [ tbody []
-            (messages
-                |> List.map
-                    (\message ->
-                        let
-                            avatarUrl =
-                                "https://api.adorable.io/avatars/40/" ++ message.userName ++ ".png"
-                        in
-                        tr []
-                            [ td []
-                                [ img [ src avatarUrl, style [ ( "margin_right", "20px" ) ] ] []
-                                , text message.userName
-                                , div [] [ text message.message ]
-                                ]
-                            ]
-                    )
+            (List.map
+                (viewMessage name)
+                messages
             )
         ]
 
@@ -82,13 +101,41 @@ viewChatBox currentValue =
         ]
 
 
-viewChat : ChatModel -> Html Msg
-viewChat chatModel =
-    div []
-        [ text "this is the chat"
-        , viewMessages chatModel.messages
-        , viewChatBox chatModel.chatInput
-        ]
+viewChat : String -> ChatModel -> Html Msg
+viewChat name chatModel =
+    Card.config []
+        |> Card.header [] [ text "Chat" ]
+        |> Card.block []
+            [ Block.custom
+                (div
+                    []
+                    [ viewMessages name chatModel.messages
+                    , viewChatBox chatModel.chatInput
+                    ]
+                )
+            ]
+        |> Card.view
+
+
+viewPlayer : String -> ( String, List JD.Value ) -> ListGroup.Item Msg
+viewPlayer playerName ( name, values ) =
+    if name == playerName then
+        ListGroup.li [] [ text name, Badge.pillPrimary [ Spacing.ml1 ] [ text "you" ] ]
+    else
+        ListGroup.li [] [ text name ]
+
+
+viewPlayers : String -> Dict String (List JD.Value) -> Html Msg
+viewPlayers playerName presence =
+    let
+        players =
+            ListGroup.ul
+                (List.map (viewPlayer playerName) (Dict.toList presence))
+    in
+    Card.config []
+        |> Card.header [] [ text "Players" ]
+        |> Card.block [] [ Block.custom players ]
+        |> Card.view
 
 
 view : Session -> Model -> Html Msg
@@ -99,9 +146,23 @@ view session model =
                 [ h2 [] [ text "you should probably go to the home page and join a lobby, my main man." ] ]
 
         Just room ->
+            let
+                name =
+                    case session.user of
+                        Just user ->
+                            user.username
+
+                        Nothing ->
+                            ""
+            in
             div []
                 [ h1 [] [ text room.name ]
-                , viewChat model.chat
+                , Grid.container []
+                    [ Grid.row []
+                        [ Grid.col [ Col.sm8 ] [ viewChat name model.chat ]
+                        , Grid.col [ Col.sm4 ] [ viewPlayers name model.presence ]
+                        ]
+                    ]
                 ]
 
 
@@ -137,23 +198,29 @@ getChannel session =
                     [ ( "username", JE.string user.username ) ]
 
                 Nothing ->
+                    -- TODO: redirect to home
                     []
 
         roomRoute =
             case session.room of
+                -- TODO: redirect to home
                 Nothing ->
-                    "room:room"
+                    ""
 
                 Just room ->
                     roomChannel room
+
+        presence =
+            Presence.create
+                |> Presence.onChange UpdatePresence
     in
     Channel.init roomRoute
         |> Channel.withPayload (JE.object params)
         |> Channel.onRequestJoin (SetRoomState JoiningRoom)
         |> Channel.onJoin (\_ -> SetRoomState JoinedRoom)
         |> Channel.onLeave (\_ -> SetRoomState LeftRoom)
-        |> Channel.on (roomRoute ++ ":shout") (\msg -> NewMsg msg)
-        --|> Channel.withPresence presence
+        |> Channel.on "newMessage" (\msg -> NewMsg msg)
+        |> Channel.withPresence presence
         |> Channel.withDebug
 
 
@@ -176,13 +243,15 @@ subscription session =
 
 
 type Msg
-    = MessageInput String
+    = GoToHomePage
+    | MessageInput String
     | MessageKeyDown Int
     | SubmitMessage
     | SetSocketState SocketState
     | SetRoomState RoomState
     | NewMsg JD.Value
     | NewSystemMessage String
+    | UpdatePresence (Dict String (List JD.Value))
 
 
 
@@ -192,6 +261,9 @@ type Msg
 update : Session -> Msg -> Model -> ( Model, Cmd Msg )
 update session msg model =
     case msg of
+        GoToHomePage ->
+            model ! [ Route.modifyUrl Route.Home ]
+
         MessageInput input ->
             let
                 newChat =
@@ -219,7 +291,7 @@ update session msg model =
                                 { chatInput = "", messages = model.chat.messages }
 
                             push =
-                                Push.init (roomChannel room) "shout"
+                                Push.init (roomChannel room) "message"
                                     |> Push.withPayload (JE.object [ ( "msg", JE.string model.chat.chatInput ) ])
                         in
                         { model | chat = newChat } ! [ Phoenix.push socketUrl push ]
@@ -261,3 +333,7 @@ update session msg model =
 
                 Err err ->
                     update session (NewSystemMessage ("Error: " ++ err)) model
+
+        UpdatePresence presenceState ->
+            { model | presence = Debug.log "presenceState " presenceState }
+                ! []

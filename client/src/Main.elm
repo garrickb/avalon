@@ -1,5 +1,7 @@
 module Main exposing (main)
 
+import Bootstrap.CDN as CDN
+import Bootstrap.Grid as Grid
 import Data.Session exposing (Session, initialSession)
 import Html exposing (..)
 import Json.Decode as Decode exposing (Value)
@@ -45,7 +47,10 @@ initialState =
 
 view : Model -> Html Msg
 view model =
-    viewState model.session model.state
+    Grid.container []
+        [ CDN.stylesheet
+        , viewState model.session model.state
+        ]
 
 
 viewState : Session -> State -> Html Msg

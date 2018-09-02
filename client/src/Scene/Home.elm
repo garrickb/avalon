@@ -1,5 +1,8 @@
 module Scene.Home exposing (ExternalMsg(..), Model, Msg, init, update, view)
 
+import Bootstrap.Button as Button
+import Bootstrap.Form as Form
+import Bootstrap.Form.Input as Input
 import Data.Room as Room
 import Data.Session exposing (Session)
 import Data.User as User
@@ -31,9 +34,15 @@ view : Session -> Model -> Html Msg
 view session model =
     div []
         [ h1 [] [ text "Join a Room" ]
-        , input [ onInput InputUserName, placeholder "User Name" ] []
-        , input [ onInput InputRoomName, placeholder "Room Name" ] []
-        , button [ onClick JoinRoom ] [ text "go to room" ]
+        , Form.group []
+            [ Form.label [] [ text "Username" ]
+            , Input.text [ Input.attrs [ onInput InputUserName, placeholder "Username" ] ]
+            ]
+        , Form.group []
+            [ Form.label [] [ text "Room Name" ]
+            , Input.text [ Input.attrs [ onInput InputRoomName, placeholder "Room Name" ] ]
+            ]
+        , Button.button [ Button.primary, Button.block, Button.attrs [ onClick JoinRoom ] ] [ text "Join Room" ]
         ]
 
 
