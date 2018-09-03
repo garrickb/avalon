@@ -83,8 +83,10 @@ viewMessage name message =
 
 viewMessages : String -> List ChatMessage -> Html Msg
 viewMessages name messages =
-    table [ class "table table-striped" ]
-        [ tbody []
+    div
+        [ style [ ( "overflow", "auto" ), ( "max-height", "350px" ), ( "display", "flex" ), ( "flex-direction", "column-reverse" ) ] ]
+        [ div
+            []
             (List.map
                 (viewMessage name)
                 messages
@@ -99,11 +101,13 @@ onKeyDown tagger =
 
 viewChatBox : String -> Html Msg
 viewChatBox currentValue =
-    div []
-        [ Form.group []
-            [ Input.text [ Input.attrs [ onInput MessageInput, onKeyDown MessageKeyDown, value currentValue, placeholder "Message" ] ]
-            , Button.button [ Button.primary, Button.block, Button.attrs [ onClick SubmitMessage ] ] [ text "Submit" ]
-            ]
+    Grid.row []
+        [ Grid.col
+            [ Col.sm8, Col.md9, Col.lg10 ]
+            [ Input.text [ Input.attrs [ onInput MessageInput, onKeyDown MessageKeyDown, value currentValue, placeholder "Message" ] ] ]
+        , Grid.col
+            [ Col.sm2, Col.md2, Col.lg2 ]
+            [ Button.button [ Button.primary, Button.attrs [ onClick SubmitMessage ] ] [ text "Submit" ] ]
         ]
 
 
@@ -113,13 +117,12 @@ viewChat name chatModel =
         |> Card.header [] [ text "Chat" ]
         |> Card.block []
             [ Block.custom
-                (div
-                    []
+                (div []
                     [ viewMessages name chatModel.messages
-                    , viewChatBox chatModel.chatInput
                     ]
                 )
             ]
+        |> Card.footer [] [ viewChatBox chatModel.chatInput ]
         |> Card.view
 
 
