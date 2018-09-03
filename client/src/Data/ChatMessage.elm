@@ -1,4 +1,4 @@
-module Data.ChatMessage exposing (ChatMsg, decodeChatMsg)
+module Data.ChatMessage exposing (ChatMessage(..), MessageModel, decodeChatMsg)
 
 import Json.Decode as JD exposing (Decoder)
 
@@ -6,7 +6,12 @@ import Json.Decode as JD exposing (Decoder)
 -- MODEL --
 
 
-type alias ChatMsg =
+type ChatMessage
+    = SystemMessage String
+    | UserMessage String String
+
+
+type alias MessageModel =
     { userName : String, message : String }
 
 
@@ -14,7 +19,7 @@ type alias ChatMsg =
 -- DECODER --
 
 
-decodeChatMsg : Decoder ChatMsg
+decodeChatMsg : Decoder MessageModel
 decodeChatMsg =
     JD.map2 (\userName msg -> { userName = userName, message = msg })
         (JD.field "username" JD.string)

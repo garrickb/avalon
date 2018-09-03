@@ -1,13 +1,16 @@
 module Scene.Room exposing (Model, Msg, init, subscription, update, view)
 
 import Bootstrap.Badge as Badge
+import Bootstrap.Button as Button
 import Bootstrap.Card as Card
 import Bootstrap.Card.Block as Block
+import Bootstrap.Form as Form
+import Bootstrap.Form.Input as Input
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.ListGroup as ListGroup
 import Bootstrap.Utilities.Spacing as Spacing
-import Data.ChatMessage exposing (ChatMsg, decodeChatMsg)
+import Data.ChatMessage exposing (ChatMessage(..), MessageModel, decodeChatMsg)
 import Data.Room.Channel as RoomChannel exposing (RoomState(..), roomChannel)
 import Data.Session exposing (Session)
 import Data.Socket exposing (SocketState(..), socketUrl)
@@ -37,7 +40,7 @@ type alias Model =
 
 
 type alias ChatModel =
-    { messages : List ChatMsg
+    { messages : List ChatMessage
     , chatInput : String
     }
 
@@ -58,26 +61,27 @@ init =
 -- VIEW --
 
 
-viewMessage : String -> ChatMsg -> Html Msg
+viewMessage : String -> ChatMessage -> Html Msg
 viewMessage name message =
-    if name == "SYSTEM" then
-        div []
-            [ div [] [ text message.userName ]
-            , ListGroup.ul [ ListGroup.li [ ListGroup.info ] [ text message.message ] ]
-            ]
-    else if name == message.userName then
-        div []
-            [ div [] [ text message.userName, Badge.pillPrimary [ Spacing.ml1 ] [ text "you" ] ]
-            , ListGroup.ul [ ListGroup.li [] [ text message.message ] ]
-            ]
-    else
-        div []
-            [ text message.userName
-            , ListGroup.ul [ ListGroup.li [] [ text message.message ] ]
-            ]
+    case message of
+        SystemMessage message ->
+            div []
+                [ ListGroup.ul [ ListGroup.li [ ListGroup.info ] [ text message ] ] ]
+
+        UserMessage username message ->
+            if name == username then
+                div []
+                    [ div [] [ text username, Badge.pillPrimary [ Spacing.ml1 ] [ text "you" ] ]
+                    , ListGroup.ul [ ListGroup.li [] [ text message ] ]
+                    ]
+            else
+                div []
+                    [ text username
+                    , ListGroup.ul [ ListGroup.li [] [ text message ] ]
+                    ]
 
 
-viewMessages : String -> List ChatMsg -> Html Msg
+viewMessages : String -> List ChatMessage -> Html Msg
 viewMessages name messages =
     table [ class "table table-striped" ]
         [ tbody []
@@ -96,8 +100,10 @@ onKeyDown tagger =
 viewChatBox : String -> Html Msg
 viewChatBox currentValue =
     div []
-        [ input [ placeholder "Message", onInput MessageInput, onKeyDown MessageKeyDown, value currentValue ] []
-        , button [ onClick SubmitMessage ] [ text "Submit" ]
+        [ Form.group []
+            [ Input.text [ Input.attrs [ onInput MessageInput, onKeyDown MessageKeyDown, value currentValue, placeholder "Message" ] ]
+            , Button.button [ Button.primary, Button.block, Button.attrs [ onClick SubmitMessage ] ] [ text "Submit" ]
+            ]
         ]
 
 
@@ -142,8 +148,7 @@ view : Session -> Model -> Html Msg
 view session model =
     case session.room of
         Nothing ->
-            div []
-                [ h2 [] [ text "you should probably go to the home page and join a lobby, my main man." ] ]
+            text "You need to join a room."
 
         Just room ->
             let
@@ -184,8 +189,8 @@ initSocket session socketUrl =
     Socket.init socketUrl
         |> Socket.withParams params
         |> Socket.onOpen (SetSocketState SocketOpened)
-        |> Socket.onClose (\_ -> SetSocketState SocketClosed)
-        |> Socket.onAbnormalClose (\_ -> SetSocketState SocketClosed)
+        |> Socket.onClose (\_ -> GoToHomePage)
+        |> Socket.onAbnormalClose (\_ -> GoToHomePage)
         |> Socket.reconnectTimer (\backoffIteration -> (backoffIteration + 1) * 5000 |> toFloat)
 
 
@@ -218,7 +223,7 @@ getChannel session =
         |> Channel.withPayload (JE.object params)
         |> Channel.onRequestJoin (SetRoomState JoiningRoom)
         |> Channel.onJoin (\_ -> SetRoomState JoinedRoom)
-        |> Channel.onLeave (\_ -> SetRoomState LeftRoom)
+        |> Channel.onLeave (\_ -> GoToHomePage)
         |> Channel.on "newMessage" (\msg -> NewMsg msg)
         |> Channel.withPresence presence
         |> Channel.withDebug
@@ -297,22 +302,27 @@ update session msg model =
                         { model | chat = newChat } ! [ Phoenix.push socketUrl push ]
 
         SetSocketState newSocketState ->
-            let
-                ( newModel, _ ) =
-                    if newSocketState == SocketClosed then
-                        update session (SetRoomState LeftRoom) { model | socketState = newSocketState }
-                    else
-                        { model | socketState = newSocketState } ! []
-            in
-            update session (NewSystemMessage ("SocketState: " ++ toString newSocketState)) model
+            { model | socketState = newSocketState } ! []
 
         SetRoomState newRoomState ->
-            update session (NewSystemMessage ("RoomState: " ++ toString newRoomState)) { model | roomState = newRoomState }
+            let
+                message =
+                    case newRoomState of
+                        LeftRoom ->
+                            "Left room."
+
+                        JoinedRoom ->
+                            "Joined room."
+
+                        JoiningRoom ->
+                            "Joining room."
+            in
+            update session (NewSystemMessage message) { model | roomState = newRoomState }
 
         NewSystemMessage message ->
             let
                 newMessages =
-                    model.chat.messages ++ [ ChatMsg "SYSTEM" message ]
+                    model.chat.messages ++ [ SystemMessage message ]
 
                 newChat =
                     { chatInput = model.chat.chatInput, messages = newMessages }
@@ -324,7 +334,7 @@ update session msg model =
                 Ok msg ->
                     let
                         newMessages =
-                            model.chat.messages ++ [ msg ]
+                            model.chat.messages ++ [ UserMessage msg.userName msg.message ]
 
                         newChat =
                             { chatInput = model.chat.chatInput, messages = newMessages }
