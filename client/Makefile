@@ -8,10 +8,10 @@ JS_OUTPUT := public/bundle.js
 build: $(ELM_FILES)
 	elm make $(MAIN) --debug --warn --output $(JS_OUTPUT)
 
-serve:
+serve: build
 	cd public && python -m SimpleHTTPServer $(PORT)
 
-develop:
+develop: build
 	fswatch -0 src/* | xargs -0 -n1 -I '{}' make &
 	cd public && python -m http.server $(PORT)
 
