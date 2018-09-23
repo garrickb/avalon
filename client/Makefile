@@ -6,7 +6,7 @@ JS_OUTPUT := public/bundle.js
 
 
 build: $(ELM_FILES)
-	elm make $(MAIN) --debug --output $(JS_OUTPUT)
+	elm make --yes $(MAIN) --debug --output $(JS_OUTPUT)
 
 serve: build
 	cd public && python -m SimpleHTTPServer $(PORT)
