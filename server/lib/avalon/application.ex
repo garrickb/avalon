@@ -1,5 +1,6 @@
 defmodule Avalon.Application do
   use Application
+  require Logger
 
   # See https://hexdocs.pm/elixir/Application.html
   # for more information on OTP Applications
@@ -9,11 +10,13 @@ defmodule Avalon.Application do
     # Define workers and child supervisors to be supervised
     children = [
       supervisor(AvalonWeb.Endpoint, []),
-      Avalon.Presence,
+      AvalonWeb.Presence,
+      {Registry, keys: :unique, name: Avalon.GameRegistry},
+      Avalon.Game.Supervisor
     ]
 
-    # See https://hexdocs.pm/elixir/Supervisor.html
-    # for other strategies and supported options
+    :ets.new(:games_table, [:public, :named_table])
+
     opts = [strategy: :one_for_one, name: Avalon.Supervisor]
     Supervisor.start_link(children, opts)
   end

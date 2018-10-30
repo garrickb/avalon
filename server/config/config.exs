@@ -10,7 +10,7 @@ config :avalon, AvalonWeb.Endpoint,
   url: [host: "localhost"],
   secret_key_base: "ZwVpSOz48TJIy6Oeyut9BnOmlY8Ww2zbxU2/+/+iQ72VAjOn74o2Zj5dAYwcfqY1",
   render_errors: [view: AvalonWeb.ErrorView, accepts: ~w(json)],
-  pubsub: [name: Avalon.PubSub,
+  pubsub: [name: AvalonWeb.PubSub,
            adapter: Phoenix.PubSub.PG2]
 
 # Configures Elixir's Logger

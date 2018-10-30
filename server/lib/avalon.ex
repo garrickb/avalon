@@ -1,9 +1,16 @@
 defmodule Avalon do
-  @moduledoc """
-  Avalon keeps the contexts that define your domain
-  and business logic.
+  use Application
+  require Logger
+  def start(_type, _args) do
+    children = [
+      {Registry, keys: :unique, name: Avalon.Game.Registry},
+      Avalon.Game.Supervisor
+    ]
 
-  Contexts are also responsible for managing your data, regardless
-  if it comes from the database, an external API or others.
-  """
+    :ets.new(:games_table, [:public, :named_table])
+    Logger.info("Created ETS")
+
+    opts = [strategy: :one_for_one, name: Avalon.Game.Supervisor]
+    Supervisor.start_link(children, opts)
+  end
 end
