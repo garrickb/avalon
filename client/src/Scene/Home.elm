@@ -3,7 +3,7 @@ module Scene.Home exposing (ExternalMsg(..), Model, Msg, init, update, view)
 import Bootstrap.Button as Button
 import Bootstrap.Form as Form
 import Bootstrap.Form.Input as Input
-import Data.Room as Room
+import Data.Room as Room exposing (..)
 import Data.Session exposing (Session)
 import Data.User as User
 import Html exposing (..)
@@ -58,7 +58,7 @@ type Msg
 
 type ExternalMsg
     = NoOp
-    | SetSessionInfo (Maybe Room.Room) (Maybe User.User)
+    | SetSessionInfo (Maybe String) (Maybe String)
 
 
 update : Msg -> Model -> ( ( Model, Cmd Msg ), ExternalMsg )
@@ -71,11 +71,4 @@ update msg model =
             ( ( { model | userName = name }, Cmd.none ), NoOp )
 
         JoinRoom ->
-            let
-                user =
-                    { username = model.userName }
-
-                lobby =
-                    { name = model.roomName }
-            in
-            ( ( model, Cmd.batch [ Route.modifyUrl Route.Room ] ), SetSessionInfo (Just lobby) (Just user) )
+            ( ( model, Cmd.batch [ Route.modifyUrl Route.Room ] ), SetSessionInfo (Just model.roomName) (Just model.userName) )

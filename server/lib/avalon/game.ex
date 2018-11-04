@@ -11,7 +11,6 @@ defmodule Avalon.Game do
   Creates a game with a name of length greater than 0.
   """
   def new(name, players) do
-    Logger.info("Newgame")
     %Game{name: name, players: players}
   end
 end

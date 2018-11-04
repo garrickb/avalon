@@ -128,7 +128,7 @@ setRoute maybeRoute model =
         Just Route.Room ->
             let
                 ( newState, cmd ) =
-                    case model.session.room of
+                    case model.session.roomName of
                         Nothing ->
                             ( Home Home.init, Route.modifyUrl Route.Home )
 
@@ -165,7 +165,7 @@ updateState state msg model =
                                     model.session
 
                                 newSession =
-                                    { oldSession | user = user, room = room }
+                                    { oldSession | userName = user, roomName = room }
                             in
                             { model | session = newSession }
             in

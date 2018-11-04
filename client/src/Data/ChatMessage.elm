@@ -12,7 +12,7 @@ type ChatMessage
 
 
 type alias MessageModel =
-    { userName : String, message : String }
+    { userName : Maybe String, message : String }
 
 
 
@@ -22,5 +22,5 @@ type alias MessageModel =
 decodeChatMsg : Decoder MessageModel
 decodeChatMsg =
     JD.map2 (\userName msg -> { userName = userName, message = msg })
-        (JD.field "username" JD.string)
+        (JD.field "username" (JD.nullable JD.string))
         (JD.field "msg" JD.string)

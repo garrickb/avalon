@@ -42,12 +42,10 @@ defmodule Avalon.Game.Server do
   # Server Callbacks
 
   def init({game_name, players}) do
-    Logger.info("Init #{game_name}, #{inspect(players)}")
     game =
       case :ets.lookup(:games_table, game_name) do
         [] ->
           game = Avalon.Game.new(game_name, players)
-          Logger.info("Game: #{inspect(game)}")
           :ets.insert(:games_table, {game_name, game})
           game
 

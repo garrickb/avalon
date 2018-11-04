@@ -12,7 +12,6 @@ defmodule AvalonWeb.GameChannel do
        pid when is_pid(pid) ->
          send(self(), {:after_join, game_name})
          summary = GameServer.summary(game_name)
-         Logger.info("Summary: #{inspect(summary)}")
          {:ok, summary, socket}
 
        nil ->
@@ -23,9 +22,8 @@ defmodule AvalonWeb.GameChannel do
 
   def handle_info({:after_join, game_name}, socket) do
     Logger.info("Player '#{username(socket)}' joined room '#{game_name}'")
-
+    broadcast_from!(socket, "msg:new", %{username: nil, msg: "'#{username(socket)}' joined the game"})
     push(socket, "msg:new", %{username: nil, msg: "Welcome to #{game_name}!"})
-    broadcast!(socket, "user:joined", %{user: username(socket)})
 
     # Handle the presence state
     push(socket, "presence_state", Presence.list(socket))
@@ -51,23 +49,34 @@ defmodule AvalonWeb.GameChannel do
 
     # If the game is not already started, start the game
     if GameServer.game_pid(game_name) == nil do
-      Logger.info("Game Create; Presence list: #{inspect(Map.keys(Presence.list(socket)))}")
-
       players = Map.keys(Presence.list(socket))
       GameSupervisor.start_game(game_name, players)
 
-      # Alert all players of the new game
+      # Alert all players of the new game state
       summary = GameServer.summary(game_name)
-
-      Logger.info("Broadcasting game:state : #{inspect(summary)}")
       broadcast!(socket, "game:state", summary)
     end
 
     {:noreply, socket}
   end
 
+  def handle_in("game:stop", _payload, socket) do
+    "room:" <> game_name = socket.topic
+
+    # If the game is running, stop the game
+    if GameServer.game_pid(game_name) != nil do
+      GameSupervisor.stop_game(game_name)
+    end
+
+    # Alert all players of the new game state
+    broadcast!(socket, "game:stop", %{})
+
+    {:noreply, socket}
+  end
+
   def terminate(reason, socket) do
     Logger.info("Player '#{username(socket)}' has left game, reason: #{inspect(reason)}")
+    broadcast!(socket, "msg:new", %{username: nil, msg: "'#{username(socket)}' has left game"})
     :ok
   end
 
