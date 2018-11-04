@@ -17,11 +17,11 @@ defmodule Avalon.Game.Supervisor do
   @doc """
   Starts a `Server` process and supervises it.
   """
-  def start_game(game_name) do
-    Logger.info("Supervising new game: '#{game_name}'")
+  def start_game(game_name, players) do
+    Logger.info("Supervising new game: '#{game_name} with players: #{inspect(players)}'")
     child_spec = %{
       id: GameServer,
-      start: {GameServer, :start_link, [game_name]},
+      start: {GameServer, :start_link, [game_name, players]},
       restart: :transient
     }
 

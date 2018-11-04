@@ -6,16 +6,20 @@ defmodule Avalon.Game.Server do
   use GenServer
   require Logger
 
+  @timeout :timer.minutes(30)
+
   # Client Interface
 
   @doc """
   Spawns a new game server process registered under the given `game_name`.
   """
-  def start_link(game_name) do
-    Logger.info("start_link in game_server '#{game_name}'.")
-
+  def start_link(game_name, players) do
     name = via_tuple(game_name)
-    GenServer.start_link(__MODULE__, [game_name], name: name)
+    GenServer.start_link(__MODULE__, {game_name, players}, name: name)
+  end
+
+  def summary(game_name) do
+    GenServer.call(via_tuple(game_name), :summary)
   end
 
   @doc """
@@ -37,11 +41,13 @@ defmodule Avalon.Game.Server do
 
   # Server Callbacks
 
-  def init(game_name) do
+  def init({game_name, players}) do
+    Logger.info("Init #{game_name}, #{inspect(players)}")
     game =
       case :ets.lookup(:games_table, game_name) do
         [] ->
-          game = Avalon.Game.new(game_name)
+          game = Avalon.Game.new(game_name, players)
+          Logger.info("Game: #{inspect(game)}")
           :ets.insert(:games_table, {game_name, game})
           game
 
@@ -51,18 +57,32 @@ defmodule Avalon.Game.Server do
 
     Logger.info("Initializing game server '#{game_name}'.")
 
-    {:ok, game}
+    {:ok, game, @timeout}
+  end
+
+  def handle_call(:summary, _from, game) do
+    {:reply, game, game, @timeout}
+  end
+
+  def handle_info(:timeout, game) do
+    game_name = my_game_name()
+
+    Logger.info("Game '#{game_name}' has timed out")
+    {:stop, {:shutdown, :timeout}, game}
   end
 
   def terminate({:shutdown, :timeout}, _game) do
     game_name = my_game_name()
 
-    Logger.info("Terminating game server process '#{game_name}'.")
+    Logger.info("Terminating game server process '#{game_name}'")
     :ets.delete(:games_table, game_name)
     :ok
   end
 
   def terminate(_reason, _game) do
+    game_name = my_game_name()
+
+    Logger.info("Game '#{game_name}' terminated")
     :ok
   end
 
