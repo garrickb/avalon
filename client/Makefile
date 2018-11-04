@@ -14,7 +14,7 @@ build-dev: $(ELM_FILES)
 	elm make --yes $(MAIN) --debug --output $(JS_OUTPUT)
 
 serve: build
-	cd public && python -m http.server $(PORT)
+	cd public && python -m SimpleHTTPServer $(PORT)
 
 develop: build-dev
 	fswatch -0 src/* | xargs -0 -n1 -I '{}' make build-dev &
