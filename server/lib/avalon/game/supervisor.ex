@@ -18,7 +18,7 @@ defmodule Avalon.Game.Supervisor do
   Starts a `Server` process and supervises it.
   """
   def start_game(game_name, players) do
-    Logger.info("Supervising new game: '#{game_name} with players: #{inspect(players)}'")
+    Logger.info("Starting new game: '#{game_name}' with players: #{inspect(players)}'")
 
     child_spec = %{
       id: GameServer,
@@ -36,7 +36,7 @@ defmodule Avalon.Game.Supervisor do
     Logger.info("Stopping game: '#{game_name}'")
 
     :ets.delete(:games_table, game_name)
-    
+
     child_pid = GameServer.game_pid(game_name)
     DynamicSupervisor.terminate_child(__MODULE__, child_pid)
   end

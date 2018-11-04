@@ -21,7 +21,8 @@ defmodule AvalonWeb.GameChannel do
   end
 
   def handle_info({:after_join, game_name}, socket) do
-    Logger.info("Player '#{username(socket)}' joined room '#{game_name}'")
+    log(socket, "player joined room")
+
     broadcast_from!(socket, "msg:new", %{username: nil, msg: "'#{username(socket)}' joined the game"})
     push(socket, "msg:new", %{username: nil, msg: "Welcome to #{game_name}!"})
 
@@ -36,6 +37,8 @@ defmodule AvalonWeb.GameChannel do
   end
 
   def handle_in("message", %{"msg" => msg}, socket) do
+    log(socket, "new message: '#{msg}'")
+
     broadcast!(socket, "msg:new", %{
       username: username(socket),
       msg: msg
@@ -46,6 +49,7 @@ defmodule AvalonWeb.GameChannel do
 
   def handle_in("game:start", _payload, socket) do
     "room:" <> game_name = socket.topic
+    log(socket, "game started")
 
     # If the game is not already started, start the game
     if GameServer.game_pid(game_name) == nil do
@@ -62,6 +66,7 @@ defmodule AvalonWeb.GameChannel do
 
   def handle_in("game:stop", _payload, socket) do
     "room:" <> game_name = socket.topic
+    log(socket, "game stopped")
 
     # If the game is running, stop the game
     if GameServer.game_pid(game_name) != nil do
@@ -75,12 +80,19 @@ defmodule AvalonWeb.GameChannel do
   end
 
   def terminate(reason, socket) do
-    Logger.info("Player '#{username(socket)}' has left game, reason: #{inspect(reason)}")
+    log(socket, "player left game; reason: #{inspect(reason)}")
+
     broadcast!(socket, "msg:new", %{username: nil, msg: "'#{username(socket)}' has left game"})
     :ok
   end
 
   defp username(socket) do
     socket.assigns.username
+  end
+
+  # Ensures that all logs contain the room and player name
+  defp log(socket, message) do
+    "room:" <> game_name = socket.topic
+    Logger.info("['#{game_name}', '#{username(socket)}']" <> message)
   end
 end
