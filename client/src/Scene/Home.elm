@@ -71,4 +71,6 @@ update msg model =
             ( ( { model | userName = name }, Cmd.none ), NoOp )
 
         JoinRoom ->
-            ( ( model, Cmd.batch [ Route.modifyUrl Route.Room ] ), SetSessionInfo (Just model.roomName) (Just model.userName) )
+            ( ( model, Cmd.batch [ Route.modifyUrl Route.Room ] )
+            , SetSessionInfo (Just (String.trim model.roomName)) (Just (String.trim model.userName))
+            )
