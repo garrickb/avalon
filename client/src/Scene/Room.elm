@@ -148,29 +148,24 @@ viewPlayers playerName presence =
         |> Card.view
 
 
+viewConfig : Html Msg
+viewConfig =
+    text "config"
+
+
 view : Session -> Model -> Html Msg
 view session model =
     case session.roomName of
         Nothing ->
-            text "You need to join a room."
+            text "You are not in a room"
 
         Just room ->
             let
                 userName =
-                    case session.userName of
-                        Just user ->
-                            user
-
-                        Nothing ->
-                            ""
+                    Maybe.withDefault "" session.userName
 
                 roomName =
-                    case session.roomName of
-                        Just room ->
-                            room
-
-                        Nothing ->
-                            ""
+                    Maybe.withDefault "" session.roomName
 
                 start_button =
                     case model.roomState of
@@ -186,7 +181,7 @@ view session model =
                                     Button.button [ Button.primary, Button.attrs [ onClick StartGame ] ] [ text "Start Game" ]
 
                         _ ->
-                            text "no game"
+                            text "Invalid room state"
             in
             div []
                 [ h1 [] [ text roomName ]
@@ -223,6 +218,7 @@ initSocket session socketUrl =
         |> Socket.onClose (\_ -> GoToHomePage)
         |> Socket.onAbnormalClose (\_ -> GoToHomePage)
         |> Socket.reconnectTimer (\backoffIteration -> (backoffIteration + 1) * 5000 |> toFloat)
+        |> Socket.withDebug
 
 
 getChannel : Session -> Channel Msg
@@ -255,6 +251,7 @@ getChannel session =
         |> Channel.onRequestJoin RoomJoining
         |> Channel.onJoin (\msg -> RoomJoined msg)
         |> Channel.onLeave (\_ -> GoToHomePage)
+        |> Channel.onJoinError (\_ -> GoToHomePage)
         |> Channel.on "msg:new" (\msg -> NewMsg msg)
         |> Channel.on "game:state" (\msg -> NewGameState (Just msg))
         |> Channel.on "game:stop" (\msg -> NewGameState Nothing)
@@ -296,59 +293,9 @@ type Msg
     | NewGameState (Maybe JD.Value)
 
 
-
---| SetChannel (Channel Msg)
-
-
 update : Session -> Msg -> Model -> ( Model, Cmd Msg )
 update session msg model =
     case msg of
-        NewGameState game_state ->
-            case game_state of
-                Nothing ->
-                    { model | roomState = JoinedRoom Nothing } ! []
-
-                Just payload ->
-                    case model.roomState of
-                        JoinedRoom rs ->
-                            case JD.decodeValue decodeGameState payload of
-                                Ok game ->
-                                    { model | roomState = JoinedRoom (Just (Debug.log "new game state" game)) } ! []
-
-                                Err err ->
-                                    let
-                                        log =
-                                            Debug.log ("Error parsing game state: " ++ err)
-                                    in
-                                    model ! []
-
-                        _ ->
-                            model ! []
-
-        StartGame ->
-            case session.roomName of
-                Nothing ->
-                    model ! []
-
-                Just room ->
-                    let
-                        push =
-                            Push.init (roomChannel room) "game:start"
-                    in
-                    model ! [ Phoenix.push socketUrl push ]
-
-        StopGame ->
-            case session.roomName of
-                Nothing ->
-                    model ! []
-
-                Just room ->
-                    let
-                        push =
-                            Push.init (roomChannel room) "game:stop"
-                    in
-                    model ! [ Phoenix.push socketUrl push ]
-
         GoToHomePage ->
             model ! [ Route.modifyUrl Route.Home ]
 
@@ -427,3 +374,49 @@ update session msg model =
         UpdatePresence presenceState ->
             { model | presence = Debug.log "presenceState " presenceState }
                 ! []
+
+        NewGameState game_state ->
+            case game_state of
+                Nothing ->
+                    { model | roomState = JoinedRoom Nothing } ! []
+
+                Just payload ->
+                    case model.roomState of
+                        JoinedRoom rs ->
+                            case JD.decodeValue decodeGameState payload of
+                                Ok game ->
+                                    { model | roomState = JoinedRoom (Just (Debug.log "new game state" game)) } ! []
+
+                                Err err ->
+                                    let
+                                        log =
+                                            Debug.log ("Error parsing game state: " ++ err)
+                                    in
+                                    model ! []
+
+                        _ ->
+                            model ! []
+
+        StartGame ->
+            case session.roomName of
+                Nothing ->
+                    model ! []
+
+                Just room ->
+                    let
+                        push =
+                            Push.init (roomChannel room) "game:start"
+                    in
+                    model ! [ Phoenix.push socketUrl push ]
+
+        StopGame ->
+            case session.roomName of
+                Nothing ->
+                    model ! []
+
+                Just room ->
+                    let
+                        push =
+                            Push.init (roomChannel room) "game:stop"
+                    in
+                    model ! [ Phoenix.push socketUrl push ]

@@ -8,17 +8,23 @@ defmodule AvalonWeb.GameChannel do
   require Logger
 
   def join("room:" <> game_name, _params, socket) do
-    case GameServer.game_pid(game_name) do
-       pid when is_pid(pid) ->
-         send(self(), {:after_join, game_name})
-         summary = GameServer.summary(game_name)
-         {:ok, summary, socket}
+    if String.length(game_name) > 0 do
+      case GameServer.game_pid(game_name) do
+         pid when is_pid(pid) ->
+           send(self(), {:after_join, game_name})
+           summary = GameServer.summary(game_name)
+           {:ok, summary, socket}
 
-       nil ->
-         send(self(), {:after_join, game_name})
-         {:ok, socket}
+         nil ->
+           send(self(), {:after_join, game_name})
+           {:ok, socket}
+       end
+     else
+       logError(socket, "invalid room name")
+       {:error, "invalid room name"}
      end
   end
+
 
   def handle_info({:after_join, game_name}, socket) do
     log(socket, "player joined room")
@@ -93,6 +99,14 @@ defmodule AvalonWeb.GameChannel do
   # Ensures that all logs contain the room and player name
   defp log(socket, message) do
     "room:" <> game_name = socket.topic
-    Logger.info("['#{game_name}', '#{username(socket)}']" <> message)
+    Logger.info("[game: '#{game_name}' | user: '#{username(socket)}'] " <> message)
+  end
+  defp logWarn(socket, message) do
+    "room:" <> game_name = socket.topic
+    Logger.warn("[game: '#{game_name}' | user: '#{username(socket)}'] " <> message)
+  end
+  defp logError(socket, message) do
+    "room:" <> game_name = socket.topic
+    Logger.error("[game: '#{game_name}' | user: '#{username(socket)}'] " <> message)
   end
 end

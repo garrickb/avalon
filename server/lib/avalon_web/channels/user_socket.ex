@@ -1,6 +1,8 @@
 defmodule AvalonWeb.UserSocket do
   use Phoenix.Socket
 
+  require Logger
+
   ## Channels
   channel "room:*", AvalonWeb.GameChannel
 
@@ -20,7 +22,12 @@ defmodule AvalonWeb.UserSocket do
   # See `Phoenix.Token` documentation for examples in
   # performing token verification on connect.
   def connect(%{"username" => username}, socket) do
-    {:ok, assign(socket, :username, username)}
+    if String.length(username) == 0 do
+      Logger.warn("Invalid")
+      {:error, "invalid username"}
+    else
+      {:ok, assign(socket, :username, username)}
+    end
   end
 
   # Socket id's are topics that allow you to identify all sockets for a given user:
