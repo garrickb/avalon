@@ -1,4 +1,4 @@
-module Data.Game exposing (Game, decodeGameState, initialGame)
+module Data.Game exposing (Game, decodeGame, initialGame)
 
 import Json.Decode as JD exposing (Decoder)
 
@@ -9,6 +9,10 @@ type alias Game =
     }
 
 
+type alias Player =
+    { name : String }
+
+
 initialGame : Game
 initialGame =
     { name = ""
@@ -16,8 +20,14 @@ initialGame =
     }
 
 
-decodeGameState : Decoder Game
-decodeGameState =
+decodeGame : Decoder Game
+decodeGame =
     JD.map2 (\name players -> { name = name, players = players })
         (JD.field "name" JD.string)
         (JD.field "players" (JD.list JD.string))
+
+
+decodePlayer : Decoder Player
+decodePlayer =
+    JD.map Player
+        (JD.field "name" JD.string)

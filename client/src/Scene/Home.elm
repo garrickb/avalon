@@ -44,7 +44,7 @@ view session model =
     Grid.row
         [ Row.centerXs, Row.attrs [ style [ ( "height", "100vh" ), ( "overflow", "auto" ) ] ] ]
         [ Grid.col [ Col.middleXs ]
-            [ h3 [ style [ ( "text-align", "center" ) ] ] [ text "Welcome to Avalon" ]
+            [ h1 [ style [ ( "text-align", "center" ) ] ] [ text "Avalon" ]
             , Card.config []
                 |> Card.block []
                     [ Block.text []

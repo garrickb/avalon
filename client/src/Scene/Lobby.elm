@@ -27,6 +27,7 @@ import Phoenix.Presence as Presence exposing (Presence)
 import Phoenix.Push as Push
 import Phoenix.Socket as Socket exposing (Socket)
 import Route
+import Scene.Game
 
 
 -- MODEL --
@@ -153,11 +154,11 @@ viewConfig =
     text "config"
 
 
-view : Session -> Model -> Html Msg
-view session model =
+viewLobby : Session -> Model -> Html Msg
+viewLobby session model =
     case session.lobbyName of
         Nothing ->
-            text "You are not in a lobby"
+            text "Invalid lobby name"
 
         Just lobby ->
             let
@@ -169,16 +170,8 @@ view session model =
 
                 start_button =
                     case model.lobbyState of
-                        JoinedLobby lobby ->
-                            case lobby of
-                                Just lobby ->
-                                    div []
-                                        [ Button.button [ Button.primary, Button.attrs [ onClick StopGame ] ] [ text "Stop Game" ]
-                                        , text ("Players: " ++ String.join "," lobby.players)
-                                        ]
-
-                                Nothing ->
-                                    Button.button [ Button.primary, Button.attrs [ onClick StartGame ] ] [ text "Start Game" ]
+                        JoinedLobby Nothing ->
+                            Button.button [ Button.primary, Button.attrs [ onClick StartGame ] ] [ text "Start Game" ]
 
                         _ ->
                             text "Invalid lobby state"
@@ -195,6 +188,16 @@ view session model =
                         ]
                     ]
                 ]
+
+
+view : Session -> Model -> Html Msg
+view session model =
+    case model.lobbyState of
+        JoinedLobby (Just game) ->
+            Html.map GameMsg <| Scene.Game.view session game
+
+        _ ->
+            viewLobby session model
 
 
 
@@ -252,7 +255,7 @@ getChannel session =
         |> Channel.onJoin (\msg -> LobbyJoined msg)
         |> Channel.onLeave (\_ -> GoToHomePage)
         |> Channel.onJoinError (\_ -> GoToHomePage)
-        |> Channel.on "msg:new" (\msg -> NewMsg msg)
+        |> Channel.on "msg:new" (\msg -> NewChatMsg msg)
         |> Channel.on "game:state" (\msg -> NewGameState (Just msg))
         |> Channel.on "game:stop" (\msg -> NewGameState Nothing)
         |> Channel.withPresence presence
@@ -285,12 +288,12 @@ type Msg
     | SetSocketState SocketState
     | LobbyJoining
     | LobbyJoined JD.Value
-    | NewMsg JD.Value
-    | StartGame
-    | StopGame
-    | NewSystemMessage String
     | UpdatePresence (Dict String (List JD.Value))
+    | NewChatMsg JD.Value
+    | NewSystemMessage String
+    | StartGame
     | NewGameState (Maybe JD.Value)
+    | GameMsg Scene.Game.Msg
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg )
@@ -341,17 +344,7 @@ update session msg model =
             { model | lobbyState = JoinedLobby Nothing }
                 |> update session (NewGameState (Just game))
 
-        NewSystemMessage message ->
-            let
-                newMessages =
-                    model.chat.messages ++ [ SystemMessage message ]
-
-                newChat =
-                    { chatInput = model.chat.chatInput, messages = newMessages }
-            in
-            { model | chat = newChat } ! [ Cmd.none ]
-
-        NewMsg payload ->
+        NewChatMsg payload ->
             case JD.decodeValue decodeChatMsg payload of
                 Ok msg ->
                     let
@@ -371,6 +364,16 @@ update session msg model =
                 Err err ->
                     update session (NewSystemMessage ("Error: " ++ err)) model
 
+        NewSystemMessage message ->
+            let
+                newMessages =
+                    model.chat.messages ++ [ SystemMessage message ]
+
+                newChat =
+                    { chatInput = model.chat.chatInput, messages = newMessages }
+            in
+            { model | chat = newChat } ! [ Cmd.none ]
+
         UpdatePresence presenceState ->
             { model | presence = Debug.log "presenceState " presenceState }
                 ! []
@@ -383,7 +386,7 @@ update session msg model =
                 Just payload ->
                     case model.lobbyState of
                         JoinedLobby rs ->
-                            case JD.decodeValue decodeGameState payload of
+                            case JD.decodeValue decodeGame payload of
                                 Ok game ->
                                     { model | lobbyState = JoinedLobby (Just (Debug.log "new game state" game)) } ! []
 
@@ -409,14 +412,14 @@ update session msg model =
                     in
                     model ! [ Phoenix.push socketUrl push ]
 
-        StopGame ->
-            case session.lobbyName of
-                Nothing ->
-                    model ! []
-
-                Just lobby ->
+        GameMsg msg ->
+            case model.lobbyState of
+                JoinedLobby (Just game_state) ->
                     let
-                        push =
-                            Push.init (lobbyChannel lobby) "game:stop"
+                        ( stateModel, cmd ) =
+                            Scene.Game.update session msg game_state
                     in
-                    model ! [ Phoenix.push socketUrl push ]
+                    ( { model | lobbyState = JoinedLobby (Just stateModel) }, Cmd.map GameMsg cmd )
+
+                _ ->
+                    model ! []
