@@ -8,7 +8,7 @@ import Json.Decode as Decode exposing (Value)
 import Navigation exposing (Location)
 import Route exposing (Route)
 import Scene.Home as Home
-import Scene.Room as Room
+import Scene.Lobby as Lobby
 import Task
 
 
@@ -25,7 +25,7 @@ type State
     = Blank
     | NotFound
     | Home Home.Model
-    | Room Room.Model
+    | Lobby Lobby.Model
 
 
 init : Value -> Location -> ( Model, Cmd Msg )
@@ -64,9 +64,9 @@ viewState session state =
             -- TODO: Route to home with an error visible
             Html.text "Page Not Found"
 
-        Room subModel ->
-            Room.view session subModel
-                |> Html.map RoomMsg
+        Lobby subModel ->
+            Lobby.view session subModel
+                |> Html.map LobbyMsg
 
         Home subModel ->
             Home.view session subModel
@@ -92,8 +92,8 @@ stateSubscriptions model =
         NotFound ->
             Sub.none
 
-        Room _ ->
-            Sub.map RoomMsg (Room.subscription model.session)
+        Lobby _ ->
+            Sub.map LobbyMsg (Lobby.subscription model.session)
 
         Home _ ->
             Sub.none
@@ -105,7 +105,7 @@ stateSubscriptions model =
 
 type Msg
     = SetRoute (Maybe Route)
-    | RoomMsg Room.Msg
+    | LobbyMsg Lobby.Msg
     | HomeMsg Home.Msg
 
 
@@ -125,15 +125,15 @@ setRoute maybeRoute model =
         Just Route.Home ->
             ( { model | state = Home Home.init }, Cmd.none )
 
-        Just Route.Room ->
+        Just Route.Lobby ->
             let
                 ( newState, cmd ) =
-                    case model.session.roomName of
+                    case model.session.lobbyName of
                         Nothing ->
                             ( Home Home.init, Route.modifyUrl Route.Home )
 
-                        Just room ->
-                            ( Room Room.init, Cmd.none )
+                        Just lobby ->
+                            ( Lobby Lobby.init, Cmd.none )
             in
             ( { model | state = newState }, cmd )
 
@@ -159,24 +159,24 @@ updateState state msg model =
                         Home.NoOp ->
                             model
 
-                        Home.SetSessionInfo room user ->
+                        Home.SetSessionInfo lobby user ->
                             let
                                 oldSession =
                                     model.session
 
                                 newSession =
-                                    { oldSession | userName = user, roomName = room }
+                                    { oldSession | userName = user, lobbyName = lobby }
                             in
                             { model | session = newSession }
             in
             ( { newModel | state = Home stateModel }, Cmd.map HomeMsg cmd )
 
-        ( RoomMsg subMsg, Room subModel ) ->
+        ( LobbyMsg subMsg, Lobby subModel ) ->
             let
                 ( stateModel, cmd ) =
-                    Room.update model.session subMsg subModel
+                    Lobby.update model.session subMsg subModel
             in
-            ( { model | state = Room stateModel }, Cmd.map RoomMsg cmd )
+            ( { model | state = Lobby stateModel }, Cmd.map LobbyMsg cmd )
 
         ( _, _ ) ->
             ( model, Cmd.none )

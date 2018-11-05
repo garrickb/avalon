@@ -21,13 +21,13 @@ import Route exposing (Route)
 
 type alias Model =
     { userName : String
-    , roomName : String
+    , lobbyName : String
     }
 
 
 init : Model
 init =
-    { userName = "", roomName = "" }
+    { userName = "", lobbyName = "" }
 
 
 
@@ -53,10 +53,10 @@ view session model =
                             , Input.text [ Input.attrs [ value model.userName, onInput InputUserName, placeholder "Username" ] ]
                             ]
                         , Form.group []
-                            [ Form.label [] [ text "Room Name" ]
-                            , Input.text [ Input.attrs [ value model.roomName, onInput InputRoomName, onKeyDown RoomNameKeyDown, placeholder "Room Name" ] ]
+                            [ Form.label [] [ text "Lobby Name" ]
+                            , Input.text [ Input.attrs [ value model.lobbyName, onInput InputLobbyName, onKeyDown LobbyNameKeyDown, placeholder "Lobby Name" ] ]
                             ]
-                        , div [ class "text-center" ] [ Button.button [ Button.primary, Button.attrs [ onClick JoinRoom ] ] [ text "Join Room" ] ]
+                        , div [ class "text-center" ] [ Button.button [ Button.primary, Button.attrs [ onClick JoinLobby ] ] [ text "Join Lobby" ] ]
                         ]
                     ]
                 |> Card.view
@@ -75,10 +75,10 @@ view session model =
 
 
 type Msg
-    = InputRoomName String
+    = InputLobbyName String
     | InputUserName String
-    | RoomNameKeyDown Int
-    | JoinRoom
+    | LobbyNameKeyDown Int
+    | JoinLobby
 
 
 type ExternalMsg
@@ -89,29 +89,29 @@ type ExternalMsg
 update : Msg -> Model -> ( ( Model, Cmd Msg ), ExternalMsg )
 update msg model =
     case msg of
-        InputRoomName name ->
-            ( ( { model | roomName = name }, Cmd.none ), NoOp )
+        InputLobbyName name ->
+            ( ( { model | lobbyName = name }, Cmd.none ), NoOp )
 
         InputUserName name ->
             ( ( { model | userName = name }, Cmd.none ), NoOp )
 
-        RoomNameKeyDown key ->
+        LobbyNameKeyDown key ->
             if key == 13 then
-                update JoinRoom model
+                update JoinLobby model
             else
                 ( ( model, Cmd.none ), NoOp )
 
-        JoinRoom ->
+        JoinLobby ->
             let
-                roomName =
-                    String.trim model.roomName
+                lobbyName =
+                    String.trim model.lobbyName
 
                 userName =
                     String.trim model.userName
             in
-            if (String.length roomName > 0) && (String.length userName > 0) then
-                ( ( model, Cmd.batch [ Route.modifyUrl Route.Room ] )
-                , SetSessionInfo (Just roomName) (Just userName)
+            if (String.length lobbyName > 0) && (String.length userName > 0) then
+                ( ( model, Cmd.batch [ Route.modifyUrl Route.Lobby ] )
+                , SetSessionInfo (Just lobbyName) (Just userName)
                 )
             else
                 ( ( model, Cmd.none ), NoOp )

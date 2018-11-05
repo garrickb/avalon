@@ -1,4 +1,4 @@
-module Scene.Room exposing (Model, Msg, init, subscription, update, view)
+module Scene.Lobby exposing (Model, Msg, init, subscription, update, view)
 
 import Bootstrap.Badge as Badge
 import Bootstrap.Button as Button
@@ -10,8 +10,8 @@ import Bootstrap.Grid.Col as Col
 import Bootstrap.ListGroup as ListGroup
 import Bootstrap.Utilities.Spacing as Spacing
 import Data.ChatMessage exposing (ChatMessage(..), MessageModel, decodeChatMsg)
-import Data.Room exposing (..)
-import Data.RoomChannel as RoomChannel exposing (RoomState(..), roomChannel)
+import Data.Game exposing (..)
+import Data.LobbyChannel as LobbyChannel exposing (LobbyState(..), lobbyChannel)
 import Data.Session exposing (Session)
 import Data.Socket exposing (SocketState(..), socketUrl)
 import Debug exposing (log)
@@ -35,7 +35,7 @@ import Route
 type alias Model =
     { chat : ChatModel
     , socketState : SocketState
-    , roomState : RoomState
+    , lobbyState : LobbyState
     , presence : Dict String (List JD.Value)
     }
 
@@ -53,7 +53,7 @@ init =
         , chatInput = ""
         }
     , socketState = SocketClosed
-    , roomState = LeftRoom
+    , lobbyState = LeftLobby
     , presence = Dict.empty
     }
 
@@ -155,36 +155,36 @@ viewConfig =
 
 view : Session -> Model -> Html Msg
 view session model =
-    case session.roomName of
+    case session.lobbyName of
         Nothing ->
-            text "You are not in a room"
+            text "You are not in a lobby"
 
-        Just room ->
+        Just lobby ->
             let
                 userName =
                     Maybe.withDefault "" session.userName
 
-                roomName =
-                    Maybe.withDefault "" session.roomName
+                lobbyName =
+                    Maybe.withDefault "" session.lobbyName
 
                 start_button =
-                    case model.roomState of
-                        JoinedRoom room ->
-                            case room of
-                                Just room ->
+                    case model.lobbyState of
+                        JoinedLobby lobby ->
+                            case lobby of
+                                Just lobby ->
                                     div []
                                         [ Button.button [ Button.primary, Button.attrs [ onClick StopGame ] ] [ text "Stop Game" ]
-                                        , text ("Players: " ++ String.join "," room.players)
+                                        , text ("Players: " ++ String.join "," lobby.players)
                                         ]
 
                                 Nothing ->
                                     Button.button [ Button.primary, Button.attrs [ onClick StartGame ] ] [ text "Start Game" ]
 
                         _ ->
-                            text "Invalid room state"
+                            text "Invalid lobby state"
             in
             div []
-                [ h1 [] [ text roomName ]
+                [ h1 [] [ text lobbyName ]
                 , Grid.container []
                     [ Grid.row []
                         [ Grid.col [ Col.sm8 ] [ viewChat userName model.chat ]
@@ -233,23 +233,23 @@ getChannel session =
                     -- TODO: redirect to home
                     []
 
-        roomRoute =
-            case session.roomName of
+        lobbyRoute =
+            case session.lobbyName of
                 -- TODO: redirect to home
                 Nothing ->
                     ""
 
-                Just room ->
-                    roomChannel room
+                Just lobby ->
+                    lobbyChannel lobby
 
         presence =
             Presence.create
                 |> Presence.onChange UpdatePresence
     in
-    Channel.init roomRoute
+    Channel.init lobbyRoute
         |> Channel.withPayload (JE.object params)
-        |> Channel.onRequestJoin RoomJoining
-        |> Channel.onJoin (\msg -> RoomJoined msg)
+        |> Channel.onRequestJoin LobbyJoining
+        |> Channel.onJoin (\msg -> LobbyJoined msg)
         |> Channel.onLeave (\_ -> GoToHomePage)
         |> Channel.onJoinError (\_ -> GoToHomePage)
         |> Channel.on "msg:new" (\msg -> NewMsg msg)
@@ -283,8 +283,8 @@ type Msg
     | MessageKeyDown Int
     | SubmitMessage
     | SetSocketState SocketState
-    | RoomJoining
-    | RoomJoined JD.Value
+    | LobbyJoining
+    | LobbyJoined JD.Value
     | NewMsg JD.Value
     | StartGame
     | StopGame
@@ -313,11 +313,11 @@ update session msg model =
                 model ! []
 
         SubmitMessage ->
-            case session.roomName of
+            case session.lobbyName of
                 Nothing ->
                     model ! []
 
-                Just room ->
+                Just lobby ->
                     if String.length model.chat.chatInput == 0 then
                         model ! []
                     else
@@ -326,7 +326,7 @@ update session msg model =
                                 { chatInput = "", messages = model.chat.messages }
 
                             push =
-                                Push.init (roomChannel room) "message"
+                                Push.init (lobbyChannel lobby) "message"
                                     |> Push.withPayload (JE.object [ ( "msg", JE.string model.chat.chatInput ) ])
                         in
                         { model | chat = newChat } ! [ Phoenix.push socketUrl push ]
@@ -334,11 +334,11 @@ update session msg model =
         SetSocketState newSocketState ->
             { model | socketState = newSocketState } ! []
 
-        RoomJoining ->
-            { model | roomState = JoiningRoom } ! []
+        LobbyJoining ->
+            { model | lobbyState = JoiningLobby } ! []
 
-        RoomJoined game ->
-            { model | roomState = JoinedRoom Nothing }
+        LobbyJoined game ->
+            { model | lobbyState = JoinedLobby Nothing }
                 |> update session (NewGameState (Just game))
 
         NewSystemMessage message ->
@@ -378,14 +378,14 @@ update session msg model =
         NewGameState game_state ->
             case game_state of
                 Nothing ->
-                    { model | roomState = JoinedRoom Nothing } ! []
+                    { model | lobbyState = JoinedLobby Nothing } ! []
 
                 Just payload ->
-                    case model.roomState of
-                        JoinedRoom rs ->
+                    case model.lobbyState of
+                        JoinedLobby rs ->
                             case JD.decodeValue decodeGameState payload of
                                 Ok game ->
-                                    { model | roomState = JoinedRoom (Just (Debug.log "new game state" game)) } ! []
+                                    { model | lobbyState = JoinedLobby (Just (Debug.log "new game state" game)) } ! []
 
                                 Err err ->
                                     let
@@ -398,25 +398,25 @@ update session msg model =
                             model ! []
 
         StartGame ->
-            case session.roomName of
+            case session.lobbyName of
                 Nothing ->
                     model ! []
 
-                Just room ->
+                Just lobby ->
                     let
                         push =
-                            Push.init (roomChannel room) "game:start"
+                            Push.init (lobbyChannel lobby) "game:start"
                     in
                     model ! [ Phoenix.push socketUrl push ]
 
         StopGame ->
-            case session.roomName of
+            case session.lobbyName of
                 Nothing ->
                     model ! []
 
-                Just room ->
+                Just lobby ->
                     let
                         push =
-                            Push.init (roomChannel room) "game:stop"
+                            Push.init (lobbyChannel lobby) "game:stop"
                     in
                     model ! [ Phoenix.push socketUrl push ]

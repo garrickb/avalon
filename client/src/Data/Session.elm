@@ -3,10 +3,10 @@ module Data.Session exposing (Session, initialSession)
 
 type alias Session =
     { userName : Maybe String
-    , roomName : Maybe String
+    , lobbyName : Maybe String
     }
 
 
 initialSession : Session
 initialSession =
-    { userName = Nothing, roomName = Nothing }
+    { userName = Nothing, lobbyName = Nothing }
