@@ -4,12 +4,15 @@ import Bootstrap.Badge as Badge
 import Bootstrap.Button as Button
 import Bootstrap.Card as Card
 import Bootstrap.Card.Block as Block
-import Bootstrap.Form.Input as Input
+import Bootstrap.Form as Form
+import Bootstrap.Form.Checkbox as Checkbox
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
-import Bootstrap.ListGroup as ListGroup
+import Bootstrap.Grid.Row as Row
+import Bootstrap.Modal as Modal
+import Bootstrap.Popover as Popover
+import Bootstrap.Text as Text
 import Bootstrap.Utilities.Spacing as Spacing
-import Data.ChatMessage exposing (ChatMessage(..), MessageModel, decodeChatMsg)
 import Data.Game exposing (..)
 import Data.LobbyChannel as LobbyChannel exposing (LobbyState(..), lobbyChannel)
 import Data.Session exposing (Session)
@@ -34,160 +37,118 @@ import Scene.Game
 
 
 type alias Model =
-    { chat : ChatModel
-    , socketState : SocketState
+    { socketState : SocketState
     , lobbyState : LobbyState
     , presence : Dict String (List JD.Value)
-    }
-
-
-type alias ChatModel =
-    { messages : List ChatMessage
-    , chatInput : String
+    , settingsVisibility : Modal.Visibility
     }
 
 
 init : Model
 init =
-    { chat =
-        { messages = []
-        , chatInput = ""
-        }
-    , socketState = SocketClosed
+    { socketState = SocketClosed
     , lobbyState = LeftLobby
     , presence = Dict.empty
+    , settingsVisibility = Modal.hidden
     }
+
+
+characters : List String
+characters =
+    [ "Merlin", "Assassin", "Percival", "Mordred", "Oberon", "Morgana" ]
 
 
 
 -- VIEW --
 
 
-viewMessage : String -> ChatMessage -> Html Msg
-viewMessage name message =
-    case message of
-        SystemMessage message ->
-            div []
-                [ ListGroup.ul [ ListGroup.li [ ListGroup.info ] [ text message ] ] ]
-
-        UserMessage username message ->
-            if name == username then
-                div []
-                    [ div [] [ text username, Badge.pillPrimary [ Spacing.ml1 ] [ text "you" ] ]
-                    , ListGroup.ul [ ListGroup.li [] [ text message ] ]
-                    ]
-            else
-                div []
-                    [ text username
-                    , ListGroup.ul [ ListGroup.li [] [ text message ] ]
-                    ]
+viewSetting : String -> Html Msg
+viewSetting name =
+    div []
+        [ Checkbox.checkbox [ Checkbox.id name ] name ]
 
 
-viewMessages : String -> List ChatMessage -> Html Msg
-viewMessages name messages =
-    div
-        [ style [ ( "overflow", "auto" ), ( "max-height", "350px" ), ( "display", "flex" ), ( "flex-direction", "column-reverse" ) ] ]
-        [ div
-            []
-            (List.map
-                (viewMessage name)
-                messages
-            )
-        ]
-
-
-onKeyDown : (Int -> msg) -> Html.Attribute msg
-onKeyDown tagger =
-    on "keydown" (JD.map tagger keyCode)
-
-
-viewChatBox : String -> Html Msg
-viewChatBox currentValue =
-    Grid.row []
-        [ Grid.col
-            [ Col.sm8, Col.md9, Col.lg10 ]
-            [ Input.text [ Input.attrs [ onInput MessageInput, onKeyDown MessageKeyDown, value currentValue, placeholder "Message" ] ] ]
-        , Grid.col
-            [ Col.sm2, Col.md2, Col.lg2 ]
-            [ Button.button [ Button.primary, Button.attrs [ onClick SubmitMessage ] ] [ text "Submit" ] ]
-        ]
-
-
-viewChat : String -> ChatModel -> Html Msg
-viewChat name chatModel =
-    Card.config []
-        |> Card.header [] [ text "Chat" ]
-        |> Card.block []
-            [ Block.custom
-                (div []
-                    [ viewMessages name chatModel.messages
-                    ]
-                )
+viewSettings : Modal.Visibility -> Html Msg
+viewSettings visibility =
+    Modal.config (SettingsModal Modal.hidden)
+        |> Modal.small
+        |> Modal.hideOnBackdropClick True
+        |> Modal.h3 [] [ text "Game Settings" ]
+        |> Modal.body []
+            [ Form.form
+                []
+                (List.map viewSetting characters)
             ]
-        |> Card.footer [] [ viewChatBox chatModel.chatInput ]
-        |> Card.view
+        |> Modal.footer []
+            [ Button.button
+                [ Button.outlinePrimary
+                , Button.attrs [ onClick <| SettingsModal Modal.hidden ]
+                ]
+                [ text "Close" ]
+            ]
+        |> Modal.view visibility
 
 
-viewPlayer : String -> ( String, List JD.Value ) -> ListGroup.Item Msg
+viewPlayer : String -> ( String, List JD.Value ) -> Grid.Column Msg
 viewPlayer playerName ( name, values ) =
+    let
+        sizeAttrs =
+            [ Col.md4, Col.sm6, Col.xs12 ]
+    in
     if name == playerName then
-        ListGroup.li [] [ text name, Badge.pillPrimary [ Spacing.ml1 ] [ text "you" ] ]
+        Grid.col sizeAttrs [ text name, Badge.pillPrimary [ Spacing.ml1 ] [ text "you" ] ]
     else
-        ListGroup.li [] [ text name ]
+        Grid.col sizeAttrs [ text name ]
 
 
 viewPlayers : String -> Dict String (List JD.Value) -> Html Msg
 viewPlayers playerName presence =
     let
         players =
-            ListGroup.ul
-                (List.map (viewPlayer playerName) (Dict.toList presence))
+            List.map (viewPlayer playerName) (Dict.toList presence)
     in
-    Card.config []
-        |> Card.header [] [ text "Players" ]
-        |> Card.block [] [ Block.custom players ]
-        |> Card.view
-
-
-viewConfig : Html Msg
-viewConfig =
-    text "config"
+    Grid.container []
+        [ Grid.row [ Row.centerXs ]
+            players
+        ]
 
 
 viewLobby : Session -> Model -> Html Msg
 viewLobby session model =
-    case session.lobbyName of
-        Nothing ->
-            text "Invalid lobby name"
+    let
+        lobbyName =
+            Maybe.withDefault "" session.lobbyName
 
-        Just lobby ->
-            let
-                userName =
-                    Maybe.withDefault "" session.userName
-
-                lobbyName =
-                    Maybe.withDefault "" session.lobbyName
-
-                start_button =
-                    case model.lobbyState of
-                        JoinedLobby Nothing ->
-                            Button.button [ Button.primary, Button.attrs [ onClick StartGame ] ] [ text "Start Game" ]
-
-                        _ ->
-                            text "Invalid lobby state"
-            in
-            div []
-                [ h1 [] [ text lobbyName ]
-                , Grid.container []
-                    [ Grid.row []
-                        [ Grid.col [ Col.sm8 ] [ viewChat userName model.chat ]
-                        , Grid.col [ Col.sm4 ]
-                            [ viewPlayers userName model.presence
-                            , start_button
+        userName =
+            Maybe.withDefault "" session.userName
+    in
+    Grid.row
+        [ Row.centerXs, Row.attrs [ style [ ( "height", "100vh" ), ( "overflow", "auto" ) ] ] ]
+        [ Grid.col [ Col.middleXs ]
+            [ h1 [ style [ ( "text-align", "center" ) ] ] [ text lobbyName ]
+            , Card.config [ Card.align Text.alignXsCenter ]
+                |> Card.block []
+                    [ Block.text []
+                        [ viewPlayers userName model.presence
+                        , Html.hr [] []
+                        , div [ class "text-center" ]
+                            [ Button.button
+                                [ Button.outlineSecondary
+                                , Button.attrs [ Spacing.ml1, onClick <| SettingsModal Modal.shown ]
+                                ]
+                                [ span [ class "fa fa-cog" ] [] ]
+                            , Button.button
+                                [ Button.primary
+                                , Button.attrs [ Spacing.ml1, onClick StartGame ]
+                                ]
+                                [ text "Start Game", span [ class "oi oi-cog" ] [] ]
                             ]
                         ]
                     ]
-                ]
+                |> Card.view
+            , viewSettings model.settingsVisibility
+            ]
+        ]
 
 
 view : Session -> Model -> Html Msg
@@ -255,7 +216,6 @@ getChannel session =
         |> Channel.onJoin (\msg -> LobbyJoined msg)
         |> Channel.onLeave (\_ -> GoToHomePage)
         |> Channel.onJoinError (\_ -> GoToHomePage)
-        |> Channel.on "msg:new" (\msg -> NewChatMsg msg)
         |> Channel.on "game:state" (\msg -> NewGameState (Just msg))
         |> Channel.on "game:stop" (\msg -> NewGameState Nothing)
         |> Channel.withPresence presence
@@ -282,15 +242,11 @@ subscription session =
 
 type Msg
     = GoToHomePage
-    | MessageInput String
-    | MessageKeyDown Int
-    | SubmitMessage
     | SetSocketState SocketState
     | LobbyJoining
     | LobbyJoined JD.Value
     | UpdatePresence (Dict String (List JD.Value))
-    | NewChatMsg JD.Value
-    | NewSystemMessage String
+    | SettingsModal Modal.Visibility
     | StartGame
     | NewGameState (Maybe JD.Value)
     | GameMsg Scene.Game.Msg
@@ -302,38 +258,6 @@ update session msg model =
         GoToHomePage ->
             model ! [ Route.modifyUrl Route.Home ]
 
-        MessageInput input ->
-            let
-                newChat =
-                    { chatInput = input, messages = model.chat.messages }
-            in
-            { model | chat = newChat } ! []
-
-        MessageKeyDown key ->
-            if key == 13 then
-                update session SubmitMessage model
-            else
-                model ! []
-
-        SubmitMessage ->
-            case session.lobbyName of
-                Nothing ->
-                    model ! []
-
-                Just lobby ->
-                    if String.length model.chat.chatInput == 0 then
-                        model ! []
-                    else
-                        let
-                            newChat =
-                                { chatInput = "", messages = model.chat.messages }
-
-                            push =
-                                Push.init (lobbyChannel lobby) "message"
-                                    |> Push.withPayload (JE.object [ ( "msg", JE.string model.chat.chatInput ) ])
-                        in
-                        { model | chat = newChat } ! [ Phoenix.push socketUrl push ]
-
         SetSocketState newSocketState ->
             { model | socketState = newSocketState } ! []
 
@@ -344,39 +268,12 @@ update session msg model =
             { model | lobbyState = JoinedLobby Nothing }
                 |> update session (NewGameState (Just game))
 
-        NewChatMsg payload ->
-            case JD.decodeValue decodeChatMsg payload of
-                Ok msg ->
-                    let
-                        newMessages =
-                            case msg.userName of
-                                Just userName ->
-                                    model.chat.messages ++ [ UserMessage userName msg.message ]
-
-                                Nothing ->
-                                    model.chat.messages ++ [ SystemMessage msg.message ]
-
-                        newChat =
-                            { chatInput = model.chat.chatInput, messages = newMessages }
-                    in
-                    { model | chat = newChat } ! []
-
-                Err err ->
-                    update session (NewSystemMessage ("Error: " ++ err)) model
-
-        NewSystemMessage message ->
-            let
-                newMessages =
-                    model.chat.messages ++ [ SystemMessage message ]
-
-                newChat =
-                    { chatInput = model.chat.chatInput, messages = newMessages }
-            in
-            { model | chat = newChat } ! [ Cmd.none ]
-
         UpdatePresence presenceState ->
             { model | presence = Debug.log "presenceState " presenceState }
                 ! []
+
+        SettingsModal visibility ->
+            { model | settingsVisibility = visibility } ! []
 
         NewGameState game_state ->
             case game_state of
