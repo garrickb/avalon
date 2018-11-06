@@ -29,26 +29,12 @@ defmodule AvalonWeb.GameChannel do
   def handle_info({:after_join, game_name}, socket) do
     log(socket, "player joined room")
 
-    broadcast_from!(socket, "msg:new", %{username: nil, msg: "'#{username(socket)}' joined the game"})
-    push(socket, "msg:new", %{username: nil, msg: "Welcome to #{game_name}!"})
-
     # Handle the presence state
     push(socket, "presence_state", Presence.list(socket))
     {:ok, _} =
       Presence.track(socket, username(socket), %{
         online_at: inspect(System.system_time(:seconds))
       })
-
-    {:noreply, socket}
-  end
-
-  def handle_in("message", %{"msg" => msg}, socket) do
-    log(socket, "new message: '#{msg}'")
-
-    broadcast!(socket, "msg:new", %{
-      username: username(socket),
-      msg: msg
-    })
 
     {:noreply, socket}
   end
@@ -87,8 +73,6 @@ defmodule AvalonWeb.GameChannel do
 
   def terminate(reason, socket) do
     log(socket, "player left game; reason: #{inspect(reason)}")
-
-    broadcast!(socket, "msg:new", %{username: nil, msg: "'#{username(socket)}' has left game"})
     :ok
   end
 
