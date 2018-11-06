@@ -6,7 +6,7 @@ defmodule Avalon.Game.Server do
   use GenServer
   require Logger
 
-  @timeout :timer.minutes(30)
+  @timeout :timer.hours(1)
 
   # Client Interface
 

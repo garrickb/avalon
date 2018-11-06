@@ -22,6 +22,28 @@ import Svg.Attributes as SvgAttr
 -- VIEW --
 
 
+viewDebug : Game -> Html msg
+viewDebug game =
+    Card.config []
+        |> Card.block []
+            [ Block.text []
+                [ h5 [] [ text game.player.name ]
+                , hr [] []
+                , p [] [ text ("BY GAHD, YOU'RE " ++ game.player.role) ]
+                ]
+            ]
+        |> Card.view
+
+
+viewDrawer : Game -> Html Msg
+viewDrawer game =
+    Grid.row
+        [ Row.middleXs, Row.attrs [ class "position-absolute text-center", style [ ( "bottom", "15px" ), ( "left", "15px" ), ( "width", "100%" ) ] ] ]
+        [ Grid.col []
+            [ viewDebug game ]
+        ]
+
+
 viewQuest : Int -> Html msg
 viewQuest numPlayers =
     let
@@ -81,11 +103,13 @@ viewPlayer name =
         ]
 
 
-viewPlayers : List String -> Html Msg
-viewPlayers players =
+viewPlayers : String -> List String -> Html Msg
+viewPlayers ignorePlayer players =
     Grid.row
-        [ Row.middleXs, Row.attrs [ class "position-absolute text-center", style [ ( "top", "0" ), ( "left", "15px" ), ( "width", "100%" ) ] ] ]
-        (List.map viewPlayer players)
+        [ Row.middleXs, Row.attrs [ class "position-absolute text-center", style [ ( "top", "15px" ), ( "left", "15px" ), ( "width", "100%" ) ] ] ]
+        (List.filter (\x -> x /= ignorePlayer) players
+            |> List.map viewPlayer
+        )
 
 
 viewBoard : Game -> Html Msg
@@ -97,7 +121,8 @@ viewBoard game =
             , Card.config []
                 |> Card.block []
                     [ Block.text []
-                        [ viewQuests ]
+                        [ viewQuests
+                        ]
                     ]
                 |> Card.view
             , div [ style [ ( "padding-top", "2%" ) ] ]
@@ -110,7 +135,8 @@ view : Session -> Game -> Html Msg
 view session model =
     div []
         [ viewBoard model
-        , viewPlayers model.players
+        , viewPlayers model.player.name model.players
+        , viewDrawer model
         ]
 
 

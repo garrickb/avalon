@@ -93,7 +93,7 @@ viewPlayer : String -> ( String, List JD.Value ) -> Grid.Column Msg
 viewPlayer playerName ( name, values ) =
     let
         sizeAttrs =
-            [ Col.md4, Col.sm6, Col.xs12 ]
+            [ Col.md4, Col.sm6, Col.xs12, Col.attrs [ style [ ( "padding-bottom", "5px" ) ] ] ]
     in
     if name == playerName then
         Grid.col sizeAttrs [ text name, Badge.pillPrimary [ Spacing.ml1 ] [ text "you" ] ]
@@ -276,13 +276,17 @@ update session msg model =
             { model | settingsVisibility = visibility } ! []
 
         NewGameState game_state ->
+            let
+                log =
+                    Debug.log "NewGameState: " game_state
+            in
             case game_state of
                 Nothing ->
                     { model | lobbyState = JoinedLobby Nothing } ! []
 
                 Just payload ->
-                    case model.lobbyState of
-                        JoinedLobby rs ->
+                    case Debug.log "LOBBYSTATE: " model.lobbyState of
+                        JoinedLobby _ ->
                             case JD.decodeValue decodeGame payload of
                                 Ok game ->
                                     { model | lobbyState = JoinedLobby (Just (Debug.log "new game state" game)) } ! []
@@ -290,7 +294,7 @@ update session msg model =
                                 Err err ->
                                     let
                                         log =
-                                            Debug.log ("Error parsing game state: " ++ err)
+                                            Debug.log "Error decoding state: " err
                                     in
                                     model ! []
 

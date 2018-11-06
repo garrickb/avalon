@@ -1,19 +1,25 @@
 defmodule Avalon.Player do
-  use GenServer
 
-  # Client
+  @enforce_keys [:name, :role]
+  defstruct [name: nil, role: nil]
 
-  def start_link(_default) do
-    GenServer.start_link(__MODULE__, [], name: __MODULE__)
+  alias Avalon.Player
+
+  require Logger
+
+  @doc """
+  Creates a list of players with random roles.
+  """
+  def newFromList(names, roles) do
+    Stream.zip(names, Enum.shuffle roles) |> Enum.map(fn {n, r} -> %Player{name: n, role: r} end)
   end
 
-  # Server
-
-  def init(state) do
-    {:ok, state}
-  end
-
-  def handle_call(:pop, _from, [head | tail]) do
-    {:reply, head, tail}
+  @doc """
+  Creates a new player.
+  """
+  def new(name, role) do
+    %Player{name: name,
+            role: role
+          }
   end
 end
