@@ -1,14 +1,12 @@
-module Data.Game exposing (Game, decodeGame)
+module Data.Game exposing (Game, Player, decodeGame)
 
 import Json.Decode as JD exposing (Decoder)
 
 
 type alias Game =
     { name : String
-    , players : List String
-    , player : Player
-    , king : Int
-    , state : GameState
+    , players : List Player
+    , fsm : GameState
     }
 
 
@@ -28,17 +26,17 @@ type alias GameStateData =
 type alias Player =
     { name : String
     , role : String
+    , ready : Bool
+    , king : Bool
     }
 
 
 decodeGame : Decoder Game
 decodeGame =
-    JD.map5 Game
+    JD.map3 Game
         (JD.field "name" JD.string)
-        (JD.field "players" (JD.list JD.string))
-        (JD.field "player" decodePlayer)
-        (JD.field "king" JD.int)
-        (JD.field "state" decodeGameState)
+        (JD.field "players" (JD.list decodePlayer))
+        (JD.field "fsm" decodeGameState)
 
 
 decodeGameState : Decoder GameState
@@ -58,6 +56,8 @@ decodeGameStateData =
 
 decodePlayer : Decoder Player
 decodePlayer =
-    JD.map2 Player
+    JD.map4 Player
         (JD.field "name" JD.string)
         (JD.field "role" JD.string)
+        (JD.field "ready" JD.bool)
+        (JD.field "king" JD.bool)

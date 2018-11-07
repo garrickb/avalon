@@ -1,7 +1,9 @@
 defmodule Avalon.FsmGameState do
-use Fsm, initial_state: :waiting, initial_data: %Avalon.FsmGameData{}
-alias Avalon.FsmGameData
+  use Fsm, initial_state: :waiting, initial_data: %Avalon.FsmGameData{}
 
+  alias Avalon.FsmGameData
+  alias Avalon.FsmState.Waiting, as: Waiting
+  alias Avalon.FsmState.SelectQuestMembers, as: SelectQuestMembers
 
   # Waiting for players to join the room.
   defstate waiting do

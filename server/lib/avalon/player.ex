@@ -1,7 +1,7 @@
 defmodule Avalon.Player do
 
   @enforce_keys [:name, :role]
-  defstruct [name: nil, role: nil]
+  defstruct [:name, :role, :ready, :king]
 
   alias Avalon.Player
 
@@ -10,16 +10,18 @@ defmodule Avalon.Player do
   @doc """
   Creates a list of players with random roles.
   """
-  def newFromList(names, roles) do
-    Stream.zip(names, Enum.shuffle roles) |> Enum.map(fn {n, r} -> %Player{name: n, role: r} end)
+  def newFromList(names, roles) when is_list(names) and is_list(roles) do
+    Stream.zip(names, Enum.shuffle roles) |> Enum.map(fn {n, r} -> new(n, r) end)
   end
 
   @doc """
   Creates a new player.
   """
-  def new(name, role) do
+  def new(name, role) when is_binary(name) and is_atom(role) do
     %Player{name: name,
-            role: role
+            role: role,
+            ready: false,
+            king: false
           }
   end
 end

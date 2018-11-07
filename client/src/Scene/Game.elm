@@ -6,7 +6,7 @@ import Bootstrap.Card.Block as Block
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
-import Data.Game exposing (Game)
+import Data.Game exposing (Game, Player)
 import Data.LobbyChannel as LobbyChannel exposing (LobbyState(..), lobbyChannel)
 import Data.Session exposing (Session)
 import Data.Socket exposing (SocketState(..), socketUrl)
@@ -22,25 +22,60 @@ import Svg.Attributes as SvgAttr
 -- VIEW --
 
 
-viewDebug : Game -> Html msg
-viewDebug game =
+viewActions : Game -> Player -> Html Msg
+viewActions game self =
+    case game.fsm.state of
+        "waiting" ->
+            let
+                buttonText =
+                    if self.ready then
+                        "Waiting"
+                    else
+                        "Ready"
+            in
+            Button.button [ Button.primary, Button.attrs [ onClick PlayerReady ], Button.disabled self.ready ] [ text buttonText ]
+
+        _ ->
+            text ("current state: " ++ game.fsm.state)
+
+
+viewSelf : Game -> Player -> Html Msg
+viewSelf game self =
+    let
+        isKing =
+            if self.king then
+                "True"
+            else
+                "False"
+    in
     Card.config []
         |> Card.block []
             [ Block.text []
-                [ h5 [] [ text game.player.name ]
+                [ h5 [] [ text self.name ]
                 , hr [] []
-                , p [] [ text ("BY GAHD, YOU'RE " ++ game.player.role) ]
+                , p [] [ text ("King: " ++ isKing) ]
+                , p [] [ text ("Role: " ++ self.role) ]
+                , viewActions game self
                 ]
             ]
         |> Card.view
 
 
-viewDrawer : Game -> Html Msg
-viewDrawer game =
+viewDrawer : Game -> Maybe Player -> Html Msg
+viewDrawer game maybeSelf =
+    let
+        content =
+            case maybeSelf of
+                Just self ->
+                    viewSelf game self
+
+                Nothing ->
+                    text "you are a spectator"
+    in
     Grid.row
         [ Row.middleXs, Row.attrs [ class "position-absolute text-center", style [ ( "bottom", "15px" ), ( "left", "15px" ), ( "width", "100%" ) ] ] ]
         [ Grid.col []
-            [ viewDebug game ]
+            [ content ]
         ]
 
 
@@ -91,23 +126,33 @@ viewQuests =
         )
 
 
-viewPlayer : String -> Grid.Column Msg
-viewPlayer name =
+viewPlayer : Player -> Grid.Column Msg
+viewPlayer player =
+    let
+        isKing =
+            if player.king then
+                "True"
+            else
+                "False"
+    in
     Grid.col []
         [ Card.config []
             |> Card.block []
                 [ Block.text []
-                    [ text name ]
+                    [ p [] [ text player.name ]
+                    , p [] [ text ("King: " ++ isKing) ]
+                    , p [] [ text ("Role: " ++ player.role) ]
+                    ]
                 ]
             |> Card.view
         ]
 
 
-viewPlayers : String -> List String -> Html Msg
-viewPlayers ignorePlayer players =
+viewPlayers : List Player -> String -> Html Msg
+viewPlayers players ignorePlayer =
     Grid.row
         [ Row.middleXs, Row.attrs [ class "position-absolute text-center", style [ ( "top", "15px" ), ( "left", "15px" ), ( "width", "100%" ) ] ] ]
-        (List.filter (\x -> x /= ignorePlayer) players
+        (List.filter (\p -> p.name /= ignorePlayer) players
             |> List.map viewPlayer
         )
 
@@ -133,28 +178,44 @@ viewBoard game =
 
 view : Session -> Game -> Html Msg
 view session model =
+    let
+        username =
+            Maybe.withDefault "" session.userName
+
+        self =
+            List.head <| List.filter (\p -> p.name == username) model.players
+    in
     div []
         [ viewBoard model
-        , viewPlayers model.player.name model.players
-        , viewDrawer model
+        , viewPlayers model.players username
+        , viewDrawer model self
         ]
 
 
 type Msg
     = StopGame
+    | PlayerReady
+
+
+pushMessage : String -> String -> Cmd msg
+pushMessage lobby message =
+    let
+        push =
+            Push.init (lobbyChannel lobby) message
+    in
+    Phoenix.push socketUrl push
 
 
 update : Session -> Msg -> Game -> ( Game, Cmd Msg )
 update session msg model =
-    case msg of
-        StopGame ->
-            case session.lobbyName of
-                Nothing ->
-                    model ! []
+    case session.lobbyName of
+        Nothing ->
+            model ! []
 
-                Just lobby ->
-                    let
-                        push =
-                            Push.init (lobbyChannel lobby) "game:stop"
-                    in
-                    model ! [ Phoenix.push socketUrl push ]
+        Just lobby ->
+            case msg of
+                StopGame ->
+                    model ! [ pushMessage lobby "game:stop" ]
+
+                PlayerReady ->
+                    model ! [ pushMessage lobby "player:ready" ]

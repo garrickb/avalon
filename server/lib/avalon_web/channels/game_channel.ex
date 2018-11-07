@@ -43,11 +43,6 @@ defmodule AvalonWeb.GameChannel do
     {:noreply, socket}
   end
 
-  def handle_out("game:state", game, socket) do
-    push socket, "game:state", filter_game_state(game, socket)
-    {:noreply, socket}
-  end
-
   def handle_in("game:start", _payload, socket) do
     "room:" <> game_name = socket.topic
     log(socket, "game started")
@@ -65,20 +60,6 @@ defmodule AvalonWeb.GameChannel do
     {:noreply, socket}
   end
 
-  defp filter_game_state(game, socket) do
-    player =
-      Enum.find(game.players, nil, fn player -> player.name == username(socket) end)
-
-    filtered_players =
-      Enum.map(game.players, (fn player -> player.name end ))
-
-    if player == nil do
-      Map.merge(game, %{players: filtered_players, player: %{name: username(socket), role: :spectator}})
-    else
-      Map.merge(game, %{players: filtered_players, player: player})
-    end
-  end
-
   def handle_in("game:stop", _payload, socket) do
     "room:" <> game_name = socket.topic
     log(socket, "game stopped")
@@ -91,6 +72,49 @@ defmodule AvalonWeb.GameChannel do
     # Alert all players of the new game state
     broadcast!(socket, "game:stop", %{})
 
+    {:noreply, socket}
+  end
+
+  def handle_out("game:state", game, socket) do
+    push socket, "game:state", filter_game_state(game, socket)
+    {:noreply, socket}
+  end
+
+  defp filter_game_state(game, socket) do
+    player =
+      Enum.find(game.players, nil, fn player -> player.name == username(socket) end)
+
+    filtered_players =
+      game.players |>
+        Enum.map(fn p -> if p.name == username(socket), do: p, else: %{name: p.name, ready: p.ready, king: p.king, role: :unknown} end )
+
+    if player == nil do
+      Map.merge(game, %{players: filtered_players})
+    else
+      Map.merge(game, %{players: filtered_players})
+    end
+  end
+
+  def handle_in("player:ready", _payload, socket) do
+    "room:" <> game_name = socket.topic
+
+    case GameServer.game_pid(game_name) do
+      pid when is_pid(pid) ->
+        game = GameServer.player_ready(game_name, username(socket))
+
+        log(socket, "player is ready")
+        broadcast!(socket, "game:state", game)
+
+        {:noreply, socket}
+
+      nil ->
+        logError(socket, "attempted to ready a player in non-existant game")
+        {:reply, {:error, %{reason: "Game does not exist"}}, socket}
+    end
+  end
+
+  def handle_in(message, payload, socket) do
+    logError(socket, "unknown command: '#{message}' payload: '#{inspect(payload)}'")
     {:noreply, socket}
   end
 

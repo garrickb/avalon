@@ -19,7 +19,11 @@ defmodule Avalon.Game.Server do
   end
 
   def summary(game_name) do
-    GenServer.call(via_tuple(game_name), :summary)
+      GenServer.call(via_tuple(game_name), :summary)
+  end
+
+  def player_ready(game_name, player) do
+      GenServer.call(via_tuple(game_name), {:player_ready, player})
   end
 
   @doc """
@@ -60,6 +64,14 @@ defmodule Avalon.Game.Server do
 
   def handle_call(:summary, _from, game) do
     {:reply, game, game, @timeout}
+  end
+
+  def handle_call({:player_ready, player}, _from, game) do
+     new_game = Avalon.Game.set_player_ready(game, player)
+
+     :ets.insert(:games_table, {my_game_name(), new_game})
+
+     {:reply, new_game, new_game, @timeout}
   end
 
   def handle_info(:timeout, game) do
