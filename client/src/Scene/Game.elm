@@ -53,8 +53,7 @@ viewSelf game self =
             [ Block.text []
                 [ h5 [] [ text self.name ]
                 , hr [] []
-                , p [] [ text ("King: " ++ isKing) ]
-                , p [] [ text ("Role: " ++ self.role) ]
+                , p [] [ text ("King: " ++ isKing), text (",   Role: " ++ self.role) ]
                 , viewActions game self
                 ]
             ]
