@@ -17,7 +17,7 @@ defmodule AvalonWeb.GameChannel do
 
           # Alert the player of the existing game state
           game = GameServer.summary(game_name)
-          {:ok, filter_game_state(game, socket), socket}
+          {:ok, handle_out_game(game, socket), socket}
 
         nil ->
           send(self(), {:after_join, game_name})
@@ -99,26 +99,40 @@ defmodule AvalonWeb.GameChannel do
   end
 
   def handle_out("game:state", game, socket) do
-    push(socket, "game:state", filter_game_state(game, socket))
+    push(socket, "game:state", handle_out_game(game, socket))
+
     {:noreply, socket}
   end
 
-  defp filter_game_state(game, socket) do
-    player = Enum.find(game.players, nil, fn player -> player.name == username(socket) end)
+  defp handle_out_game(game, socket) do
+    %{
+      game
+      | players: handle_out_players(game.players, socket),
+        quests: handle_out_quests(game.quests, socket)
+    }
+  end
 
-    filtered_players =
-      game.players
-      |> Enum.map(fn p ->
-        if p.name == username(socket),
-          do: p,
-          else: %{name: p.name, ready: p.ready, king: p.king, role: :unknown}
+  defp handle_out_players(players, socket) do
+    players
+    |> Enum.map(fn p ->
+      if p.name == username(socket),
+        do: p,
+        else: %{p | role: :unknown}
+    end)
+  end
+
+  defp handle_out_quests(quests, _socket) do
+    active_quest =
+      Enum.find(quests, fn quest ->
+        match?(:uncompleted, quest.outcome)
       end)
 
-    if player == nil do
-      Map.merge(game, %{players: filtered_players})
-    else
-      Map.merge(game, %{players: filtered_players})
-    end
+    quests
+    |> Enum.map(fn q ->
+      if q == active_quest,
+        do: Map.put(Map.delete(q, :id), :active, true),
+        else: Map.put(Map.delete(q, :id), :active, false)
+    end)
   end
 
   def terminate(reason, socket) do

@@ -1,11 +1,12 @@
-module Data.Game exposing (Game, Player, decodeGame)
+module Data.Game exposing (Game, Player, Quest, decodeGame)
 
-import Json.Decode as JD exposing (Decoder)
+import Json.Decode exposing (..)
 
 
 type alias Game =
     { name : String
     , players : List Player
+    , quests : List Quest
     , fsm : GameState
     }
 
@@ -31,33 +32,55 @@ type alias Player =
     }
 
 
+type alias Quest =
+    { active : Bool
+    , num_players_required : Int
+    , num_fails_required : Int
+    , outcome : String
+    , num_fails : Maybe Int
+    , selected_players : List String
+    }
+
+
 decodeGame : Decoder Game
 decodeGame =
-    JD.map3 Game
-        (JD.field "name" JD.string)
-        (JD.field "players" (JD.list decodePlayer))
-        (JD.field "fsm" decodeGameState)
+    map4 Game
+        (field "name" string)
+        (field "players" (list decodePlayer))
+        (field "quests" (list decodeQuest))
+        (field "fsm" decodeGameState)
+
+
+decodeQuest : Decoder Quest
+decodeQuest =
+    map6 Quest
+        (field "active" bool)
+        (field "num_players_required" int)
+        (field "num_fails_required" int)
+        (field "outcome" string)
+        (field "num_fails" (maybe int))
+        (field "selected_players" (list string))
 
 
 decodeGameState : Decoder GameState
 decodeGameState =
-    JD.map2 GameState
-        (JD.field "state" JD.string)
-        (JD.field "data" decodeGameStateData)
+    map2 GameState
+        (field "state" string)
+        (field "data" decodeGameStateData)
 
 
 decodeGameStateData : Decoder GameStateData
 decodeGameStateData =
-    JD.map3 GameStateData
-        (JD.field "succeeded_count" JD.int)
-        (JD.field "reject_count" JD.int)
-        (JD.field "failed_count" JD.int)
+    map3 GameStateData
+        (field "succeeded_count" int)
+        (field "reject_count" int)
+        (field "failed_count" int)
 
 
 decodePlayer : Decoder Player
 decodePlayer =
-    JD.map4 Player
-        (JD.field "name" JD.string)
-        (JD.field "role" JD.string)
-        (JD.field "ready" JD.bool)
-        (JD.field "king" JD.bool)
+    map4 Player
+        (field "name" string)
+        (field "role" string)
+        (field "ready" bool)
+        (field "king" bool)

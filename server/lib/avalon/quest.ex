@@ -1,6 +1,20 @@
 defmodule Avalon.Quest do
-  @enforce_keys [:num_players, :num_fails_required, :outcome, :selected_players]
-  defstruct [:num_players, :num_fails_required, :outcome, :selected_players]
+  @enforce_keys [
+    :id,
+    :num_players_required,
+    :num_fails_required,
+    :outcome,
+    :num_fails,
+    :selected_players
+  ]
+  defstruct [
+    :id,
+    :num_players_required,
+    :num_fails_required,
+    :outcome,
+    :num_fails,
+    :selected_players
+  ]
 
   alias Avalon.Quest
 
@@ -9,12 +23,14 @@ defmodule Avalon.Quest do
   @doc """
   Creates a new quest.
   """
-  def new(num_players, num_fails_required)
-      when is_number(num_players) and is_number(num_fails_required) do
+  def new(id, num_players_required, num_fails_required)
+      when is_number(num_players_required) and is_number(num_fails_required) do
     %Quest{
-      num_players: num_players,
+      id: id,
+      num_players_required: num_players_required,
       num_fails_required: num_fails_required,
-      outcome: {:uncompleted},
+      outcome: :uncompleted,
+      num_fails: nil,
       selected_players: []
     }
   end
@@ -26,91 +42,93 @@ defmodule Avalon.Quest do
     case num_players do
       5 ->
         [
-          new(2, 1),
-          new(3, 1),
-          new(2, 1),
-          new(3, 1),
-          new(3, 1)
+          {2, 1},
+          {3, 1},
+          {2, 1},
+          {3, 1},
+          {3, 1}
         ]
 
       6 ->
         [
-          new(2, 1),
-          new(3, 1),
-          new(4, 1),
-          new(3, 1),
-          new(4, 1)
+          {2, 1},
+          {3, 1},
+          {4, 1},
+          {3, 1},
+          {4, 1}
         ]
 
       7 ->
         [
-          new(2, 1),
-          new(3, 1),
-          new(3, 1),
-          new(4, 2),
-          new(4, 1)
+          {2, 1},
+          {3, 1},
+          {3, 1},
+          {4, 2},
+          {4, 1}
         ]
 
       8 ->
         [
-          new(3, 1),
-          new(4, 1),
-          new(4, 1),
-          new(5, 2),
-          new(5, 1)
+          {3, 1},
+          {4, 1},
+          {4, 1},
+          {5, 2},
+          {5, 1}
         ]
 
       9 ->
         [
-          new(3, 1),
-          new(4, 1),
-          new(4, 1),
-          new(5, 2),
-          new(5, 1)
+          {3, 1},
+          {4, 1},
+          {4, 1},
+          {5, 2},
+          {5, 1}
         ]
 
       10 ->
         [
-          new(3, 1),
-          new(4, 1),
-          new(4, 1),
-          new(5, 2),
-          new(5, 1)
+          {3, 1},
+          {4, 1},
+          {4, 1},
+          {5, 2},
+          {5, 1}
         ]
 
       _ ->
         if num_players < 5 do
           [
-            new(2, 1),
-            new(3, 1),
-            new(2, 1),
-            new(3, 1),
-            new(3, 1)
+            {2, 1},
+            {3, 1},
+            {2, 1},
+            {3, 1},
+            {3, 1}
           ]
         else
           [
-            new(3, 1),
-            new(4, 1),
-            new(4, 1),
-            new(5, 2),
-            new(5, 1)
+            {3, 1},
+            {4, 1},
+            {4, 1},
+            {5, 2},
+            {5, 1}
           ]
         end
     end
+    |> Enum.with_index()
+    |> Enum.map(fn {params, i} -> new(i, Kernel.elem(params, 0), Kernel.elem(params, 1)) end)
   end
 
   @doc """
   Mark a player as selected.
   """
   def select_player(quest, player_name) when is_binary(player_name) do
-    if quest.outcome == {:uncompleted} do
+    if quest.outcome == :uncompleted do
       if quest.selected_players |> Enum.member?(player_name) do
         quest
       else
         # If we would go over the limit of players by adding this player,
         # then we should remove the first player that was selected
         new_selected_players =
-          if length(quest.selected_players) + 1 > quest.num_players do
+          if length(quest.selected_players) + 1 > quest.num_players_required do
             [_ | players] = quest.selected_players
             players ++ [player_name]
           else
@@ -132,7 +150,7 @@ defmodule Avalon.Quest do
   Mark a player as unselected.
   """
   def deselect_player(quest, player_name) when is_binary(player_name) do
-    if quest.outcome == {:uncompleted} do
+    if quest.outcome == :uncompleted do
       if Enum.member?(quest.selected_players, player_name) do
         %{
           quest
@@ -156,6 +174,6 @@ defmodule Avalon.Quest do
   """
   def complete(quest, num_fails) when is_number(num_fails) do
     result = if num_fails >= quest.num_fails_required, do: :failure, else: :success
-    %{quest | outcome: {result, num_fails}}
+    %{quest | outcome: result, num_fails: num_fails}
   end
 end

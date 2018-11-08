@@ -6,7 +6,7 @@ import Bootstrap.Card.Block as Block
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
-import Data.Game exposing (Game, Player)
+import Data.Game exposing (Game, Player, Quest)
 import Data.LobbyChannel as LobbyChannel exposing (LobbyState(..), lobbyChannel)
 import Data.Session exposing (Session)
 import Data.Socket exposing (SocketState(..), socketUrl)
@@ -16,6 +16,7 @@ import Html.Events exposing (keyCode, on, onClick, onInput)
 import Phoenix
 import Phoenix.Push as Push
 import Scene.Game.Player as Player
+import Scene.Game.Quest as Quest
 import Svg
 import Svg.Attributes as SvgAttr
 
@@ -34,7 +35,10 @@ viewActions game self =
                     else
                         "Ready"
             in
-            Button.button [ Button.primary, Button.attrs [ onClick PlayerReady ], Button.disabled self.ready ] [ text buttonText ]
+            div []
+                [ p [] [ text ("You are: " ++ self.role) ]
+                , Button.button [ Button.primary, Button.attrs [ onClick PlayerReady ], Button.disabled self.ready ] [ text buttonText ]
+                ]
 
         "select_quest_members" ->
             if self.king then
@@ -73,74 +77,6 @@ viewDrawer game maybeSelf =
         ]
 
 
-viewQuest : Int -> Html msg
-viewQuest numPlayers =
-    let
-        size =
-            50
-
-        sizeStr =
-            toString size
-
-        halfSizeStr =
-            toString (size / 2)
-    in
-    span [ style [ ( "padding", "1px" ) ] ]
-        [ Svg.svg
-            [ SvgAttr.width sizeStr
-            , SvgAttr.height sizeStr
-            ]
-            [ Svg.circle
-                [ SvgAttr.cx halfSizeStr
-                , SvgAttr.cy halfSizeStr
-                , SvgAttr.r halfSizeStr
-                ]
-                []
-            , Svg.text_
-                [ SvgAttr.x "16"
-                , SvgAttr.y "34"
-                , SvgAttr.fontSize "30"
-                , SvgAttr.fill "white"
-                ]
-                [ Svg.text (toString numPlayers) ]
-            ]
-        ]
-
-
-viewQuests : Html Msg
-viewQuests =
-    let
-        quests =
-            [ 1, 2, 3, 4, 5 ]
-    in
-    div []
-        (List.map
-            viewQuest
-            quests
-        )
-
-
-viewPlayer : String -> Player -> Grid.Column Msg
-viewPlayer state player =
-    Grid.col []
-        [ Card.config []
-            |> Card.block []
-                [ Block.text []
-                    [ Player.viewName player state ]
-                ]
-            |> Card.view
-        ]
-
-
-viewPlayers : List Player -> String -> String -> Html Msg
-viewPlayers players ignorePlayer state =
-    Grid.row
-        [ Row.middleXs, Row.attrs [ class "position-absolute text-center", style [ ( "top", "15px" ), ( "left", "15px" ), ( "width", "100%" ) ] ] ]
-        (List.filter (\p -> p.name /= ignorePlayer) players
-            |> List.map (viewPlayer state)
-        )
-
-
 viewBoard : Game -> Html Msg
 viewBoard game =
     Grid.row
@@ -150,7 +86,7 @@ viewBoard game =
             , Card.config []
                 |> Card.block []
                     [ Block.text []
-                        [ viewQuests
+                        [ Quest.viewQuests game.quests
                         ]
                     ]
                 |> Card.view
@@ -171,7 +107,7 @@ view session game =
     in
     div []
         [ viewBoard game
-        , viewPlayers game.players username game.fsm.state
+        , Player.viewPlayers game.players username game.fsm.state
         , viewDrawer game self
         ]
 

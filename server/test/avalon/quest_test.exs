@@ -6,39 +6,44 @@ defmodule Avalon.QuestTest do
   # Quest Constructor Tests
 
   test "creating a quest" do
-    quest = Quest.new(2, 1)
-    assert quest.num_players == 2
+    quest = new_quest(2, 1)
+    assert quest.num_players_required == 2
     assert quest.num_fails_required == 1
-    assert quest.outcome == {:uncompleted}
+    assert quest.outcome == :uncompleted
+    assert quest.num_fails == nil
   end
 
   # Quest Completion Tests
 
   test "succeed a quest" do
-    quest = Quest.new(2, 1) |> Quest.complete(0)
-    assert quest.outcome == {:success, 0}
+    quest = new_quest(2, 1) |> Quest.complete(0)
+    assert quest.outcome == :success
+    assert quest.num_fails == 0
   end
 
   test "fail a quest" do
-    quest = Quest.new(2, 1) |> Quest.complete(1)
-    assert quest.outcome == {:failure, 1}
+    quest = new_quest(2, 1) |> Quest.complete(1)
+    assert quest.outcome == :failure
+    assert quest.num_fails == 1
   end
 
   test "fail a quest +1" do
-    quest = Quest.new(2, 1) |> Quest.complete(2)
-    assert quest.outcome == {:failure, 2}
+    quest = new_quest(2, 1) |> Quest.complete(2)
+    assert quest.outcome == :failure
+    assert quest.num_fails == 2
   end
 
   test "fail a quest, but less than required" do
-    quest = Quest.new(5, 2) |> Quest.complete(1)
-    assert quest.outcome == {:success, 1}
+    quest = new_quest(5, 2) |> Quest.complete(1)
+    assert quest.outcome == :success
+    assert quest.num_fails == 1
   end
 
   # Adding players to quest
 
   test "add a player to the quest" do
     quest =
-      Quest.new(2, 1)
+      new_quest(2, 1)
       |> Quest.select_player("alice")
 
     assert quest.selected_players == ["alice"]
@@ -46,7 +51,7 @@ defmodule Avalon.QuestTest do
 
   test "add two players to the quest" do
     quest =
-      Quest.new(2, 1)
+      new_quest(2, 1)
       |> Quest.select_player("alice")
       |> Quest.select_player("bob")
 
@@ -55,7 +60,7 @@ defmodule Avalon.QuestTest do
 
   test "adding too many players to the quest will remove the first selected" do
     quest =
-      Quest.new(2, 1)
+      new_quest(2, 1)
       |> Quest.select_player("alice")
       |> Quest.select_player("bob")
       |> Quest.select_player("charlie")
@@ -65,7 +70,7 @@ defmodule Avalon.QuestTest do
 
   test "adding too many players to the quest twice will remove the first two selected" do
     quest =
-      Quest.new(2, 1)
+      new_quest(2, 1)
       |> Quest.select_player("alice")
       |> Quest.select_player("bob")
       |> Quest.select_player("charlie")
@@ -76,7 +81,7 @@ defmodule Avalon.QuestTest do
 
   test "adding a player from a completed quest will NoOp" do
     quest =
-      Quest.new(2, 1)
+      new_quest(2, 1)
       |> Quest.select_player("alice")
       |> Quest.complete(0)
       |> Quest.select_player("bob")
@@ -88,7 +93,7 @@ defmodule Avalon.QuestTest do
 
   test "remove a player from the quest" do
     quest =
-      Quest.new(2, 1)
+      new_quest(2, 1)
       |> Quest.select_player("alice")
       |> Quest.deselect_player("alice")
 
@@ -97,7 +102,7 @@ defmodule Avalon.QuestTest do
 
   test "remove an unknown player from a quest will NoOp" do
     quest =
-      Quest.new(2, 1)
+      new_quest(2, 1)
       |> Quest.deselect_player("alice")
 
     assert quest.selected_players == []
@@ -105,7 +110,7 @@ defmodule Avalon.QuestTest do
 
   test "remove an unknown player from a quest that has a player in it will NoOp" do
     quest =
-      Quest.new(2, 1)
+      new_quest(2, 1)
       |> Quest.select_player("alice")
       |> Quest.deselect_player("bob")
 
@@ -114,7 +119,7 @@ defmodule Avalon.QuestTest do
 
   test "removing a player from a completed quest will NoOp" do
     quest =
-      Quest.new(2, 1)
+      new_quest(2, 1)
       |> Quest.select_player("alice")
       |> Quest.complete(0)
       |> Quest.deselect_player("alice")
@@ -129,5 +134,11 @@ defmodule Avalon.QuestTest do
 
   test "getting quests for any number of players will return five quests" do
     for n <- 1..15, do: assert(length(Quest.get_quests(n)) == 5)
+  end
+
+  # Util
+
+  defp new_quest(num_players_required, num_fails_required) do
+    Quest.new(0, num_players_required, num_fails_required)
   end
 end
