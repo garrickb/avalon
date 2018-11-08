@@ -20,7 +20,7 @@ defmodule Avalon.Quest do
   end
 
   @doc """
-  Marks a player as selected.
+  Mark a player as selected.
   """
   def select_player(quest, player_name) when is_binary(player_name) do
     if quest.outcome == {:uncompleted} do
@@ -49,7 +49,7 @@ defmodule Avalon.Quest do
   end
 
   @doc """
-  Marks a player as unselected.
+  Mark a player as unselected.
   """
   def deselect_player(quest, player_name) when is_binary(player_name) do
     if quest.outcome == {:uncompleted} do
@@ -63,9 +63,8 @@ defmodule Avalon.Quest do
       end
     else
       Logger.warn(
-        "Attempted to deselect player '#{player_name}' in already completed quest: #{
-          inspect(quest)
-        }"
+        "Attempted to deselect player '#{player_name}' in already" <>
+          "completed quest: #{inspect(quest)}"
       )
 
       quest
