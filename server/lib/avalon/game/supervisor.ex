@@ -14,6 +14,7 @@ defmodule Avalon.Game.Supervisor do
   def init(:ok) do
     DynamicSupervisor.init(strategy: :one_for_one)
   end
+
   @doc """
   Starts a `Server` process and supervises it.
   """

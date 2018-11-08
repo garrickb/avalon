@@ -1,5 +1,4 @@
 defmodule Avalon.Player do
-
   @enforce_keys [:name, :role]
   defstruct [:name, :role, :ready, :king]
 
@@ -18,11 +17,7 @@ defmodule Avalon.Player do
   Creates a new player.
   """
   def new(name, role) when is_binary(name) and is_atom(role) do
-    %Player{name: name,
-            role: role,
-            ready: false,
-            king: false
-          }
+    %Player{name: name, role: role, ready: false, king: false}
   end
 
   @doc """

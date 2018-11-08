@@ -1,7 +1,6 @@
 defmodule Avalon.Game do
-
   @enforce_keys [:name]
-  defstruct [:name, :players, :quests, :fsm ]
+  defstruct [:name, :players, :quests, :fsm]
 
   alias Avalon.Game
   alias Avalon.FsmGameState, as: GameState
@@ -13,13 +12,14 @@ defmodule Avalon.Game do
   Creates a new game.
   """
   def new(name, players) when is_binary(name) and is_list(players) do
-    players_and_roles = Player.newFromList(players, Enum.shuffle(get_role_list(length players)))
+    players_and_roles = Player.newFromList(players, Enum.shuffle(get_role_list(length(players))))
 
-    game = %Game{ name: name,
-                  players: players_and_roles |> set_random_king,
-                  quests: nil,
-                  fsm: GameState.new
-                }
+    game = %Game{
+      name: name,
+      players: players_and_roles |> set_random_king,
+      quests: nil,
+      fsm: GameState.new()
+    }
 
     Logger.info("Created new game: #{inspect(game)}")
     game
@@ -36,12 +36,16 @@ defmodule Avalon.Game do
     end
 
     # If all players are ready, then we can start the game!
-    new_players = Enum.map(game.players, fn p -> (if p.name == player_name, do: Player.ready(p), else: p) end )
+    new_players =
+      Enum.map(game.players, fn p -> if p.name == player_name, do: Player.ready(p), else: p end)
+
     fsm =
       if all_players_ready?(new_players) do
         Logger.info("Game #{game.name} has all players ready; starting the game!")
         GameState.start_game(game.fsm)
-      else game.fsm end
+      else
+        game.fsm
+      end
 
     %{game | players: new_players, fsm: fsm}
   end
@@ -64,13 +68,13 @@ defmodule Avalon.Game do
 
   defp number_of_evil(size) when is_number(size) do
     case size do
-        5 -> 2
-        6 -> 2
-        7 -> 3
-        8 -> 3
-        9 -> 3
-        10 -> 4
-        _ -> if size < 5, do: 1, else: 4
+      5 -> 2
+      6 -> 2
+      7 -> 3
+      8 -> 3
+      9 -> 3
+      10 -> 4
+      _ -> if size < 5, do: 1, else: 4
     end
   end
 
@@ -80,6 +84,6 @@ defmodule Avalon.Game do
 
   defp set_random_king(players) do
     king = Enum.random(players)
-    players |> Enum.map(fn p -> %{p | king: (p == king)} end)
+    players |> Enum.map(fn p -> %{p | king: p == king} end)
   end
 end

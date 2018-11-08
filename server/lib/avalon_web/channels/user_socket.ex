@@ -4,10 +4,10 @@ defmodule AvalonWeb.UserSocket do
   require Logger
 
   ## Channels
-  channel "room:*", AvalonWeb.GameChannel
+  channel("room:*", AvalonWeb.GameChannel)
 
   ## Transports
-  transport :websocket, Phoenix.Transports.WebSocket
+  transport(:websocket, Phoenix.Transports.WebSocket)
   # transport :longpoll, Phoenix.Transports.LongPoll
 
   # Socket params are passed from the client and can

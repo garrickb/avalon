@@ -36,52 +36,59 @@ defmodule Avalon.QuestTest do
 
   # Adding players to quest
 
-    test "add a player to the quest" do
-      quest = Quest.new(2, 1)
-        |> Quest.select_player("alice")
-      assert quest.selected_players == ["alice"]
-    end
+  test "add a player to the quest" do
+    quest =
+      Quest.new(2, 1)
+      |> Quest.select_player("alice")
 
-    test "add two players to the quest" do
-      quest = Quest.new(2, 1)
-        |> Quest.select_player("alice")
-        |> Quest.select_player("bob")
+    assert quest.selected_players == ["alice"]
+  end
 
-      assert quest.selected_players == ["alice", "bob"]
-    end
+  test "add two players to the quest" do
+    quest =
+      Quest.new(2, 1)
+      |> Quest.select_player("alice")
+      |> Quest.select_player("bob")
 
-    test "adding too many players to the quest will remove the first selected" do
-      quest = Quest.new(2, 1)
-        |> Quest.select_player("alice")
-        |> Quest.select_player("bob")
-        |> Quest.select_player("charlie")
+    assert quest.selected_players == ["alice", "bob"]
+  end
 
-      assert quest.selected_players == ["bob", "charlie"]
-    end
+  test "adding too many players to the quest will remove the first selected" do
+    quest =
+      Quest.new(2, 1)
+      |> Quest.select_player("alice")
+      |> Quest.select_player("bob")
+      |> Quest.select_player("charlie")
 
-    test "adding too many players to the quest twice will remove the first two selected" do
-      quest = Quest.new(2, 1)
-        |> Quest.select_player("alice")
-        |> Quest.select_player("bob")
-        |> Quest.select_player("charlie")
-        |> Quest.select_player("daniel")
+    assert quest.selected_players == ["bob", "charlie"]
+  end
 
-      assert quest.selected_players == ["charlie", "daniel"]
-    end
+  test "adding too many players to the quest twice will remove the first two selected" do
+    quest =
+      Quest.new(2, 1)
+      |> Quest.select_player("alice")
+      |> Quest.select_player("bob")
+      |> Quest.select_player("charlie")
+      |> Quest.select_player("daniel")
 
-    test "adding a player from a completed quest will NoOp" do
-      quest = Quest.new(2, 1)
-        |> Quest.select_player("alice")
-        |> Quest.complete(0)
-        |> Quest.select_player("bob")
+    assert quest.selected_players == ["charlie", "daniel"]
+  end
 
-      assert quest.selected_players == ["alice"]
-    end
+  test "adding a player from a completed quest will NoOp" do
+    quest =
+      Quest.new(2, 1)
+      |> Quest.select_player("alice")
+      |> Quest.complete(0)
+      |> Quest.select_player("bob")
+
+    assert quest.selected_players == ["alice"]
+  end
 
   # Removing players from quest
 
   test "remove a player from the quest" do
-    quest = Quest.new(2, 1)
+    quest =
+      Quest.new(2, 1)
       |> Quest.select_player("alice")
       |> Quest.deselect_player("alice")
 
@@ -89,14 +96,16 @@ defmodule Avalon.QuestTest do
   end
 
   test "remove an unknown player from a quest will NoOp" do
-    quest = Quest.new(2, 1)
+    quest =
+      Quest.new(2, 1)
       |> Quest.deselect_player("alice")
 
     assert quest.selected_players == []
   end
 
   test "remove an unknown player from a quest that has a player in it will NoOp" do
-    quest = Quest.new(2, 1)
+    quest =
+      Quest.new(2, 1)
       |> Quest.select_player("alice")
       |> Quest.deselect_player("bob")
 
@@ -104,7 +113,8 @@ defmodule Avalon.QuestTest do
   end
 
   test "removing a player from a completed quest will NoOp" do
-    quest = Quest.new(2, 1)
+    quest =
+      Quest.new(2, 1)
       |> Quest.select_player("alice")
       |> Quest.complete(0)
       |> Quest.deselect_player("alice")

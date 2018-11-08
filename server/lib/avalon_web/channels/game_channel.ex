@@ -7,34 +7,34 @@ defmodule AvalonWeb.GameChannel do
 
   require Logger
 
-  intercept ["game:state"]
+  intercept(["game:state"])
 
   def join("room:" <> game_name, _params, socket) do
     if String.length(game_name) > 0 do
       case GameServer.game_pid(game_name) do
-         pid when is_pid(pid) ->
-           send(self(), {:after_join, game_name})
+        pid when is_pid(pid) ->
+          send(self(), {:after_join, game_name})
 
-           # Alert the player of the existing game state
-           game = GameServer.summary(game_name)
-           {:ok, filter_game_state(game, socket), socket}
+          # Alert the player of the existing game state
+          game = GameServer.summary(game_name)
+          {:ok, filter_game_state(game, socket), socket}
 
-         nil ->
-           send(self(), {:after_join, game_name})
-           {:ok, socket}
-       end
-     else
-       logError(socket, "invalid room name")
-       {:error, "invalid room name"}
-     end
+        nil ->
+          send(self(), {:after_join, game_name})
+          {:ok, socket}
+      end
+    else
+      logError(socket, "invalid room name")
+      {:error, "invalid room name"}
+    end
   end
-
 
   def handle_info({:after_join, _}, socket) do
     log(socket, "player joined room")
 
     # Handle the presence state
     push(socket, "presence_state", Presence.list(socket))
+
     {:ok, _} =
       Presence.track(socket, username(socket), %{
         online_at: inspect(System.system_time(:seconds))
@@ -75,26 +75,6 @@ defmodule AvalonWeb.GameChannel do
     {:noreply, socket}
   end
 
-  def handle_out("game:state", game, socket) do
-    push socket, "game:state", filter_game_state(game, socket)
-    {:noreply, socket}
-  end
-
-  defp filter_game_state(game, socket) do
-    player =
-      Enum.find(game.players, nil, fn player -> player.name == username(socket) end)
-
-    filtered_players =
-      game.players |>
-        Enum.map(fn p -> if p.name == username(socket), do: p, else: %{name: p.name, ready: p.ready, king: p.king, role: :unknown} end )
-
-    if player == nil do
-      Map.merge(game, %{players: filtered_players})
-    else
-      Map.merge(game, %{players: filtered_players})
-    end
-  end
-
   def handle_in("player:ready", _payload, socket) do
     "room:" <> game_name = socket.topic
 
@@ -118,6 +98,29 @@ defmodule AvalonWeb.GameChannel do
     {:noreply, socket}
   end
 
+  def handle_out("game:state", game, socket) do
+    push(socket, "game:state", filter_game_state(game, socket))
+    {:noreply, socket}
+  end
+
+  defp filter_game_state(game, socket) do
+    player = Enum.find(game.players, nil, fn player -> player.name == username(socket) end)
+
+    filtered_players =
+      game.players
+      |> Enum.map(fn p ->
+        if p.name == username(socket),
+          do: p,
+          else: %{name: p.name, ready: p.ready, king: p.king, role: :unknown}
+      end)
+
+    if player == nil do
+      Map.merge(game, %{players: filtered_players})
+    else
+      Map.merge(game, %{players: filtered_players})
+    end
+  end
+
   def terminate(reason, socket) do
     log(socket, "player left game; reason: #{inspect(reason)}")
     :ok
@@ -132,6 +135,7 @@ defmodule AvalonWeb.GameChannel do
     "room:" <> game_name = socket.topic
     Logger.info("[game: '#{game_name}' | user: '#{username(socket)}'] " <> message)
   end
+
   defp logError(socket, message) do
     "room:" <> game_name = socket.topic
     Logger.error("[game: '#{game_name}' | user: '#{username(socket)}'] " <> message)
