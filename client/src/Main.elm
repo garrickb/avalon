@@ -120,17 +120,17 @@ setRoute maybeRoute model =
             ( { model | state = NotFound }, Cmd.none )
 
         Just Route.Root ->
-            ( { model | state = Home Home.init }, Route.modifyUrl Route.Home )
+            ( { model | state = Home (Home.init model.session) }, Route.modifyUrl Route.Home )
 
         Just Route.Home ->
-            ( { model | state = Home Home.init }, Cmd.none )
+            ( { model | state = Home (Home.init model.session) }, Cmd.none )
 
         Just Route.Lobby ->
             let
                 ( newState, cmd ) =
                     case model.session.lobbyName of
                         Nothing ->
-                            ( Home Home.init, Route.modifyUrl Route.Home )
+                            ( Home (Home.init model.session), Route.modifyUrl Route.Home )
 
                         Just lobby ->
                             ( Lobby Lobby.init, Cmd.none )

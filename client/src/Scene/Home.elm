@@ -25,9 +25,16 @@ type alias Model =
     }
 
 
-init : Model
-init =
-    { userName = "", lobbyName = "" }
+init : Session -> Model
+init session =
+    let
+        userName =
+            Maybe.withDefault "" session.userName
+
+        lobbyName =
+            Maybe.withDefault "" session.lobbyName
+    in
+    { userName = userName, lobbyName = lobbyName }
 
 
 

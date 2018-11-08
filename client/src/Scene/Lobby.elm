@@ -131,17 +131,31 @@ viewLobby session model =
                     [ Block.text []
                         [ viewPlayers userName model.presence
                         , Html.hr [] []
-                        , div [ class "text-center" ]
-                            [ Button.button
-                                [ Button.outlineSecondary
-                                , Button.attrs [ Spacing.ml1, onClick <| SettingsModal Modal.shown ]
+                        , Grid.container []
+                            [ Grid.row
+                                []
+                                [ Grid.col [ Col.xs4 ]
+                                    [ Button.button
+                                        [ Button.outlineDanger
+                                        , Button.attrs [ Spacing.ml1, onClick GoToHomePage ]
+                                        ]
+                                        [ text "Leave" ]
+                                    ]
+                                , Grid.col [ Col.xs4 ]
+                                    [ Button.button
+                                        [ Button.outlineSecondary
+                                        , Button.attrs [ Spacing.ml1, onClick <| SettingsModal Modal.shown ]
+                                        ]
+                                        [ span [ class "fa fa-cog" ] [] ]
+                                    ]
+                                , Grid.col [ Col.xs4 ]
+                                    [ Button.button
+                                        [ Button.outlinePrimary
+                                        , Button.attrs [ Spacing.ml1, onClick StartGame ]
+                                        ]
+                                        [ text "Start" ]
+                                    ]
                                 ]
-                                [ span [ class "fa fa-cog" ] [] ]
-                            , Button.button
-                                [ Button.primary
-                                , Button.attrs [ Spacing.ml1, onClick StartGame ]
-                                ]
-                                [ text "Start Game", span [ class "oi oi-cog" ] [] ]
                             ]
                         ]
                     ]
