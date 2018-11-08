@@ -143,7 +143,7 @@ defmodule Avalon.Quest do
       end
     else
       Logger.warn(
-        "Attempted to deselect player '#{player_name}' in already" <>
+        "Attempted to deselect player '#{player_name}' in already " <>
           "completed quest: #{inspect(quest)}"
       )
 
