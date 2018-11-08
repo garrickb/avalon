@@ -5,6 +5,7 @@ defmodule Avalon.Game do
   alias Avalon.Game
   alias Avalon.FsmGameState, as: GameState
   alias Avalon.Player, as: Player
+  alias Avalon.Quest, as: Quest
 
   require Logger
 
@@ -17,7 +18,7 @@ defmodule Avalon.Game do
     game = %Game{
       name: name,
       players: players_and_roles |> set_random_king,
-      quests: nil,
+      quests: Quest.get_quests(length(players)),
       fsm: GameState.new()
     }
 

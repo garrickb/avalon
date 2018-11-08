@@ -20,6 +20,86 @@ defmodule Avalon.Quest do
   end
 
   @doc """
+  Returns the quests for a given number of players.
+  """
+  def get_quests(num_players) when is_number(num_players) do
+    case num_players do
+      5 ->
+        [
+          new(2, 1),
+          new(3, 1),
+          new(2, 1),
+          new(3, 1),
+          new(3, 1)
+        ]
+
+      6 ->
+        [
+          new(2, 1),
+          new(3, 1),
+          new(4, 1),
+          new(3, 1),
+          new(4, 1)
+        ]
+
+      7 ->
+        [
+          new(2, 1),
+          new(3, 1),
+          new(3, 1),
+          new(4, 2),
+          new(4, 1)
+        ]
+
+      8 ->
+        [
+          new(3, 1),
+          new(4, 1),
+          new(4, 1),
+          new(5, 2),
+          new(5, 1)
+        ]
+
+      9 ->
+        [
+          new(3, 1),
+          new(4, 1),
+          new(4, 1),
+          new(5, 2),
+          new(5, 1)
+        ]
+
+      10 ->
+        [
+          new(3, 1),
+          new(4, 1),
+          new(4, 1),
+          new(5, 2),
+          new(5, 1)
+        ]
+
+      _ ->
+        if num_players < 5 do
+          [
+            new(2, 1),
+            new(3, 1),
+            new(2, 1),
+            new(3, 1),
+            new(3, 1)
+          ]
+        else
+          [
+            new(3, 1),
+            new(4, 1),
+            new(4, 1),
+            new(5, 2),
+            new(5, 1)
+          ]
+        end
+    end
+  end
+
+  @doc """
   Mark a player as selected.
   """
   def select_player(quest, player_name) when is_binary(player_name) do

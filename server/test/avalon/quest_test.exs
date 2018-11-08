@@ -121,4 +121,13 @@ defmodule Avalon.QuestTest do
 
     assert quest.selected_players == ["alice"]
   end
+
+  # Get All Quests
+  test "getting quests for five players will return five quests" do
+    assert length(Quest.get_quests(5)) == 5
+  end
+
+  test "getting quests for any number of players will return five quests" do
+    for n <- 1..15, do: assert(length(Quest.get_quests(n)) == 5)
+  end
 end
