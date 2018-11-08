@@ -2,14 +2,15 @@ defmodule Avalon.FsmGameState do
   use Fsm, initial_state: :waiting, initial_data: %Avalon.FsmGameData{}
 
   alias Avalon.FsmGameData
-  alias Avalon.FsmState.Waiting, as: Waiting
-  alias Avalon.FsmState.SelectQuestMembers, as: SelectQuestMembers
+
+  require Logger
 
   # Waiting for players to join the room.
   defstate waiting do
 
     # Start the game by having the king form a team
     defevent start_game do
+      Logger.info("FSM: Starting Game")
       next_state(:select_quest_members)
     end
   end
@@ -19,6 +20,7 @@ defmodule Avalon.FsmGameState do
 
     # Team was selected; wait for players to vote on the team
     defevent selected do
+      Logger.info("FSM: Quest members are selected")
       next_state(:vote_on_members)
     end
   end
@@ -32,15 +34,18 @@ defmodule Avalon.FsmGameState do
 
       cond do
         reject_count >= 5 ->
+        Logger.info("FSM: Quest members were rejected, and evil wins")
           next_state(:evil_wins, fsm_data)
 
         reject_count ->
+        Logger.info("FSM: Quest members were rejected #{reject_count} times")
           next_state(:select_quest_members, fsm_data)
         end
     end
 
     # Team was accepted
     defevent accept, data: fsm_data do
+      Logger.info("FSM: Quest members were accepted")
       fsm_data = %FsmGameData{fsm_data | reject_count: 0}
       next_state(:go_on_quest, fsm_data)
     end
@@ -56,9 +61,11 @@ defmodule Avalon.FsmGameState do
 
       cond do
         failed_count >= 3 ->
+          Logger.info("FSM: Quest was failed, and evil wins")
           next_state(:evil_wins, fsm_data)
 
         failed_count ->
+          Logger.info("FSM: Quest was failed")
           next_state(:select_quest_members, fsm_data)
       end
     end
@@ -70,9 +77,11 @@ defmodule Avalon.FsmGameState do
 
       cond do
         succeeded_count >= 3 ->
+          Logger.info("FSM: Quest was successful, and good wins")
           next_state(:good_wins, fsm_data)
 
         succeeded_count ->
+          Logger.info("FSM: Quest was successful")
           next_state(:select_quest_members, fsm_data)
       end
     end
@@ -82,6 +91,7 @@ defmodule Avalon.FsmGameState do
   defstate evil_wins do
     # Play another game?
     defevent restart do
+      Logger.info("FSM: Restarting game after evil win")
       next_state(:waiting, %Avalon.FsmGameData{})
     end
   end
@@ -90,6 +100,7 @@ defmodule Avalon.FsmGameState do
   defstate good_wins do
     # Play another game?
     defevent restart do
+      Logger.info("FSM: Restarting game after good win")
       next_state(:waiting, %Avalon.FsmGameData{})
     end
   end

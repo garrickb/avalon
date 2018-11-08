@@ -1,7 +1,7 @@
 defmodule Avalon.Game do
 
   @enforce_keys [:name]
-  defstruct [:name, :players, :fsm ]
+  defstruct [:name, :players, :quests, :fsm ]
 
   alias Avalon.Game
   alias Avalon.FsmGameState, as: GameState
@@ -13,10 +13,11 @@ defmodule Avalon.Game do
   Creates a new game.
   """
   def new(name, players) when is_binary(name) and is_list(players) do
-    players_and_roles = Player.newFromList(players, get_role_list(length players))
+    players_and_roles = Player.newFromList(players, Enum.shuffle(get_role_list(length players)))
 
     game = %Game{ name: name,
                   players: players_and_roles |> set_random_king,
+                  quests: nil,
                   fsm: GameState.new
                 }
 
@@ -29,17 +30,16 @@ defmodule Avalon.Game do
   if all players are ready, then advance the game.
   """
   def set_player_ready(game, player_name) when is_binary(player_name) do
-    Logger.info("Marking #{player_name}")
     if state(game) != :waiting do
-      Logger.error("Attempted to mark a player as ready when not in waiting state.")
-      {:error, "need to be in waiting state to be ready"}
+      Logger.error("Attempted to mark a player as ready while not in waiting state.")
+      {:error, "game needs to be in the waiting state to be ready"}
     end
 
     # If all players are ready, then we can start the game!
-    new_players = Enum.map(game.players, fn p -> (if p.name == player_name, do: %{p | ready: true}, else: p) end )
+    new_players = Enum.map(game.players, fn p -> (if p.name == player_name, do: Player.ready(p), else: p) end )
     fsm =
       if all_players_ready?(new_players) do
-        Logger.info("Game #{game.name} has all players ready. Starting game!")
+        Logger.info("Game #{game.name} has all players ready; starting the game!")
         GameState.start_game(game.fsm)
       else game.fsm end
 

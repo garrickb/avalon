@@ -30,7 +30,7 @@ viewActions game self =
             let
                 buttonText =
                     if self.ready then
-                        "Waiting"
+                        "Waiting..."
                     else
                         "Ready"
             in

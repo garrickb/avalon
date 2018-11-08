@@ -11,7 +11,7 @@ defmodule Avalon.Player do
   Creates a list of players with random roles.
   """
   def newFromList(names, roles) when is_list(names) and is_list(roles) do
-    Stream.zip(names, Enum.shuffle roles) |> Enum.map(fn {n, r} -> new(n, r) end)
+    Stream.zip(names, roles) |> Enum.map(fn {n, r} -> new(n, r) end)
   end
 
   @doc """
@@ -23,5 +23,12 @@ defmodule Avalon.Player do
             ready: false,
             king: false
           }
+  end
+
+  @doc """
+  Mark a player as ready.
+  """
+  def ready(player) do
+    %{player | ready: true}
   end
 end
