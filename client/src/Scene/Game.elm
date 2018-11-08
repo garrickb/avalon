@@ -15,6 +15,7 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (keyCode, on, onClick, onInput)
 import Phoenix
 import Phoenix.Push as Push
+import Scene.Game.Player as Player
 import Svg
 import Svg.Attributes as SvgAttr
 
@@ -35,29 +36,14 @@ viewActions game self =
             in
             Button.button [ Button.primary, Button.attrs [ onClick PlayerReady ], Button.disabled self.ready ] [ text buttonText ]
 
+        "select_quest_members" ->
+            if self.king then
+                text "select your quest members"
+            else
+                text "waiting for quest members to be selected"
+
         _ ->
             text ("current state: " ++ game.fsm.state)
-
-
-viewSelf : Game -> Player -> Html Msg
-viewSelf game self =
-    let
-        isKing =
-            if self.king then
-                "True"
-            else
-                "False"
-    in
-    Card.config []
-        |> Card.block []
-            [ Block.text []
-                [ h5 [] [ text self.name ]
-                , hr [] []
-                , p [] [ text ("King: " ++ isKing), text (",   Role: " ++ self.role) ]
-                , viewActions game self
-                ]
-            ]
-        |> Card.view
 
 
 viewDrawer : Game -> Maybe Player -> Html Msg
@@ -66,7 +52,16 @@ viewDrawer game maybeSelf =
         content =
             case maybeSelf of
                 Just self ->
-                    viewSelf game self
+                    Card.config []
+                        |> Card.block []
+                            [ Block.text []
+                                [ h5 [] [ Player.viewName self game.fsm.state ]
+                                , hr [] []
+                                , p [] []
+                                , viewActions game self
+                                ]
+                            ]
+                        |> Card.view
 
                 Nothing ->
                     text "you are a spectator"
@@ -125,34 +120,24 @@ viewQuests =
         )
 
 
-viewPlayer : Player -> Grid.Column Msg
-viewPlayer player =
-    let
-        isKing =
-            if player.king then
-                "True"
-            else
-                "False"
-    in
+viewPlayer : String -> Player -> Grid.Column Msg
+viewPlayer state player =
     Grid.col []
         [ Card.config []
             |> Card.block []
                 [ Block.text []
-                    [ p [] [ text player.name ]
-                    , p [] [ text ("King: " ++ isKing) ]
-                    , p [] [ text ("Role: " ++ player.role) ]
-                    ]
+                    [ Player.viewName player state ]
                 ]
             |> Card.view
         ]
 
 
-viewPlayers : List Player -> String -> Html Msg
-viewPlayers players ignorePlayer =
+viewPlayers : List Player -> String -> String -> Html Msg
+viewPlayers players ignorePlayer state =
     Grid.row
         [ Row.middleXs, Row.attrs [ class "position-absolute text-center", style [ ( "top", "15px" ), ( "left", "15px" ), ( "width", "100%" ) ] ] ]
         (List.filter (\p -> p.name /= ignorePlayer) players
-            |> List.map viewPlayer
+            |> List.map (viewPlayer state)
         )
 
 
@@ -170,24 +155,24 @@ viewBoard game =
                     ]
                 |> Card.view
             , div [ style [ ( "padding-top", "2%" ) ] ]
-                [ Button.button [ Button.primary, Button.attrs [ onClick StopGame ] ] [ text "Stop Game" ] ]
+                [ Button.button [ Button.outlineDanger, Button.attrs [ onClick StopGame ] ] [ text "Stop Game" ] ]
             ]
         ]
 
 
 view : Session -> Game -> Html Msg
-view session model =
+view session game =
     let
         username =
             Maybe.withDefault "" session.userName
 
         self =
-            List.head <| List.filter (\p -> p.name == username) model.players
+            List.head <| List.filter (\p -> p.name == username) game.players
     in
     div []
-        [ viewBoard model
-        , viewPlayers model.players username
-        , viewDrawer model self
+        [ viewBoard game
+        , viewPlayers game.players username game.fsm.state
+        , viewDrawer game self
         ]
 
 
