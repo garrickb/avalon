@@ -6,6 +6,7 @@ import Bootstrap.Card.Block as Block
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
+import Bootstrap.Utilities.Spacing as Spacing
 import Data.Game exposing (Game, GameFsmState(..), Player, Quest)
 import Data.LobbyChannel as LobbyChannel exposing (LobbyState(..), lobbyChannel)
 import Data.Session exposing (Session)
@@ -182,14 +183,22 @@ viewPlayerActions state player maybeSelf maybeQuest =
 viewVotingButtons : Html Msg
 viewVotingButtons =
     div []
-        [ Button.button [ Button.outlineSuccess, Button.attrs [ onClick BeginVoting ] ] [ text "Accept" ]
-        , Button.button [ Button.outlineDanger, Button.attrs [ onClick BeginVoting ] ] [ text "Reject" ]
+        [ Button.button [ Button.outlineSuccess, Button.attrs [ Spacing.ml1, onClick BeginVoting ] ] [ text "Accept" ]
+        , Button.button [ Button.outlineDanger, Button.attrs [ Spacing.ml1, onClick BeginVoting ] ] [ text "Reject" ]
         ]
 
 
 viewBeginVotingButton : Maybe Quest -> Html Msg
 viewBeginVotingButton questMaybe =
-    Button.button [ Button.outlinePrimary, Button.attrs [ onClick BeginVoting ] ] [ text "Done" ]
+    case questMaybe of
+        Nothing ->
+            text ""
+
+        Just quest ->
+            if List.length quest.selected_players == quest.num_players_required then
+                Button.button [ Button.outlinePrimary, Button.attrs [ Spacing.ml1, onClick BeginVoting ] ] [ text "Begin Voting" ]
+            else
+                text ""
 
 
 viewQuestSelectButton : Player -> Maybe Quest -> Html Msg
