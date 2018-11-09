@@ -4,23 +4,22 @@ defmodule Avalon.FsmGameStateTest do
   alias Avalon.FsmGameState, as: State
 
   test "initial state is waiting" do
-    assert State.new.state == :waiting
+    assert State.new().state == :waiting
   end
 
   # Starting the game
 
   test "starting the game brings you to quest member selection" do
-    game = State.new |> State.start_game
+    game = State.new() |> State.start_game()
     assert game.state == :select_quest_members
   end
 
   # Selecting quest members
 
   test "selecting quest members will begin voting" do
-    game = State.new |> State.start_game |> State.selected
+    game = State.new() |> State.start_game() |> State.begin_voting()
     assert game.state == :vote_on_members
   end
-
 
   ##########
   # VOTING #
@@ -29,17 +28,24 @@ defmodule Avalon.FsmGameStateTest do
   # Rejecting a team
 
   test "if team is rejected, will go back to team selection" do
-    game = State.new |> State.start_game |> State.selected |> State.reject
+    game = State.new() |> State.start_game() |> State.begin_voting() |> State.reject()
     assert game.state == :select_quest_members
   end
 
   test "rejecting five times in a row results in evil winning" do
-    game = State.new |> State.start_game
-      |> State.selected |> State.reject
-      |> State.selected |> State.reject
-      |> State.selected |> State.reject
-      |> State.selected |> State.reject
-      |> State.selected |> State.reject
+    game =
+      State.new()
+      |> State.start_game()
+      |> State.begin_voting()
+      |> State.reject()
+      |> State.begin_voting()
+      |> State.reject()
+      |> State.begin_voting()
+      |> State.reject()
+      |> State.begin_voting()
+      |> State.reject()
+      |> State.begin_voting()
+      |> State.reject()
 
     assert game.state == :evil_wins
   end
@@ -47,20 +53,24 @@ defmodule Avalon.FsmGameStateTest do
   # Accepting a team
 
   test "accepted team will begin the quest" do
-    game = State.new |> State.start_game |> State.selected |> State.accept
+    game = State.new() |> State.start_game() |> State.begin_voting() |> State.accept()
     assert game.state == :go_on_quest
   end
 
   test "accepting a team will reset the reject counter" do
-    game = State.new |> State.start_game
-    |> State.selected |> State.reject
-    |> State.selected |> State.reject
-    |> State.selected |> State.accept
+    game =
+      State.new()
+      |> State.start_game()
+      |> State.begin_voting()
+      |> State.reject()
+      |> State.begin_voting()
+      |> State.reject()
+      |> State.begin_voting()
+      |> State.accept()
 
     assert game.data.reject_count == 0
     assert game.state == :go_on_quest
   end
-
 
   ###########
   #  QUEST  #
@@ -69,32 +79,54 @@ defmodule Avalon.FsmGameStateTest do
   # Failing a quest
 
   test "failing a quest will direct to selection state" do
-    game = State.new |> State.start_game
-    |> State.selected |> State.accept
-    |> State.fail
+    game =
+      State.new()
+      |> State.start_game()
+      |> State.begin_voting()
+      |> State.accept()
+      |> State.fail()
 
     assert game.data.failed_count == 1
     assert game.state == :select_quest_members
   end
 
   test "failing a quest three times will result in an evil win" do
-    game = State.new |> State.start_game
-    |> State.selected |> State.accept |> State.fail
-    |> State.selected |> State.accept |> State.fail
-    |> State.selected |> State.accept |> State.fail
+    game =
+      State.new()
+      |> State.start_game()
+      |> State.begin_voting()
+      |> State.accept()
+      |> State.fail()
+      |> State.begin_voting()
+      |> State.accept()
+      |> State.fail()
+      |> State.begin_voting()
+      |> State.accept()
+      |> State.fail()
 
     assert game.data.failed_count == 3
     assert game.state == :evil_wins
   end
 
-
   test "three fails will result in an evil win even with two successes" do
-    game = State.new |> State.start_game
-    |> State.selected |> State.accept |> State.succeed
-    |> State.selected |> State.accept |> State.succeed
-    |> State.selected |> State.accept |> State.fail
-    |> State.selected |> State.accept |> State.fail
-    |> State.selected |> State.accept |> State.fail
+    game =
+      State.new()
+      |> State.start_game()
+      |> State.begin_voting()
+      |> State.accept()
+      |> State.succeed()
+      |> State.begin_voting()
+      |> State.accept()
+      |> State.succeed()
+      |> State.begin_voting()
+      |> State.accept()
+      |> State.fail()
+      |> State.begin_voting()
+      |> State.accept()
+      |> State.fail()
+      |> State.begin_voting()
+      |> State.accept()
+      |> State.fail()
 
     assert game.data.succeeded_count == 2
     assert game.data.failed_count == 3
@@ -102,11 +134,19 @@ defmodule Avalon.FsmGameStateTest do
   end
 
   test "restart game after an evil win" do
-    game = State.new |> State.start_game
-    |> State.selected |> State.accept |> State.fail
-    |> State.selected |> State.accept |> State.fail
-    |> State.selected |> State.accept |> State.fail
-    |> State.restart
+    game =
+      State.new()
+      |> State.start_game()
+      |> State.begin_voting()
+      |> State.accept()
+      |> State.fail()
+      |> State.begin_voting()
+      |> State.accept()
+      |> State.fail()
+      |> State.begin_voting()
+      |> State.accept()
+      |> State.fail()
+      |> State.restart()
 
     assert game.data.succeeded_count == 0
     assert game.data.failed_count == 0
@@ -117,31 +157,54 @@ defmodule Avalon.FsmGameStateTest do
   # Succeeding a quest
 
   test "succeeding a quest will direct to selection state" do
-    game = State.new |> State.start_game
-    |> State.selected |> State.accept
-    |> State.succeed
+    game =
+      State.new()
+      |> State.start_game()
+      |> State.begin_voting()
+      |> State.accept()
+      |> State.succeed()
 
     assert game.data.succeeded_count == 1
     assert game.state == :select_quest_members
   end
 
   test "succeeding a quest three times will result in a good win" do
-    game = State.new |> State.start_game
-    |> State.selected |> State.accept |> State.succeed
-    |> State.selected |> State.accept |> State.succeed
-    |> State.selected |> State.accept |> State.succeed
+    game =
+      State.new()
+      |> State.start_game()
+      |> State.begin_voting()
+      |> State.accept()
+      |> State.succeed()
+      |> State.begin_voting()
+      |> State.accept()
+      |> State.succeed()
+      |> State.begin_voting()
+      |> State.accept()
+      |> State.succeed()
 
     assert game.data.succeeded_count == 3
     assert game.state == :good_wins
   end
 
   test "three successes will result in a good win even with two fails" do
-    game = State.new |> State.start_game
-    |> State.selected |> State.accept |> State.fail
-    |> State.selected |> State.accept |> State.fail
-    |> State.selected |> State.accept |> State.succeed
-    |> State.selected |> State.accept |> State.succeed
-    |> State.selected |> State.accept |> State.succeed
+    game =
+      State.new()
+      |> State.start_game()
+      |> State.begin_voting()
+      |> State.accept()
+      |> State.fail()
+      |> State.begin_voting()
+      |> State.accept()
+      |> State.fail()
+      |> State.begin_voting()
+      |> State.accept()
+      |> State.succeed()
+      |> State.begin_voting()
+      |> State.accept()
+      |> State.succeed()
+      |> State.begin_voting()
+      |> State.accept()
+      |> State.succeed()
 
     assert game.data.succeeded_count == 3
     assert game.data.failed_count == 2
@@ -149,11 +212,19 @@ defmodule Avalon.FsmGameStateTest do
   end
 
   test "restart game after good win" do
-    game = State.new |> State.start_game
-    |> State.selected |> State.accept |> State.succeed
-    |> State.selected |> State.accept |> State.succeed
-    |> State.selected |> State.accept |> State.succeed
-    |> State.restart
+    game =
+      State.new()
+      |> State.start_game()
+      |> State.begin_voting()
+      |> State.accept()
+      |> State.succeed()
+      |> State.begin_voting()
+      |> State.accept()
+      |> State.succeed()
+      |> State.begin_voting()
+      |> State.accept()
+      |> State.succeed()
+      |> State.restart()
 
     assert game.data.succeeded_count == 0
     assert game.data.failed_count == 0

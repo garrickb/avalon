@@ -154,9 +154,15 @@ viewPlayerActions state player maybeSelf maybeQuest =
 
                     SelectQuestMembers ->
                         if player.king then
-                            div [] [ viewQuestSelectButton self maybeQuest ]
+                            div []
+                                [ viewQuestSelectButton self maybeQuest
+                                , viewBeginVotingButton maybeQuest
+                                ]
                         else
                             text "waiting for quest members to be selected"
+
+                    VoteOnMembers ->
+                        viewVotingButtons
 
                     _ ->
                         text "unknown game state"
@@ -171,6 +177,19 @@ viewPlayerActions state player maybeSelf maybeQuest =
 
                     _ ->
                         text ""
+
+
+viewVotingButtons : Html Msg
+viewVotingButtons =
+    div []
+        [ Button.button [ Button.outlineSuccess, Button.attrs [ onClick BeginVoting ] ] [ text "Accept" ]
+        , Button.button [ Button.outlineDanger, Button.attrs [ onClick BeginVoting ] ] [ text "Reject" ]
+        ]
+
+
+viewBeginVotingButton : Maybe Quest -> Html Msg
+viewBeginVotingButton questMaybe =
+    Button.button [ Button.outlinePrimary, Button.attrs [ onClick BeginVoting ] ] [ text "Done" ]
 
 
 viewQuestSelectButton : Player -> Maybe Quest -> Html Msg
@@ -195,6 +214,7 @@ type Msg
     | PlayerReady
     | SelectQuestMember Player
     | DeselectQuestMember Player
+    | BeginVoting
 
 
 pushMessage : String -> String -> Cmd msg
@@ -225,15 +245,10 @@ update session msg model =
                     model ! [ pushMessage lobby "player:ready" ]
 
                 SelectQuestMember player ->
-                    let
-                        payload =
-                            JE.object [ ( "msg", JE.string "Hello Phoenix" ) ]
-                    in
-                    model ! [ pushMessageWithPayload lobby "player:select_quest_member" [ ( "player", JE.string player.name ) ] ]
+                    model ! [ pushMessageWithPayload lobby "quest:select_player" [ ( "player", JE.string player.name ) ] ]
 
                 DeselectQuestMember player ->
-                    let
-                        payload =
-                            JE.object [ ( "msg", JE.string "Hello Phoenix" ) ]
-                    in
-                    model ! [ pushMessageWithPayload lobby "player:deselect_quest_member" [ ( "player", JE.string player.name ) ] ]
+                    model ! [ pushMessageWithPayload lobby "quest:deselect_player" [ ( "player", JE.string player.name ) ] ]
+
+                BeginVoting ->
+                    model ! [ pushMessage lobby "quest:begin_voting" ]

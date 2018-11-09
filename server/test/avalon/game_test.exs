@@ -2,6 +2,7 @@ defmodule Avalon.GameTest do
   use ExUnit.Case
 
   alias Avalon.Game, as: Game
+  alias Avalon.Player, as: Player
 
   # Game Constructor Tests
 
@@ -26,11 +27,9 @@ defmodule Avalon.GameTest do
     make_and_assert_roles(6, 2)
   end
 
-
   test "a seven player game has three evil players" do
     make_and_assert_roles(7, 3)
   end
-
 
   test "an eight player game has three evil players" do
     make_and_assert_roles(8, 3)
@@ -57,7 +56,6 @@ defmodule Avalon.GameTest do
     assert length(Enum.filter(game.players, fn p -> p.role == :good end)) == expected_num_good
   end
 
-
   defp make_game(size) do
     make_game("game", size)
   end
@@ -69,13 +67,12 @@ defmodule Avalon.GameTest do
 
   # Waiting State test
 
-
   test "player defaults to not ready" do
     player_name = "player1"
 
     player =
       make_game(1)
-        |> get_player(player_name)
+      |> get_player(player_name)
 
     assert player.ready == false
   end
@@ -85,8 +82,8 @@ defmodule Avalon.GameTest do
 
     player =
       make_game(1)
-        |> Game.set_player_ready(player_name)
-        |> get_player(player_name)
+      |> Game.set_player_ready(player_name)
+      |> get_player(player_name)
 
     assert player.ready == true
   end
@@ -96,9 +93,9 @@ defmodule Avalon.GameTest do
 
     player =
       make_game(5)
-        |> Game.set_player_ready(player_name)
-        |> Game.set_player_ready(player_name)
-        |> get_player(player_name)
+      |> Game.set_player_ready(player_name)
+      |> Game.set_player_ready(player_name)
+      |> get_player(player_name)
 
     assert player.ready == true
   end
@@ -107,32 +104,112 @@ defmodule Avalon.GameTest do
     player_name = "player100"
 
     make_game(5)
-      |> Game.set_player_ready(player_name)
+    |> Game.set_player_ready(player_name)
   end
 
-  test "not having all players ready does not advance state" do
+  test "not having all players ready" do
     game =
       make_game(5)
-        |> Game.set_player_ready("player1")
-        |> Game.set_player_ready("player2")
-        |> Game.set_player_ready("player3")
-        |> Game.set_player_ready("player4")
+      |> Game.set_player_ready("player1")
+      |> Game.set_player_ready("player2")
+      |> Game.set_player_ready("player3")
+      |> Game.set_player_ready("player4")
 
-    assert Game.all_players_ready?(game.players) == false
+    assert Player.all_players_ready?(game.players) == false
     assert game.fsm.state == :waiting
   end
 
-  test "marking as players as ready advances the state" do
+  test "marking as players as ready" do
     game =
       make_game(5)
-        |> Game.set_player_ready("player1")
-        |> Game.set_player_ready("player2")
-        |> Game.set_player_ready("player3")
-        |> Game.set_player_ready("player4")
-        |> Game.set_player_ready("player5")
+      |> Game.set_player_ready("player1")
+      |> Game.set_player_ready("player2")
+      |> Game.set_player_ready("player3")
+      |> Game.set_player_ready("player4")
+      |> Game.set_player_ready("player5")
 
-        assert Game.all_players_ready?(game.players) == true
-    #assert game.fsm.state == :select_quest_members
+    assert Player.all_players_ready?(game.players) == true
+    assert game.fsm.state == :select_quest_members
+  end
+
+  test "cannot begin voting without having players selected" do
+    game =
+      make_game(5)
+      |> Game.set_player_ready("player1")
+      |> Game.set_player_ready("player2")
+      |> Game.set_player_ready("player3")
+      |> Game.set_player_ready("player4")
+      |> Game.set_player_ready("player5")
+      |> Game.begin_voting()
+
+    assert Player.all_players_ready?(game.players) == true
+    assert game.fsm.state == :select_quest_members
+  end
+
+  test "cannot begin voting if not enough players are selected" do
+    game =
+      make_game(5)
+      |> Game.set_player_ready("player1")
+      |> Game.set_player_ready("player2")
+      |> Game.set_player_ready("player3")
+      |> Game.set_player_ready("player4")
+      |> Game.set_player_ready("player5")
+      |> Game.select_player("player1")
+      |> Game.begin_voting()
+
+    assert Player.all_players_ready?(game.players) == true
+    assert game.fsm.state == :select_quest_members
+  end
+
+  test "can begin voting if players are selected" do
+    game =
+      make_game(5)
+      |> Game.set_player_ready("player1")
+      |> Game.set_player_ready("player2")
+      |> Game.set_player_ready("player3")
+      |> Game.set_player_ready("player4")
+      |> Game.set_player_ready("player5")
+      |> Game.select_player("player1")
+      |> Game.select_player("player2")
+      |> Game.begin_voting()
+
+    assert Player.all_players_ready?(game.players) == true
+    assert game.fsm.state == :vote_on_members
+  end
+
+  test "cannot begin voting after selecting same player twice" do
+    game =
+      make_game(5)
+      |> Game.set_player_ready("player1")
+      |> Game.set_player_ready("player2")
+      |> Game.set_player_ready("player3")
+      |> Game.set_player_ready("player4")
+      |> Game.set_player_ready("player5")
+      |> Game.select_player("player1")
+      |> Game.select_player("player1")
+      |> Game.begin_voting()
+
+    assert Player.all_players_ready?(game.players) == true
+    assert game.fsm.state == :select_quest_members
+  end
+
+  test "can begin voting after selecting too many players" do
+    game =
+      make_game(5)
+      |> Game.set_player_ready("player1")
+      |> Game.set_player_ready("player2")
+      |> Game.set_player_ready("player3")
+      |> Game.set_player_ready("player4")
+      |> Game.set_player_ready("player5")
+      |> Game.select_player("player1")
+      |> Game.select_player("player2")
+      |> Game.select_player("player3")
+      |> Game.select_player("player4")
+      |> Game.select_player("player5")
+      |> Game.begin_voting()
+
+    assert Player.all_players_ready?(game.players) == true
+    assert game.fsm.state == :vote_on_members
   end
 
   defp get_player(game, player_name) do

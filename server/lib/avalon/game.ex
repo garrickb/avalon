@@ -42,13 +42,58 @@ defmodule Avalon.Game do
 
     fsm =
       if Player.all_players_ready?(new_players) do
-        Logger.info("Game #{game.name} has all players ready; starting the game!")
+        Logger.info("Game '#{game.name}' has all players ready; starting the game!")
         GameState.start_game(game.fsm)
       else
         game.fsm
       end
 
     %{game | players: new_players, fsm: fsm}
+  end
+
+  @doc """
+  select a player to go on a quest
+  """
+  def select_player(game, player_name) when is_binary(player_name) do
+    new_quests =
+      Avalon.Quest.get_active_quest(game.quests)
+      |> Avalon.Quest.select_player(player_name)
+      |> Avalon.Quest.update_quest(game.quests)
+
+    %{game | quests: new_quests}
+  end
+
+  @doc """
+  deselect a player to go on a quest
+  """
+  def deselect_player(game, player_name) when is_binary(player_name) do
+    new_quests =
+      Avalon.Quest.get_active_quest(game.quests)
+      |> Avalon.Quest.deselect_player(player_name)
+      |> Avalon.Quest.update_quest(game.quests)
+
+    %{game | quests: new_quests}
+  end
+
+  @doc """
+  begins voting on for the selected quest members for the active quest.
+  """
+  def begin_voting(game) do
+    if state(game) != :select_quest_members do
+      Logger.error("Attempted to begin voting on quest members while not in the proper state.")
+      {:error, "game needs to be in the select_quest_members state to begin voting"}
+    end
+
+    fsm =
+      if Quest.get_active_quest(game.quests) |> Quest.voting_can_begin?() do
+        Logger.info("Game '#{game.name}' has began voting on active quest")
+        GameState.begin_voting(game.fsm)
+      else
+        Logger.info("Game '#{game.name}' does not have enough players selected to begin voting")
+        game.fsm
+      end
+
+    %{game | fsm: fsm}
   end
 
   defp state(game) do
@@ -70,10 +115,6 @@ defmodule Avalon.Game do
       _ -> if size < 5, do: 1, else: 4
     end
   end
-
-  # defp set_no_king(players) do
-  #   players |> Enum.map(fn p -> {p | king: false} end)
-  # end
 
   defp set_random_king(players) do
     king = Enum.random(players)

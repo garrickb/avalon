@@ -44,7 +44,7 @@ viewName player state quest =
         Waiting ->
             span [] [ playerName, text " ", viewModifier (Ready player.ready) ]
 
-        SelectQuestMembers ->
+        _ ->
             case quest of
                 Nothing ->
                     playerName
@@ -54,6 +54,3 @@ viewName player state quest =
                         span [] [ playerName, text " ", viewModifier OnQuest ]
                     else
                         playerName
-
-        _ ->
-            playerName

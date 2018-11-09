@@ -17,7 +17,7 @@ defmodule Avalon.FsmGameState do
   # Waiting for king to select players to go on the quest
   defstate select_quest_members do
     # Team was selected; wait for players to vote on the team
-    defevent selected do
+    defevent begin_voting do
       Logger.info("FSM: Quest members are selected")
       next_state(:vote_on_members)
     end

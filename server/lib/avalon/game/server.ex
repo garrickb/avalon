@@ -34,6 +34,10 @@ defmodule Avalon.Game.Server do
     GenServer.call(via_tuple(game_name), {:deselect_quest_member, requester, player})
   end
 
+  def begin_voting(game_name, requester) do
+    GenServer.call(via_tuple(game_name), {:begin_voting, requester})
+  end
+
   @doc """
   Returns a tuple used to register and lookup a game server process by name.
   """
@@ -84,12 +88,7 @@ defmodule Avalon.Game.Server do
 
   def handle_call({:select_quest_member, requester, player}, _from, game) do
     if game.players |> Avalon.Player.is_king?(requester) do
-      new_quests =
-        Avalon.Quest.get_active_quest(game.quests)
-        |> Avalon.Quest.select_player(player)
-        |> Avalon.Quest.update_quest(game.quests)
-
-      new_game = %{game | quests: new_quests}
+      new_game = Avalon.Game.select_player(game, player)
 
       :ets.insert(:games_table, {my_game_name(), new_game})
 
@@ -99,18 +98,13 @@ defmodule Avalon.Game.Server do
         "Requester '#{requester} cannot select player '#{player}' because they are not the king"
       )
 
-      {:noreply, @timeout}
+      {:reply, nil, @timeout}
     end
   end
 
   def handle_call({:deselect_quest_member, requester, player}, _from, game) do
     if game.players |> Avalon.Player.is_king?(requester) do
-      new_quests =
-        Avalon.Quest.get_active_quest(game.quests)
-        |> Avalon.Quest.deselect_player(player)
-        |> Avalon.Quest.update_quest(game.quests)
-
-      new_game = %{game | quests: new_quests}
+      new_game = Avalon.Game.deselect_player(game, player)
 
       :ets.insert(:games_table, {my_game_name(), new_game})
 
@@ -120,7 +114,21 @@ defmodule Avalon.Game.Server do
         "Requester '#{requester} cannot deselect player '#{player}' because they are not the king"
       )
 
-      {:noreply, @timeout}
+      {:reply, nil, @timeout}
+    end
+  end
+
+  def handle_call({:begin_voting, requester}, _from, game) do
+    if game.players |> Avalon.Player.is_king?(requester) do
+      new_game = Avalon.Game.begin_voting(game)
+
+      :ets.insert(:games_table, {my_game_name(), new_game})
+
+      {:reply, new_game, new_game, @timeout}
+    else
+      Logger.warn("Requester '#{requester} cannot begin voting because they are not the king")
+
+      {:reply, nil, @timeout}
     end
   end
 

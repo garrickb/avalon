@@ -179,6 +179,13 @@ defmodule Avalon.Quest do
   end
 
   @doc """
+  returns whether or not voting on the quest can begin
+  """
+  def voting_can_begin?(quest) do
+    length(quest.selected_players) == quest.num_players_required
+  end
+
+  @doc """
   Returns the final state of a quest after completion.
   """
   def complete(quest, num_fails) when is_number(num_fails) do
