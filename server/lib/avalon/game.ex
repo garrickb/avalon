@@ -99,7 +99,7 @@ defmodule Avalon.Game do
   @doc """
   store a player's vote
   """
-  def vote(game, :accept, player_name) when is_binary(player_name) do
+  def vote(game, player_name, :accept) when is_binary(player_name) do
     if game.fsm.state != :vote_on_members do
       Logger.warn("Player '#{player_name}' attempted to accept a vote while not in voting state.")
       game
@@ -114,7 +114,7 @@ defmodule Avalon.Game do
     end
   end
 
-  def vote(game, :reject, player_name) when is_binary(player_name) do
+  def vote(game, player_name, :reject) when is_binary(player_name) do
     if game.fsm.state != :vote_on_members do
       Logger.warn("Player '#{player_name}' attempted to reject a vote while not in voting state.")
       game

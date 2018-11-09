@@ -152,6 +152,40 @@ defmodule AvalonWeb.GameChannel do
     end
   end
 
+  def handle_in("quest:accept_vote", _payload, socket) do
+    "room:" <> game_name = socket.topic
+
+    case GameServer.game_pid(game_name) do
+      pid when is_pid(pid) ->
+        log(socket, "player is voing to accept")
+        game = GameServer.player_vote(game_name, username(socket), :accept)
+
+        broadcast!(socket, "game:state", game)
+
+        {:noreply, socket}
+
+      nil ->
+        {:reply, {:error, %{reason: "Game does not exist"}}, socket}
+    end
+  end
+
+  def handle_in("quest:reject_vote", _payload, socket) do
+    "room:" <> game_name = socket.topic
+
+    case GameServer.game_pid(game_name) do
+      pid when is_pid(pid) ->
+        log(socket, "player is voing to reject")
+        game = GameServer.player_vote(game_name, username(socket), :reject)
+
+        broadcast!(socket, "game:state", game)
+
+        {:noreply, socket}
+
+      nil ->
+        {:reply, {:error, %{reason: "Game does not exist"}}, socket}
+    end
+  end
+
   def handle_in(message, payload, socket) do
     logError(socket, "unknown command: '#{message}' payload: '#{inspect(payload)}'")
     {:noreply, socket}

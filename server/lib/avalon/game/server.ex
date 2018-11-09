@@ -38,6 +38,10 @@ defmodule Avalon.Game.Server do
     GenServer.call(via_tuple(game_name), {:begin_voting, requester})
   end
 
+  def player_vote(game_name, requester, vote) do
+    GenServer.call(via_tuple(game_name), {:player_vote, requester, vote})
+  end
+
   @doc """
   Returns a tuple used to register and lookup a game server process by name.
   """
@@ -78,8 +82,8 @@ defmodule Avalon.Game.Server do
     {:reply, game, game, @timeout}
   end
 
-  def handle_call({:player_ready, player}, _from, game) do
-    new_game = Avalon.Game.set_player_ready(game, player)
+  def handle_call({:player_ready, requester}, _from, game) do
+    new_game = Avalon.Game.set_player_ready(game, requester)
 
     :ets.insert(:games_table, {my_game_name(), new_game})
 
@@ -132,8 +136,16 @@ defmodule Avalon.Game.Server do
     end
   end
 
+  def handle_call({:player_vote, requester, vote}, _from, game) do
+    new_game = Avalon.Game.vote(game, requester, vote)
+
+    :ets.insert(:games_table, {my_game_name(), new_game})
+
+    {:reply, new_game, new_game, @timeout}
+  end
+
   def handle_call({:reject_vote, player}, _from, game) do
-    new_game = Avalon.Game.vote(game, :reject, player)
+    new_game = Avalon.Game.vote(game, player, :reject)
 
     :ets.insert(:games_table, {my_game_name(), new_game})
 
@@ -141,7 +153,7 @@ defmodule Avalon.Game.Server do
   end
 
   def handle_call({:accept_vote, player}, _from, game) do
-    new_game = Avalon.Game.vote(game, :accept, player)
+    new_game = Avalon.Game.vote(game, player, :accept)
 
     :ets.insert(:games_table, {my_game_name(), new_game})
 

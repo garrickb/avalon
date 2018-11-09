@@ -165,8 +165,11 @@ viewPlayerActions state player maybeSelf maybeQuest =
                     VoteOnMembers ->
                         viewVotingButtons
 
-                    _ ->
-                        text "unknown game state"
+                    GoOnQuest ->
+                        text "here's where you'd play fail or success cards"
+
+                    Invalid state ->
+                        text ("unknown game state: " ++ state)
             else
                 -- Viewing actions on another player
                 case state of

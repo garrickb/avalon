@@ -4,10 +4,11 @@ import Json.Decode exposing (..)
 
 
 type GameFsmState
-    = Invalid
+    = Invalid String
     | Waiting
     | SelectQuestMembers
     | VoteOnMembers
+    | GoOnQuest
 
 
 type alias Game =
@@ -85,7 +86,7 @@ decodeGameFsmState =
                         succeed VoteOnMembers
 
                     unknown ->
-                        fail <| "Unknown FSM state: " ++ unknown
+                        succeed (Invalid unknown)
             )
 
 
