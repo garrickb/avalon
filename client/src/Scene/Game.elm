@@ -183,8 +183,8 @@ viewPlayerActions state player maybeSelf maybeQuest =
 viewVotingButtons : Html Msg
 viewVotingButtons =
     div []
-        [ Button.button [ Button.outlineSuccess, Button.attrs [ Spacing.ml1, onClick BeginVoting ] ] [ text "Accept" ]
-        , Button.button [ Button.outlineDanger, Button.attrs [ Spacing.ml1, onClick BeginVoting ] ] [ text "Reject" ]
+        [ Button.button [ Button.outlineSuccess, Button.attrs [ Spacing.ml1, onClick AcceptVote ] ] [ text "Accept" ]
+        , Button.button [ Button.outlineDanger, Button.attrs [ Spacing.ml1, onClick RejectVote ] ] [ text "Reject" ]
         ]
 
 
@@ -224,6 +224,8 @@ type Msg
     | SelectQuestMember Player
     | DeselectQuestMember Player
     | BeginVoting
+    | AcceptVote
+    | RejectVote
 
 
 pushMessage : String -> String -> Cmd msg
@@ -261,3 +263,9 @@ update session msg model =
 
                 BeginVoting ->
                     model ! [ pushMessage lobby "quest:begin_voting" ]
+
+                AcceptVote ->
+                    model ! [ pushMessage lobby "quest:accept_vote" ]
+
+                RejectVote ->
+                    model ! [ pushMessage lobby "quest:reject_vote" ]

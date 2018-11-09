@@ -32,23 +32,23 @@ defmodule Avalon.Game do
   """
   def set_player_ready(game, player_name) when is_binary(player_name) do
     if state(game) != :waiting do
-      Logger.error("Attempted to mark a player as ready while not in waiting state.")
-      {:error, "game needs to be in the waiting state to be ready"}
+      Logger.warn("Attempted to mark a player as ready while not in waiting state.")
+      game
+    else
+      # If all players are ready, then we can start the game!
+      new_players =
+        Enum.map(game.players, fn p -> if p.name == player_name, do: Player.ready(p), else: p end)
+
+      fsm =
+        if Player.all_players_ready?(new_players) do
+          Logger.info("Game '#{game.name}' has all players ready; starting the game!")
+          GameState.start_game(game.fsm)
+        else
+          game.fsm
+        end
+
+      %{game | players: new_players, fsm: fsm}
     end
-
-    # If all players are ready, then we can start the game!
-    new_players =
-      Enum.map(game.players, fn p -> if p.name == player_name, do: Player.ready(p), else: p end)
-
-    fsm =
-      if Player.all_players_ready?(new_players) do
-        Logger.info("Game '#{game.name}' has all players ready; starting the game!")
-        GameState.start_game(game.fsm)
-      else
-        game.fsm
-      end
-
-    %{game | players: new_players, fsm: fsm}
   end
 
   @doc """
@@ -80,20 +80,20 @@ defmodule Avalon.Game do
   """
   def begin_voting(game) do
     if state(game) != :select_quest_members do
-      Logger.error("Attempted to begin voting on quest members while not in the proper state.")
-      {:error, "game needs to be in the select_quest_members state to begin voting"}
+      Logger.warn("Attempted to begin voting on quest members while not in the proper state.")
+      game
+    else
+      fsm =
+        if Quest.get_active_quest(game.quests) |> Quest.voting_can_begin?() do
+          Logger.info("Game '#{game.name}' has began voting on active quest")
+          GameState.begin_voting(game.fsm)
+        else
+          Logger.info("Game '#{game.name}' does not have enough players selected to begin voting")
+          game.fsm
+        end
+
+      %{game | fsm: fsm}
     end
-
-    fsm =
-      if Quest.get_active_quest(game.quests) |> Quest.voting_can_begin?() do
-        Logger.info("Game '#{game.name}' has began voting on active quest")
-        GameState.begin_voting(game.fsm)
-      else
-        Logger.info("Game '#{game.name}' does not have enough players selected to begin voting")
-        game.fsm
-      end
-
-    %{game | fsm: fsm}
   end
 
   defp state(game) do
