@@ -26,4 +26,18 @@ defmodule Avalon.Player do
   def ready(player) do
     %{player | ready: true}
   end
+
+  @doc """
+  returns whether or not all players are already
+  """
+  def all_players_ready?(players) do
+    players |> Enum.all?(fn p -> p.ready == true end)
+  end
+
+  @doc """
+  check if a player is king
+  """
+  def is_king?(players, player) do
+    Enum.any?(players, fn p -> p.king && p.name == player end)
+  end
 end

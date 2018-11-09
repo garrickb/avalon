@@ -170,10 +170,32 @@ defmodule Avalon.Quest do
   end
 
   @doc """
+  returns the active quest
+  """
+  def get_active_quest(quests) do
+    Enum.find(quests, fn quest ->
+      match?(:uncompleted, quest.outcome)
+    end)
+  end
+
+  @doc """
   Returns the final state of a quest after completion.
   """
   def complete(quest, num_fails) when is_number(num_fails) do
     result = if num_fails >= quest.num_fails_required, do: :failure, else: :success
     %{quest | outcome: result, num_fails: num_fails}
+  end
+
+  @doc """
+  updates the list of quests with the new quest, based on the id
+  """
+  def update_quest(new_quest, quests) do
+    Enum.map(quests, fn quest ->
+      if quest.id == new_quest.id do
+        new_quest
+      else
+        quest
+      end
+    end)
   end
 end

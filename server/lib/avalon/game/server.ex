@@ -19,11 +19,19 @@ defmodule Avalon.Game.Server do
   end
 
   def summary(game_name) do
-      GenServer.call(via_tuple(game_name), :summary)
+    GenServer.call(via_tuple(game_name), :summary)
   end
 
-  def player_ready(game_name, player) do
-      GenServer.call(via_tuple(game_name), {:player_ready, player})
+  def player_ready(game_name, requester) do
+    GenServer.call(via_tuple(game_name), {:player_ready, requester})
+  end
+
+  def select_quest_member(game_name, requester, player) do
+    GenServer.call(via_tuple(game_name), {:select_quest_member, requester, player})
+  end
+
+  def deselect_quest_member(game_name, requester, player) do
+    GenServer.call(via_tuple(game_name), {:deselect_quest_member, requester, player})
   end
 
   @doc """
@@ -55,7 +63,7 @@ defmodule Avalon.Game.Server do
 
         [{^game_name, game}] ->
           game
-    end
+      end
 
     Logger.info("Initializing game server '#{game_name}'.")
 
@@ -67,11 +75,53 @@ defmodule Avalon.Game.Server do
   end
 
   def handle_call({:player_ready, player}, _from, game) do
-     new_game = Avalon.Game.set_player_ready(game, player)
+    new_game = Avalon.Game.set_player_ready(game, player)
 
-     :ets.insert(:games_table, {my_game_name(), new_game})
+    :ets.insert(:games_table, {my_game_name(), new_game})
 
-     {:reply, new_game, new_game, @timeout}
+    {:reply, new_game, new_game, @timeout}
+  end
+
+  def handle_call({:select_quest_member, requester, player}, _from, game) do
+    if game.players |> Avalon.Player.is_king?(requester) do
+      new_quests =
+        Avalon.Quest.get_active_quest(game.quests)
+        |> Avalon.Quest.select_player(player)
+        |> Avalon.Quest.update_quest(game.quests)
+
+      new_game = %{game | quests: new_quests}
+
+      :ets.insert(:games_table, {my_game_name(), new_game})
+
+      {:reply, new_game, new_game, @timeout}
+    else
+      Logger.warn(
+        "Requester '#{requester} cannot select player '#{player}' because they are not the king"
+      )
+
+      {:noreply, @timeout}
+    end
+  end
+
+  def handle_call({:deselect_quest_member, requester, player}, _from, game) do
+    if game.players |> Avalon.Player.is_king?(requester) do
+      new_quests =
+        Avalon.Quest.get_active_quest(game.quests)
+        |> Avalon.Quest.deselect_player(player)
+        |> Avalon.Quest.update_quest(game.quests)
+
+      new_game = %{game | quests: new_quests}
+
+      :ets.insert(:games_table, {my_game_name(), new_game})
+
+      {:reply, new_game, new_game, @timeout}
+    else
+      Logger.warn(
+        "Requester '#{requester} cannot deselect player '#{player}' because they are not the king"
+      )
+
+      {:noreply, @timeout}
+    end
   end
 
   def handle_info(:timeout, game) do
@@ -97,6 +147,6 @@ defmodule Avalon.Game.Server do
   end
 
   defp my_game_name do
-    Registry.keys(Avalon.GameRegistry, self()) |> List.first
+    Registry.keys(Avalon.GameRegistry, self()) |> List.first()
   end
 end

@@ -43,8 +43,8 @@ viewQuest quest =
     in
     span [ style [ ( "padding", "1px" ) ] ]
         [ Svg.svg
-            [ SvgAttr.width (toString (size * 1.25))
-            , SvgAttr.height (toString (size * 1.25))
+            [ SvgAttr.width "60"
+            , SvgAttr.height "58.5"
             ]
             [ Svg.circle
                 [ SvgAttr.cx (toString ((size / 2) + 1.25))

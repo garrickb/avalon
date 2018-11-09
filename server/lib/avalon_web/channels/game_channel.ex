@@ -88,7 +88,49 @@ defmodule AvalonWeb.GameChannel do
         {:noreply, socket}
 
       nil ->
-        logError(socket, "attempted to ready a player in non-existant game")
+        logError(socket, "attempted to ready a player in non-existent game")
+        {:reply, {:error, %{reason: "Game does not exist"}}, socket}
+    end
+  end
+
+  def handle_in("player:select_quest_member", %{"player" => player}, socket) do
+    "room:" <> game_name = socket.topic
+
+    case GameServer.game_pid(game_name) do
+      pid when is_pid(pid) ->
+        game = GameServer.select_quest_member(game_name, username(socket), player)
+
+        if game != nil do
+          log(socket, "selected player #{player}")
+          broadcast!(socket, "game:state", game)
+          {:noreply, socket}
+        else
+          {:reply, {:error, %{reason: "Error selecting quest member."}}, socket}
+        end
+
+      nil ->
+        logError(socket, "attempted to select a player for a quest in non-existent game")
+        {:reply, {:error, %{reason: "Game does not exist"}}, socket}
+    end
+  end
+
+  def handle_in("player:deselect_quest_member", %{"player" => player}, socket) do
+    "room:" <> game_name = socket.topic
+
+    case GameServer.game_pid(game_name) do
+      pid when is_pid(pid) ->
+        game = GameServer.deselect_quest_member(game_name, username(socket), player)
+
+        if game != nil do
+          log(socket, "deselected player #{player}")
+          broadcast!(socket, "game:state", game)
+          {:noreply, socket}
+        else
+          {:reply, {:error, %{reason: "Error deselecting quest member."}}, socket}
+        end
+
+      nil ->
+        logError(socket, "attempted to deselect a player for a quest in non-existent game")
         {:reply, {:error, %{reason: "Game does not exist"}}, socket}
     end
   end
@@ -122,14 +164,11 @@ defmodule AvalonWeb.GameChannel do
   end
 
   defp handle_out_quests(quests, _socket) do
-    active_quest =
-      Enum.find(quests, fn quest ->
-        match?(:uncompleted, quest.outcome)
-      end)
+    active_quest = Avalon.Quest.get_active_quest(quests)
 
     quests
     |> Enum.map(fn q ->
-      if q == active_quest,
+      if q.id == active_quest.id,
         do: Map.put(Map.delete(q, :id), :active, true),
         else: Map.put(Map.delete(q, :id), :active, false)
     end)

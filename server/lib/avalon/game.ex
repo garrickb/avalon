@@ -41,7 +41,7 @@ defmodule Avalon.Game do
       Enum.map(game.players, fn p -> if p.name == player_name, do: Player.ready(p), else: p end)
 
     fsm =
-      if all_players_ready?(new_players) do
+      if Player.all_players_ready?(new_players) do
         Logger.info("Game #{game.name} has all players ready; starting the game!")
         GameState.start_game(game.fsm)
       else
@@ -50,14 +50,6 @@ defmodule Avalon.Game do
 
     %{game | players: new_players, fsm: fsm}
   end
-
-  def all_players_ready?(players) do
-    players |> Enum.all?(fn p -> p.ready == true end)
-  end
-
-  # defp get_player(game, player_name) when is_binary(player_name) do
-  #   Enum.find(game.players, fn p -> p.name == player_name end)
-  # end
 
   defp state(game) do
     game.fsm.state

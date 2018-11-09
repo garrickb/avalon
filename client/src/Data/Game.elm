@@ -1,6 +1,13 @@
-module Data.Game exposing (Game, Player, Quest, decodeGame)
+module Data.Game exposing (Game, GameFsmState(..), Player, Quest, decodeGame)
 
 import Json.Decode exposing (..)
+
+
+type GameFsmState
+    = Invalid
+    | Waiting
+    | SelectQuestMembers
+    | VoteOnMembers
 
 
 type alias Game =
@@ -12,7 +19,7 @@ type alias Game =
 
 
 type alias GameState =
-    { state : String
+    { state : GameFsmState
     , gameStateData : GameStateData
     }
 
@@ -62,10 +69,30 @@ decodeQuest =
         (field "selected_players" (list string))
 
 
+decodeGameFsmState : Decoder GameFsmState
+decodeGameFsmState =
+    string
+        |> andThen
+            (\str ->
+                case str of
+                    "waiting" ->
+                        succeed Waiting
+
+                    "select_quest_members" ->
+                        succeed SelectQuestMembers
+
+                    "vote_on_members" ->
+                        succeed VoteOnMembers
+
+                    unknown ->
+                        fail <| "Unknown FSM state: " ++ unknown
+            )
+
+
 decodeGameState : Decoder GameState
 decodeGameState =
     map2 GameState
-        (field "state" string)
+        (field "state" decodeGameFsmState)
         (field "data" decodeGameStateData)
 
 
