@@ -132,6 +132,22 @@ defmodule Avalon.Game.Server do
     end
   end
 
+  def handle_call({:reject_vote, player}, _from, game) do
+    new_game = Avalon.Game.vote(game, :reject, player)
+
+    :ets.insert(:games_table, {my_game_name(), new_game})
+
+    {:reply, new_game, new_game, @timeout}
+  end
+
+  def handle_call({:accept_vote, player}, _from, game) do
+    new_game = Avalon.Game.vote(game, :accept, player)
+
+    :ets.insert(:games_table, {my_game_name(), new_game})
+
+    {:reply, new_game, new_game, @timeout}
+  end
+
   def handle_info(:timeout, game) do
     game_name = my_game_name()
 

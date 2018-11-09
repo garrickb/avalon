@@ -5,7 +5,8 @@ defmodule Avalon.Quest do
     :num_fails_required,
     :outcome,
     :num_fails,
-    :selected_players
+    :selected_players,
+    :votes
   ]
   defstruct [
     :id,
@@ -13,7 +14,8 @@ defmodule Avalon.Quest do
     :num_fails_required,
     :outcome,
     :num_fails,
-    :selected_players
+    :selected_players,
+    :votes
   ]
 
   alias Avalon.Quest
@@ -31,7 +33,8 @@ defmodule Avalon.Quest do
       num_fails_required: num_fails_required,
       outcome: :uncompleted,
       num_fails: nil,
-      selected_players: []
+      selected_players: [],
+      votes: %{}
     }
   end
 
@@ -183,6 +186,36 @@ defmodule Avalon.Quest do
   """
   def voting_can_begin?(quest) do
     length(quest.selected_players) == quest.num_players_required
+  end
+
+  @doc """
+  player accepts the selected players
+  """
+  def vote_accept(quest, player_name) do
+    new_votes = Map.put(quest.votes, player_name, :accept)
+    %{quest | votes: new_votes}
+  end
+
+  @doc """
+  player rejects the selected players
+  """
+  def vote_reject(quest, player_name) do
+    new_votes = Map.put(quest.votes, player_name, :reject)
+    %{quest | votes: new_votes}
+  end
+
+  @doc """
+  returns whether or not voting is finished
+  """
+  def all_players_voted?(quest, num_players) do
+    Kernel.map_size(quest.votes) == num_players
+  end
+
+  @doc """
+  returns the number of votes which are rejects
+  """
+  def number_of_reject_votes(quest) do
+    Enum.count(quest.votes, fn {_, v} -> v == :reject end)
   end
 
   @doc """

@@ -1,5 +1,5 @@
 defmodule Avalon.Game do
-  @enforce_keys [:name]
+  @enforce_keys [:name, :fsm]
   defstruct [:name, :players, :quests, :fsm]
 
   alias Avalon.Game
@@ -31,7 +31,7 @@ defmodule Avalon.Game do
   if all players are ready, then advance the game.
   """
   def set_player_ready(game, player_name) when is_binary(player_name) do
-    if state(game) != :waiting do
+    if game.fsm.state != :waiting do
       Logger.warn("Attempted to mark a player as ready while not in waiting state.")
       game
     else
@@ -79,7 +79,7 @@ defmodule Avalon.Game do
   begins voting on for the selected quest members for the active quest.
   """
   def begin_voting(game) do
-    if state(game) != :select_quest_members do
+    if game.fsm.state != :select_quest_members do
       Logger.warn("Attempted to begin voting on quest members while not in the proper state.")
       game
     else
@@ -96,8 +96,60 @@ defmodule Avalon.Game do
     end
   end
 
-  defp state(game) do
-    game.fsm.state
+  @doc """
+  store a player's vote
+  """
+  def vote(game, :accept, player_name) when is_binary(player_name) do
+    if game.fsm.state != :vote_on_members do
+      Logger.warn("Player '#{player_name}' attempted to accept a vote while not in voting state.")
+      game
+    else
+      new_quests =
+        game.quests
+        |> Avalon.Quest.get_active_quest()
+        |> Quest.vote_accept(player_name)
+        |> Quest.update_quest(game.quests)
+
+      after_vote(game, new_quests)
+    end
+  end
+
+  def vote(game, :reject, player_name) when is_binary(player_name) do
+    if game.fsm.state != :vote_on_members do
+      Logger.warn("Player '#{player_name}' attempted to reject a vote while not in voting state.")
+      game
+    else
+      new_quests =
+        game.quests
+        |> Avalon.Quest.get_active_quest()
+        |> Quest.vote_reject(player_name)
+        |> Quest.update_quest(game.quests)
+
+      after_vote(game, new_quests)
+    end
+  end
+
+  defp after_vote(game, new_quests) do
+    active_quest = new_quests |> Avalon.Quest.get_active_quest()
+
+    if active_quest |> Quest.all_players_voted?(length(game.players)) do
+      num_rejects = Quest.number_of_reject_votes(active_quest)
+      rejects_required = Kernel.map_size(active_quest.votes) / 2
+
+      if num_rejects >= rejects_required do
+        # TODO: Store prev votes
+        # Clear the vote that after a failure
+        quests_after_fail =
+          %{active_quest | votes: %{}}
+          |> Quest.update_quest(new_quests)
+
+        %{game | quests: quests_after_fail, fsm: GameState.reject(game.fsm)}
+      else
+        %{game | quests: new_quests, fsm: GameState.accept(game.fsm)}
+      end
+    else
+      %{game | quests: new_quests}
+    end
   end
 
   defp get_role_list(size) when is_number(size) do

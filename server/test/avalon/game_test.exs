@@ -149,11 +149,7 @@ defmodule Avalon.GameTest do
   test "cannot begin voting if not enough players are selected" do
     game =
       make_game(5)
-      |> Game.set_player_ready("player1")
-      |> Game.set_player_ready("player2")
-      |> Game.set_player_ready("player3")
-      |> Game.set_player_ready("player4")
-      |> Game.set_player_ready("player5")
+      |> all_ready()
       |> Game.select_player("player1")
       |> Game.begin_voting()
 
@@ -164,11 +160,7 @@ defmodule Avalon.GameTest do
   test "can begin voting if players are selected" do
     game =
       make_game(5)
-      |> Game.set_player_ready("player1")
-      |> Game.set_player_ready("player2")
-      |> Game.set_player_ready("player3")
-      |> Game.set_player_ready("player4")
-      |> Game.set_player_ready("player5")
+      |> all_ready()
       |> Game.select_player("player1")
       |> Game.select_player("player2")
       |> Game.begin_voting()
@@ -180,11 +172,7 @@ defmodule Avalon.GameTest do
   test "cannot begin voting after selecting same player twice" do
     game =
       make_game(5)
-      |> Game.set_player_ready("player1")
-      |> Game.set_player_ready("player2")
-      |> Game.set_player_ready("player3")
-      |> Game.set_player_ready("player4")
-      |> Game.set_player_ready("player5")
+      |> all_ready()
       |> Game.select_player("player1")
       |> Game.select_player("player1")
       |> Game.begin_voting()
@@ -196,11 +184,7 @@ defmodule Avalon.GameTest do
   test "can begin voting after selecting too many players" do
     game =
       make_game(5)
-      |> Game.set_player_ready("player1")
-      |> Game.set_player_ready("player2")
-      |> Game.set_player_ready("player3")
-      |> Game.set_player_ready("player4")
-      |> Game.set_player_ready("player5")
+      |> all_ready()
       |> Game.select_player("player1")
       |> Game.select_player("player2")
       |> Game.select_player("player3")
@@ -210,6 +194,85 @@ defmodule Avalon.GameTest do
 
     assert Player.all_players_ready?(game.players) == true
     assert game.fsm.state == :vote_on_members
+  end
+
+  test "can vote to accept" do
+    game =
+      make_game(5)
+      |> all_ready()
+      |> select_players_and_begin_voting()
+      |> Game.vote(:accept, "player1")
+      |> Game.vote(:accept, "player2")
+      |> Game.vote(:accept, "player3")
+      |> Game.vote(:accept, "player4")
+      |> Game.vote(:accept, "player5")
+
+    assert game.fsm.state == :go_on_quest
+  end
+
+  test "can vote to reject" do
+    game =
+      make_game(5)
+      |> all_ready()
+      |> select_players_and_begin_voting()
+      |> Game.vote(:reject, "player1")
+      |> Game.vote(:reject, "player2")
+      |> Game.vote(:reject, "player3")
+      |> Game.vote(:reject, "player4")
+      |> Game.vote(:reject, "player5")
+
+    assert game.fsm.state == :select_quest_members
+  end
+
+  test "can vote to reject twice" do
+    game =
+      make_game(5)
+      |> all_ready()
+      |> select_players_and_begin_voting()
+      |> all_vote(:reject)
+
+    assert game.fsm.state == :select_quest_members
+  end
+
+  test "evil win after failing five times" do
+    game =
+      make_game(5)
+      |> all_ready()
+      |> select_players_and_begin_voting()
+      |> all_vote(:reject)
+      |> select_players_and_begin_voting()
+      |> all_vote(:reject)
+      |> select_players_and_begin_voting()
+      |> all_vote(:reject)
+      |> select_players_and_begin_voting()
+      |> all_vote(:reject)
+      |> select_players_and_begin_voting()
+      |> all_vote(:reject)
+
+    assert game.fsm.state == :evil_wins
+  end
+
+  defp all_ready(game) do
+    assert game.fsm.state == :waiting
+
+    player_names = Enum.map(game.players, fn p -> p.name end)
+
+    Enum.reduce(player_names, game, fn player, acc -> Game.set_player_ready(acc, player) end)
+    |> Game.begin_voting()
+  end
+
+  defp select_players_and_begin_voting(game) do
+    assert game.fsm.state == :select_quest_members
+    player_names = Enum.map(game.players, fn p -> p.name end)
+
+    Enum.reduce(player_names, game, fn player, acc -> Game.select_player(acc, player) end)
+    |> Game.begin_voting()
+  end
+
+  defp all_vote(game, vote) when is_atom(vote) do
+    assert game.fsm.state == :vote_on_members
+    player_names = Enum.map(game.players, fn p -> p.name end)
+    Enum.reduce(player_names, game, fn player, acc -> Game.vote(acc, vote, player) end)
   end
 
   defp get_player(game, player_name) do
