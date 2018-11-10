@@ -40,6 +40,17 @@ viewQuest quest =
                     , SvgAttr.strokeWidth "1px"
                     ]
                     []
+
+        questColor =
+            case quest.state of
+                "success" ->
+                    "green"
+
+                "failure" ->
+                    "red"
+
+                _ ->
+                    "white"
     in
     span [ style [ ( "padding", "1px" ) ] ]
         [ Svg.svg
@@ -50,7 +61,7 @@ viewQuest quest =
                 [ SvgAttr.cx (toString ((size / 2) + 1.25))
                 , SvgAttr.cy (toString ((size / 2) + 1.25))
                 , SvgAttr.r halfSizeStr
-                , SvgAttr.fill "white"
+                , SvgAttr.fill questColor
                 ]
                 []
             , Svg.text_
