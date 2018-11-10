@@ -87,8 +87,11 @@ viewName player state maybeQuest =
 
                         playedQuestCard =
                             List.member player.name quest.quest_card_players
+
+                        onQuest =
+                            List.member player.name quest.team.players
                     in
-                    span [] [ playerName, text " ", viewModifier (AcceptedTeam votedToAccept), viewModifier (PlayedQuestCard playedQuestCard) ]
+                    span [] [ playerName, text " ", viewModifier (IsOnQuest onQuest), viewModifier (AcceptedTeam votedToAccept), viewModifier (PlayedQuestCard playedQuestCard) ]
 
                 _ ->
                     span [] [ playerName, text " ", viewModifier (IsOnQuest (List.member player.name quest.team.players)) ]
