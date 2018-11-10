@@ -166,7 +166,7 @@ viewPlayerActions state player maybeSelf maybeQuest =
                         viewVotingButtons
 
                     GoOnQuest ->
-                        text "here's where you'd play fail or success cards"
+                        viewQuestCardButtons player maybeQuest
 
                     Invalid state ->
                         text ("unknown game state: " ++ state)
@@ -221,6 +221,29 @@ viewQuestSelectButton player maybeQuest =
         Button.button [ Button.outlineInfo, Button.attrs [ onClick (SelectQuestMember player) ] ] [ text "Add" ]
 
 
+viewQuestCardButtons : Player -> Maybe Quest -> Html Msg
+viewQuestCardButtons player maybeQuest =
+    let
+        onQuest =
+            case maybeQuest of
+                Nothing ->
+                    False
+
+                Just quest ->
+                    List.member player.name quest.selected_players
+    in
+    if onQuest then
+        span []
+            [ Button.button [ Button.success, Button.attrs [ Spacing.ml1, onClick PlayQuestSuccessCard ] ]
+                [ text "Success" ]
+            , Button.button
+                [ Button.danger, Button.attrs [ Spacing.ml1, onClick PlayQuestFailCard ] ]
+                [ text "Fail" ]
+            ]
+    else
+        text "Waiting for all quest members to play a quest card.."
+
+
 type Msg
     = StopGame
     | PlayerReady
@@ -229,6 +252,8 @@ type Msg
     | BeginVoting
     | AcceptVote
     | RejectVote
+    | PlayQuestSuccessCard
+    | PlayQuestFailCard
 
 
 pushMessage : String -> String -> Cmd msg
@@ -272,3 +297,9 @@ update session msg model =
 
                 RejectVote ->
                     model ! [ pushMessage lobby "quest:reject_vote" ]
+
+                PlayQuestSuccessCard ->
+                    model ! [ pushMessage lobby "quest:success" ]
+
+                PlayQuestFailCard ->
+                    model ! [ pushMessage lobby "quest:fail" ]

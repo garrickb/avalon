@@ -85,6 +85,9 @@ decodeGameFsmState =
                     "vote_on_members" ->
                         succeed VoteOnMembers
 
+                    "go_on_quest" ->
+                        succeed GoOnQuest
+
                     unknown ->
                         succeed (Invalid unknown)
             )
