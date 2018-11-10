@@ -59,7 +59,7 @@ viewQuest quest =
                 , SvgAttr.fontSize "35"
                 , SvgAttr.fill "black"
                 ]
-                [ Svg.text (toString quest.num_players_required) ]
+                [ Svg.text (toString quest.team.num_players_required) ]
             , Svg.circle
                 [ SvgAttr.cx (toString ((size / 2) + 1.25))
                 , SvgAttr.cy (toString ((size / 2) + 1.25))

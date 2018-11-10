@@ -42,6 +42,10 @@ defmodule Avalon.Game.Server do
     GenServer.call(via_tuple(game_name), {:player_vote, requester, vote})
   end
 
+  def play_quest_card(game_name, requester, card) do
+    GenServer.call(via_tuple(game_name), {:play_quest_card, requester, card})
+  end
+
   @doc """
   Returns a tuple used to register and lookup a game server process by name.
   """
@@ -154,6 +158,14 @@ defmodule Avalon.Game.Server do
 
   def handle_call({:accept_vote, player}, _from, game) do
     new_game = Avalon.Game.vote(game, player, :accept)
+
+    :ets.insert(:games_table, {my_game_name(), new_game})
+
+    {:reply, new_game, new_game, @timeout}
+  end
+
+  def handle_call({:play_quest_card, player, card}, _from, game) do
+    new_game = Avalon.Game.quest_play_card(game, player, card)
 
     :ets.insert(:games_table, {my_game_name(), new_game})
 

@@ -1,24 +1,21 @@
 defmodule Avalon.Quest do
   @enforce_keys [
     :id,
-    :num_players_required,
+    :state,
+    :team,
     :num_fails_required,
-    :outcome,
-    :num_fails,
-    :selected_players,
-    :votes
+    :quest_cards
   ]
   defstruct [
     :id,
-    :num_players_required,
+    :state,
+    :team,
     :num_fails_required,
-    :outcome,
-    :num_fails,
-    :selected_players,
-    :votes
+    :quest_cards
   ]
 
   alias Avalon.Quest
+  alias Avalon.Team
 
   require Logger
 
@@ -29,12 +26,10 @@ defmodule Avalon.Quest do
       when is_number(num_players_required) and is_number(num_fails_required) do
     %Quest{
       id: id,
-      num_players_required: num_players_required,
+      state: :uncompleted,
+      team: Team.new(num_players_required),
       num_fails_required: num_fails_required,
-      outcome: :uncompleted,
-      num_fails: nil,
-      selected_players: [],
-      votes: %{}
+      quest_cards: %{}
     }
   end
 
@@ -124,22 +119,8 @@ defmodule Avalon.Quest do
   Mark a player as selected.
   """
   def select_player(quest, player_name) when is_binary(player_name) do
-    if quest.outcome == :uncompleted do
-      if quest.selected_players |> Enum.member?(player_name) do
-        quest
-      else
-        # If we would go over the limit of players by adding this player,
-        # then we should remove the first player that was selected
-        new_selected_players =
-          if length(quest.selected_players) + 1 > quest.num_players_required do
-            [_ | players] = quest.selected_players
-            players ++ [player_name]
-          else
-            quest.selected_players ++ [player_name]
-          end
-
-        %{quest | selected_players: new_selected_players}
-      end
+    if quest.state == :uncompleted do
+      %{quest | team: quest.team |> Team.add_player(player_name)}
     else
       Logger.warn(
         "Attempted to select player '#{player_name}' in already completed quest: #{inspect(quest)}"
@@ -153,19 +134,13 @@ defmodule Avalon.Quest do
   Mark a player as unselected.
   """
   def deselect_player(quest, player_name) when is_binary(player_name) do
-    if quest.outcome == :uncompleted do
-      if Enum.member?(quest.selected_players, player_name) do
-        %{
-          quest
-          | selected_players: quest.selected_players |> Enum.filter(fn n -> n != player_name end)
-        }
-      else
-        quest
-      end
+    if quest.state == :uncompleted do
+      %{quest | team: quest.team |> Team.remove_player(player_name)}
     else
       Logger.warn(
-        "Attempted to deselect player '#{player_name}' in already " <>
-          "completed quest: #{inspect(quest)}"
+        "Attempted to deselect player '#{player_name}' in already completed quest: #{
+          inspect(quest)
+        }"
       )
 
       quest
@@ -173,61 +148,117 @@ defmodule Avalon.Quest do
   end
 
   @doc """
-  returns the active quest
+  returns the active quest (first uncompleted)
   """
   def get_active_quest(quests) do
-    Enum.find(quests, fn quest ->
-      match?(:uncompleted, quest.outcome)
-    end)
+    Enum.find(quests, fn quest -> :uncompleted == quest.state end)
   end
 
   @doc """
-  returns whether or not voting on the quest can begin
+  returns whether or not voting on the current team can begin
   """
   def voting_can_begin?(quest) do
-    length(quest.selected_players) == quest.num_players_required
+    quest.team |> Team.has_num_players_required?()
   end
 
   @doc """
-  player accepts the selected players
+  player accepts the selected players for the current team
   """
   def player_accept_vote(quest, player_name) do
-    new_votes = Map.put(quest.votes, player_name, :accept)
-    %{quest | votes: new_votes}
+    if quest.state == :uncompleted do
+      %{quest | team: Team.player_vote(quest.team, player_name, :accept)}
+    else
+      Logger.warn(
+        "Player '#{player_name}' cannot accept team from a quest in state '#{quest.state}'"
+      )
+
+      quest
+    end
   end
 
   @doc """
-  player rejects the selected players
+  player rejects the selected players for the current team
   """
   def player_reject_vote(quest, player_name) do
-    new_votes = Map.put(quest.votes, player_name, :reject)
-    %{quest | votes: new_votes}
+    if quest.state == :uncompleted do
+      %{quest | team: Team.player_vote(quest.team, player_name, :reject)}
+    else
+      Logger.warn(
+        "Player '#{player_name}' cannot reject team from a quest in state '#{quest.state}'"
+      )
+
+      quest
+    end
   end
 
   @doc """
-  returns whether or not voting is finished
+  returns whether voting is done, based on the expected number of votes
   """
-  def all_players_voted?(quest, num_players) do
-    Kernel.map_size(quest.votes) == num_players
+  def team_done_voting?(quest, num_players) when is_number(num_players) do
+    Team.num_votes(quest.team) == num_players
   end
 
   @doc """
-  returns the number of votes which are rejects
+  returns whether the accepts outnumber the rejects on a team vote
   """
-  def number_of_reject_votes(quest) do
-    Enum.count(quest.votes, fn {_, v} -> v == :reject end)
+  def team_voting_passed?(quest) do
+    Team.num_votes(quest.team, :accept) > Team.num_votes(quest.team, :reject)
   end
 
   @doc """
-  Returns the final state of a quest after completion.
+  clears the vote history to start fresh
   """
-  def complete(quest, num_fails) when is_number(num_fails) do
-    result = if num_fails >= quest.num_fails_required, do: :failure, else: :success
-    %{quest | outcome: result, num_fails: num_fails}
+  def team_clear_votes(quest) do
+    new_team = %{quest.team | votes: %{}}
+    %{quest | team: new_team}
+  end
+
+  def player_quest_card(quest, player_name, card) do
+    if quest.state == :uncompleted do
+      if quest.team |> Team.on_team?(player_name) do
+        new_quest_cards =
+          quest.quest_cards
+          |> Map.put(player_name, card)
+
+        if new_quest_cards |> Kernel.map_size() == quest.team.num_players_required do
+          # Received last quest card. Store result of quest.
+          num_fails = new_quest_cards |> Enum.count(fn {_, qc} -> qc == :fail end)
+          new_state = if num_fails >= quest.num_fails_required, do: :failure, else: :success
+          %{quest | state: new_state, quest_cards: new_quest_cards}
+        else
+          %{quest | quest_cards: new_quest_cards}
+        end
+      else
+        Logger.warn("Player '#{player_name}' not on team cannot play quest card")
+        quest
+      end
+    else
+      Logger.warn(
+        "Player '#{player_name}' cannot play quest card '#{card}' from a quest" <>
+          " in state '#{quest.state}'"
+      )
+
+      quest
+    end
   end
 
   @doc """
-  updates the list of quests with the new quest, based on the id
+  returns whether voting is done, based on the expected number of votes
+  """
+  def quest_done_playing?(quest, num_players) when is_number(num_players) do
+    length(quest.team.players) == Kernel.map_size(quest.quest_cards)
+  end
+
+  @doc """
+  returns whether the accepts outnumber the rejects on a team vote
+  """
+  def quest_passed?(quest) do
+    num_fails = quest.quest_cards |> Enum.count(fn {_, c} -> c == :fail end)
+    num_fails >= quest.num_fails_required
+  end
+
+  @doc """
+  updates the list of quests with the new quest based on the quest id
   """
   def update_quest(new_quest, quests) do
     Enum.map(quests, fn quest ->

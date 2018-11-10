@@ -204,7 +204,7 @@ viewBeginVotingButton questMaybe =
             text ""
 
         Just quest ->
-            if List.length quest.selected_players == quest.num_players_required then
+            if List.length quest.team.players == quest.team.num_players_required then
                 Button.button [ Button.outlinePrimary, Button.attrs [ Spacing.ml1, onClick BeginVoting ] ] [ text "Begin Voting" ]
             else
                 text ""
@@ -219,7 +219,7 @@ viewQuestSelectButton player maybeQuest =
                     False
 
                 Just quest ->
-                    List.member player.name quest.selected_players
+                    List.member player.name quest.team.players
     in
     if onQuest then
         Button.button [ Button.outlineWarning, Button.attrs [ onClick (DeselectQuestMember player) ] ] [ text "Remove" ]
@@ -236,7 +236,7 @@ viewQuestCardButtons player maybeQuest =
                     False
 
                 Just quest ->
-                    List.member player.name quest.selected_players
+                    List.member player.name quest.team.players
     in
     if onQuest then
         span []

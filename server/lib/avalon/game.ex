@@ -132,23 +132,21 @@ defmodule Avalon.Game do
   defp after_vote(game, new_quests) do
     active_quest = new_quests |> Avalon.Quest.get_active_quest()
 
-    if active_quest |> Quest.all_players_voted?(length(game.players)) do
-      num_rejects = Quest.number_of_reject_votes(active_quest)
-      rejects_required = Kernel.map_size(active_quest.votes) / 2
-
-      if num_rejects >= rejects_required do
+    if active_quest |> Quest.team_done_voting?(length(game.players)) do
+      if active_quest |> Quest.team_voting_passed?() do
+        new_fsm = GameState.accept(game.fsm)
+        %{game | quests: new_quests, fsm: new_fsm}
+      else
         # TODO: Store prev votes
         # Clear the vote that after a failure
         quests_after_fail =
-          %{active_quest | votes: %{}}
+          active_quest
+          |> Quest.team_clear_votes()
           |> Quest.update_quest(new_quests)
 
         new_fsm = GameState.reject(game.fsm)
         new_players = Player.set_next_king(game.players)
         %{game | quests: quests_after_fail, fsm: new_fsm, players: new_players}
-      else
-        new_fsm = GameState.accept(game.fsm)
-        %{game | quests: new_quests, fsm: new_fsm}
       end
     else
       %{game | quests: new_quests}
@@ -158,10 +156,10 @@ defmodule Avalon.Game do
   @doc """
   store a player's quest card
   """
-  def play_quest_card(game, player_name, :success) when is_binary(player_name) do
+  def quest_play_card(game, player_name, card) when is_binary(player_name) do
     if game.fsm.state != :quest do
       Logger.warn(
-        "Player '#{player_name}' attempted to play a success quest card during wrong phase."
+        "Player '#{player_name}' attempted to play a '#{card}' quest card during wrong phase."
       )
 
       game
@@ -169,51 +167,25 @@ defmodule Avalon.Game do
       new_quests =
         game.quests
         |> Avalon.Quest.get_active_quest()
-        |> Quest.player_accept_vote(player_name)
+        |> Quest.player_quest_card(player_name, card)
         |> Quest.update_quest(game.quests)
 
-      after_quest_card(game, new_quests)
+      quest_after_card(game, new_quests)
     end
   end
 
-  def play_quest_card(game, player_name, :fail) when is_binary(player_name) do
-    if game.fsm.state != :quest do
-      Logger.warn(
-        "Player '#{player_name}' attempted to play a fail quest card during wrong phase."
-      )
-
-      game
-    else
-      new_quests =
-        game.quests
-        |> Avalon.Quest.get_active_quest()
-        |> Quest.player_reject_vote(player_name)
-        |> Quest.update_quest(game.quests)
-
-      after_quest_card(game, new_quests)
-    end
-  end
-
-  defp after_quest_card(game, new_quests) do
+  defp quest_after_card(game, new_quests) do
     active_quest = new_quests |> Avalon.Quest.get_active_quest()
 
-    if active_quest |> Quest.all_players_voted?(length(game.players)) do
-      num_rejects = Quest.number_of_reject_votes(active_quest)
-      rejects_required = Kernel.map_size(active_quest.votes) / 2
-
-      if num_rejects >= rejects_required do
-        # TODO: Store prev votes
-        # Clear the vote that after a failure
-        quests_after_fail =
-          %{active_quest | votes: %{}}
-          |> Quest.update_quest(new_quests)
-
-        new_fsm = GameState.reject(game.fsm)
+    if active_quest |> Quest.quest_done_playing?(length(game.players)) do
+      if active_quest |> Quest.quest_passed?() do
+        new_fsm = GameState.succeed(game.fsm)
         new_players = Player.set_next_king(game.players)
-        %{game | quests: quests_after_fail, fsm: new_fsm, players: new_players}
+        %{game | quests: new_quests, fsm: new_fsm, players: new_players}
       else
-        new_fsm = GameState.accept(game.fsm)
-        %{game | quests: new_quests, fsm: new_fsm}
+        new_fsm = GameState.fail(game.fsm)
+        new_players = Player.set_next_king(game.players)
+        %{game | quests: new_quests, fsm: new_fsm, players: new_players}
       end
     else
       %{game | quests: new_quests}

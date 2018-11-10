@@ -50,7 +50,7 @@ viewName player state quest =
                     playerName
 
                 Just quest ->
-                    if List.member player.name quest.selected_players then
+                    if List.member player.name quest.team.players then
                         span [] [ playerName, text " ", viewModifier OnQuest ]
                     else
                         playerName

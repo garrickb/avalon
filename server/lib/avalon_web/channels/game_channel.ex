@@ -186,6 +186,40 @@ defmodule AvalonWeb.GameChannel do
     end
   end
 
+  def handle_in("quest:success", _payload, socket) do
+    "room:" <> game_name = socket.topic
+
+    case GameServer.game_pid(game_name) do
+      pid when is_pid(pid) ->
+        log(socket, "player is playing success quest card")
+        game = GameServer.play_quest_card(game_name, username(socket), :success)
+
+        broadcast!(socket, "game:state", game)
+
+        {:noreply, socket}
+
+      nil ->
+        {:reply, {:error, %{reason: "Game does not exist"}}, socket}
+    end
+  end
+
+  def handle_in("quest:fail", _payload, socket) do
+    "room:" <> game_name = socket.topic
+
+    case GameServer.game_pid(game_name) do
+      pid when is_pid(pid) ->
+        log(socket, "player is playing fail quest card")
+        game = GameServer.play_quest_card(game_name, username(socket), :fail)
+
+        broadcast!(socket, "game:state", game)
+
+        {:noreply, socket}
+
+      nil ->
+        {:reply, {:error, %{reason: "Game does not exist"}}, socket}
+    end
+  end
+
   def handle_in(message, payload, socket) do
     logError(socket, "unknown command: '#{message}' payload: '#{inspect(payload)}'")
     {:noreply, socket}
@@ -222,6 +256,10 @@ defmodule AvalonWeb.GameChannel do
       if q.id == active_quest.id,
         do: Map.put(Map.delete(q, :id), :active, true),
         else: Map.put(Map.delete(q, :id), :active, false)
+    end)
+    |> Enum.map(fn q ->
+      new_quest_cards = q.quest_cards |> Enum.map(fn {p, _} -> p end)
+      Map.put(q, :quest_cards, new_quest_cards)
     end)
   end
 

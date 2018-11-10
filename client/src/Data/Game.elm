@@ -44,11 +44,16 @@ type alias Player =
 
 type alias Quest =
     { active : Bool
-    , num_players_required : Int
+    , state : String
+    , team : Team
     , num_fails_required : Int
-    , outcome : String
-    , num_fails : Maybe Int
-    , selected_players : List String
+    , quest_cards : List String
+    }
+
+
+type alias Team =
+    { players : List String
+    , num_players_required : Int
     }
 
 
@@ -63,13 +68,17 @@ decodeGame =
 
 decodeQuest : Decoder Quest
 decodeQuest =
-    map6 Quest
+    map5 Quest
         (field "active" bool)
-        (field "num_players_required" int)
+        (field "state" string)
+        (field "team"
+            (map2 Team
+                (field "players" (list string))
+                (field "num_players_required" int)
+            )
+        )
         (field "num_fails_required" int)
-        (field "outcome" string)
-        (field "num_fails" (maybe int))
-        (field "selected_players" (list string))
+        (field "quest_cards" (list string))
 
 
 decodeGameFsmState : Decoder GameFsmState
