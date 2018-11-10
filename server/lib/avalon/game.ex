@@ -17,7 +17,7 @@ defmodule Avalon.Game do
 
     game = %Game{
       name: name,
-      players: players_and_roles |> set_random_king,
+      players: players_and_roles |> Player.set_random_king(),
       quests: Quest.get_quests(length(players)),
       fsm: GameState.new()
     }
@@ -107,7 +107,7 @@ defmodule Avalon.Game do
       new_quests =
         game.quests
         |> Avalon.Quest.get_active_quest()
-        |> Quest.vote_accept(player_name)
+        |> Quest.player_accept_vote(player_name)
         |> Quest.update_quest(game.quests)
 
       after_vote(game, new_quests)
@@ -122,7 +122,7 @@ defmodule Avalon.Game do
       new_quests =
         game.quests
         |> Avalon.Quest.get_active_quest()
-        |> Quest.vote_reject(player_name)
+        |> Quest.player_reject_vote(player_name)
         |> Quest.update_quest(game.quests)
 
       after_vote(game, new_quests)
@@ -143,9 +143,12 @@ defmodule Avalon.Game do
           %{active_quest | votes: %{}}
           |> Quest.update_quest(new_quests)
 
-        %{game | quests: quests_after_fail, fsm: GameState.reject(game.fsm)}
+        new_fsm = GameState.reject(game.fsm)
+        new_players = Player.set_next_king(game.players)
+        %{game | quests: quests_after_fail, fsm: new_fsm, players: new_players}
       else
-        %{game | quests: new_quests, fsm: GameState.accept(game.fsm)}
+        new_fsm = GameState.accept(game.fsm)
+        %{game | quests: new_quests, fsm: new_fsm}
       end
     else
       %{game | quests: new_quests}
@@ -166,10 +169,5 @@ defmodule Avalon.Game do
       10 -> 4
       _ -> if size < 5, do: 1, else: 4
     end
-  end
-
-  defp set_random_king(players) do
-    king = Enum.random(players)
-    players |> Enum.map(fn p -> %{p | king: p == king} end)
   end
 end

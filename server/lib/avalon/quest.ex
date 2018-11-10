@@ -191,7 +191,7 @@ defmodule Avalon.Quest do
   @doc """
   player accepts the selected players
   """
-  def vote_accept(quest, player_name) do
+  def player_accept_vote(quest, player_name) do
     new_votes = Map.put(quest.votes, player_name, :accept)
     %{quest | votes: new_votes}
   end
@@ -199,7 +199,7 @@ defmodule Avalon.Quest do
   @doc """
   player rejects the selected players
   """
-  def vote_reject(quest, player_name) do
+  def player_reject_vote(quest, player_name) do
     new_votes = Map.put(quest.votes, player_name, :reject)
     %{quest | votes: new_votes}
   end

@@ -35,6 +35,34 @@ defmodule Avalon.Player do
   end
 
   @doc """
+  Sets a random player to be king
+  """
+  def set_random_king(players) do
+    king = Enum.random(players)
+    players |> Enum.map(fn p -> %{p | king: p == king} end)
+  end
+
+  @doc """
+  Sets the king to the next player, defaults to the first player if there
+  is no current king.
+  """
+  def set_next_king(players) do
+    next_king_index =
+      rem((players |> Enum.find_index(fn p -> p.king == true end) || -1) + 1, length(players))
+
+    players
+    |> Stream.with_index()
+    |> Enum.map(fn {player, index} -> %{player | king: index == next_king_index} end)
+  end
+
+  @doc """
+  return the current king
+  """
+  def get_king(players) do
+    Enum.find(players, fn p -> p.king end)
+  end
+
+  @doc """
   check if a player is king
   """
   def is_king?(players, player) do
