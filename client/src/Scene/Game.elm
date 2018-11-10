@@ -34,6 +34,7 @@ viewBoard game =
                 |> Card.block [ Block.attrs [ style [ ( "padding", "5px" ) ] ] ]
                     [ Block.text []
                         [ Quest.viewQuests game.quests
+                        , text ("Reject Counter: " ++ toString game.fsm.gameStateData.rejectCount)
                         ]
                     ]
                 |> Card.view
