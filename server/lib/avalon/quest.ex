@@ -243,9 +243,9 @@ defmodule Avalon.Quest do
   end
 
   @doc """
-  returns whether voting is done, based on the expected number of votes
+  returns whether voting is done, based on the expected number of card
   """
-  def quest_done_playing?(quest, num_players) when is_number(num_players) do
+  def quest_done_playing?(quest) do
     length(quest.team.players) == Kernel.map_size(quest.quest_cards)
   end
 
@@ -253,8 +253,7 @@ defmodule Avalon.Quest do
   returns whether the accepts outnumber the rejects on a team vote
   """
   def quest_passed?(quest) do
-    num_fails = quest.quest_cards |> Enum.count(fn {_, c} -> c == :fail end)
-    num_fails >= quest.num_fails_required
+    quest.state != :failure
   end
 
   @doc """

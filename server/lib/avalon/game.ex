@@ -175,10 +175,19 @@ defmodule Avalon.Game do
   end
 
   defp quest_after_card(game, new_quests) do
-    active_quest = new_quests |> Avalon.Quest.get_active_quest()
+    # Since new_quests will have the outcome stored, it will not be considered
+    # :uncomplete anymore. Therefore we need to get the active quest from the
+    # old game state in order to get the correct quest.
+    active_quest =
+      game.quests
+      |> Avalon.Quest.get_active_quest()
 
-    if active_quest |> Quest.quest_done_playing?(length(game.players)) do
-      if active_quest |> Quest.quest_passed?() do
+    new_active_quest =
+      new_quests
+      |> Enum.find(fn q -> q.id == active_quest.id end)
+
+    if new_active_quest |> Quest.quest_done_playing?() do
+      if new_active_quest |> Quest.quest_passed?() do
         new_fsm = GameState.succeed(game.fsm)
         new_players = Player.set_next_king(game.players)
         %{game | quests: new_quests, fsm: new_fsm, players: new_players}

@@ -47,6 +47,7 @@ type alias Quest =
     , state : String
     , team : Team
     , num_fails_required : Int
+    , quest_card_players : List String
     , quest_cards : List String
     }
 
@@ -54,6 +55,7 @@ type alias Quest =
 type alias Team =
     { players : List String
     , num_players_required : Int
+    , votes : List ( String, String )
     }
 
 
@@ -68,16 +70,20 @@ decodeGame =
 
 decodeQuest : Decoder Quest
 decodeQuest =
-    map5 Quest
+    map6 Quest
         (field "active" bool)
         (field "state" string)
         (field "team"
-            (map2 Team
+            (map3 Team
                 (field "players" (list string))
                 (field "num_players_required" int)
+                (field "votes"
+                    (keyValuePairs string)
+                )
             )
         )
         (field "num_fails_required" int)
+        (field "quest_card_players" (list string))
         (field "quest_cards" (list string))
 
 

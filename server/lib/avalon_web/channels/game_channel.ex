@@ -249,7 +249,9 @@ defmodule AvalonWeb.GameChannel do
   end
 
   defp handle_out_quests(quests, _socket) do
-    active_quest = Avalon.Quest.get_active_quest(quests)
+    active_quest =
+      Avalon.Quest.get_active_quest(quests) ||
+        %Avalon.Quest{id: -1, state: nil, team: nil, num_fails_required: nil, quest_cards: nil}
 
     quests
     |> Enum.map(fn q ->
@@ -258,8 +260,22 @@ defmodule AvalonWeb.GameChannel do
         else: Map.put(Map.delete(q, :id), :active, false)
     end)
     |> Enum.map(fn q ->
-      new_quest_cards = q.quest_cards |> Enum.map(fn {p, _} -> p end)
-      Map.put(q, :quest_cards, new_quest_cards)
+      quest_card_players =
+        q.quest_cards
+        |> Enum.map(fn {p, _} -> p end)
+
+      # Show the player the quest card values if the quest is done
+      quest_card_values =
+        if q |> Avalon.Quest.quest_done_playing?() do
+          q.quest_cards
+          |> Enum.map(fn {_, c} -> c end)
+          |> Enum.shuffle()
+        else
+          []
+        end
+
+      Map.put(q, :quest_card_players, quest_card_players)
+      |> Map.put(:quest_cards, quest_card_values)
     end)
   end
 

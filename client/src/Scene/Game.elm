@@ -164,7 +164,15 @@ viewPlayerActions state player maybeSelf maybeQuest =
                             text "waiting for quest members to be selected"
 
                     TeamVote ->
-                        viewVotingButtons
+                        case maybeQuest of
+                            Just quest ->
+                                if List.any (\tuple -> Tuple.first tuple == player.name) quest.team.votes then
+                                    text "Waiting for everyone else to vote..."
+                                else
+                                    viewVotingButtons
+
+                            Nothing ->
+                                text "Invalid quest"
 
                     OnQuest ->
                         viewQuestCardButtons player maybeQuest
@@ -231,24 +239,30 @@ viewQuestSelectButton player maybeQuest =
 viewQuestCardButtons : Player -> Maybe Quest -> Html Msg
 viewQuestCardButtons player maybeQuest =
     let
-        onQuest =
+        buttons =
             case maybeQuest of
                 Nothing ->
-                    False
+                    [ text "Invalid quest" ]
 
                 Just quest ->
-                    List.member player.name quest.team.players
+                    if List.member player.name quest.team.players then
+                        if List.member player.name quest.quest_card_players then
+                            [ text "Waiting for other quest members to play a quest card..." ]
+                        else if player.role == "evil" then
+                            [ Button.button [ Button.success, Button.attrs [ Spacing.ml1, onClick PlayQuestSuccessCard ] ]
+                                [ text "Success" ]
+                            , Button.button
+                                [ Button.danger, Button.attrs [ Spacing.ml1, onClick PlayQuestFailCard ] ]
+                                [ text "Fail" ]
+                            ]
+                        else
+                            [ Button.button [ Button.success, Button.attrs [ onClick PlayQuestSuccessCard ] ]
+                                [ text "Success" ]
+                            ]
+                    else
+                        [ text "Waiting for all quest members to play a quest card..." ]
     in
-    if onQuest then
-        span []
-            [ Button.button [ Button.success, Button.attrs [ Spacing.ml1, onClick PlayQuestSuccessCard ] ]
-                [ text "Success" ]
-            , Button.button
-                [ Button.danger, Button.attrs [ Spacing.ml1, onClick PlayQuestFailCard ] ]
-                [ text "Fail" ]
-            ]
-    else
-        text "Waiting for all quest members to play a quest card.."
+    span [] buttons
 
 
 type Msg
