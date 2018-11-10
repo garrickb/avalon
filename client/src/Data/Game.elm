@@ -6,9 +6,11 @@ import Json.Decode exposing (..)
 type GameFsmState
     = Invalid String
     | Waiting
-    | SelectQuestMembers
-    | VoteOnMembers
-    | GoOnQuest
+    | BuildTeam
+    | TeamVote
+    | OnQuest
+    | GameEndEvil
+    | GameEndGood
 
 
 type alias Game =
@@ -79,14 +81,20 @@ decodeGameFsmState =
                     "waiting" ->
                         succeed Waiting
 
-                    "select_quest_members" ->
-                        succeed SelectQuestMembers
+                    "build_team" ->
+                        succeed BuildTeam
 
-                    "vote_on_members" ->
-                        succeed VoteOnMembers
+                    "team_vote" ->
+                        succeed TeamVote
 
-                    "go_on_quest" ->
-                        succeed GoOnQuest
+                    "quest" ->
+                        succeed OnQuest
+
+                    "game_end_evil" ->
+                        succeed GameEndEvil
+
+                    "game_end_good" ->
+                        succeed GameEndGood
 
                     unknown ->
                         succeed (Invalid unknown)

@@ -32,7 +32,7 @@ defmodule Avalon.Game do
   """
   def set_player_ready(game, player_name) when is_binary(player_name) do
     if game.fsm.state != :waiting do
-      Logger.warn("Attempted to mark a player as ready while not in waiting state.")
+      Logger.warn("Attempted to mark a player as ready during wrong phase.")
       game
     else
       # If all players are ready, then we can start the game!
@@ -79,8 +79,8 @@ defmodule Avalon.Game do
   begins voting on for the selected quest members for the active quest.
   """
   def begin_voting(game) do
-    if game.fsm.state != :select_quest_members do
-      Logger.warn("Attempted to begin voting on quest members while not in the proper state.")
+    if game.fsm.state != :build_team do
+      Logger.warn("Attempted to begin voting on quest members during wrong phase.")
       game
     else
       fsm =
@@ -100,8 +100,8 @@ defmodule Avalon.Game do
   store a player's vote
   """
   def vote(game, player_name, :accept) when is_binary(player_name) do
-    if game.fsm.state != :vote_on_members do
-      Logger.warn("Player '#{player_name}' attempted to accept a vote while not in voting state.")
+    if game.fsm.state != :team_vote do
+      Logger.warn("Player '#{player_name}' attempted to accept a vote during wrong phase.")
       game
     else
       new_quests =
@@ -115,8 +115,8 @@ defmodule Avalon.Game do
   end
 
   def vote(game, player_name, :reject) when is_binary(player_name) do
-    if game.fsm.state != :vote_on_members do
-      Logger.warn("Player '#{player_name}' attempted to reject a vote while not in voting state.")
+    if game.fsm.state != :team_vote do
+      Logger.warn("Player '#{player_name}' attempted to reject a vote during wrong phase.")
       game
     else
       new_quests =
@@ -130,6 +130,71 @@ defmodule Avalon.Game do
   end
 
   defp after_vote(game, new_quests) do
+    active_quest = new_quests |> Avalon.Quest.get_active_quest()
+
+    if active_quest |> Quest.all_players_voted?(length(game.players)) do
+      num_rejects = Quest.number_of_reject_votes(active_quest)
+      rejects_required = Kernel.map_size(active_quest.votes) / 2
+
+      if num_rejects >= rejects_required do
+        # TODO: Store prev votes
+        # Clear the vote that after a failure
+        quests_after_fail =
+          %{active_quest | votes: %{}}
+          |> Quest.update_quest(new_quests)
+
+        new_fsm = GameState.reject(game.fsm)
+        new_players = Player.set_next_king(game.players)
+        %{game | quests: quests_after_fail, fsm: new_fsm, players: new_players}
+      else
+        new_fsm = GameState.accept(game.fsm)
+        %{game | quests: new_quests, fsm: new_fsm}
+      end
+    else
+      %{game | quests: new_quests}
+    end
+  end
+
+  @doc """
+  store a player's quest card
+  """
+  def play_quest_card(game, player_name, :success) when is_binary(player_name) do
+    if game.fsm.state != :quest do
+      Logger.warn(
+        "Player '#{player_name}' attempted to play a success quest card during wrong phase."
+      )
+
+      game
+    else
+      new_quests =
+        game.quests
+        |> Avalon.Quest.get_active_quest()
+        |> Quest.player_accept_vote(player_name)
+        |> Quest.update_quest(game.quests)
+
+      after_quest_card(game, new_quests)
+    end
+  end
+
+  def play_quest_card(game, player_name, :fail) when is_binary(player_name) do
+    if game.fsm.state != :quest do
+      Logger.warn(
+        "Player '#{player_name}' attempted to play a fail quest card during wrong phase."
+      )
+
+      game
+    else
+      new_quests =
+        game.quests
+        |> Avalon.Quest.get_active_quest()
+        |> Quest.player_reject_vote(player_name)
+        |> Quest.update_quest(game.quests)
+
+      after_quest_card(game, new_quests)
+    end
+  end
+
+  defp after_quest_card(game, new_quests) do
     active_quest = new_quests |> Avalon.Quest.get_active_quest()
 
     if active_quest |> Quest.all_players_voted?(length(game.players)) do

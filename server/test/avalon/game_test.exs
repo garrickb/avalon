@@ -129,7 +129,7 @@ defmodule Avalon.GameTest do
       |> Game.set_player_ready("player5")
 
     assert Player.all_players_ready?(game.players) == true
-    assert game.fsm.state == :select_quest_members
+    assert game.fsm.state == :build_team
   end
 
   test "cannot begin voting without having players selected" do
@@ -143,7 +143,7 @@ defmodule Avalon.GameTest do
       |> Game.begin_voting()
 
     assert Player.all_players_ready?(game.players) == true
-    assert game.fsm.state == :select_quest_members
+    assert game.fsm.state == :build_team
   end
 
   test "cannot begin voting if not enough players are selected" do
@@ -154,7 +154,7 @@ defmodule Avalon.GameTest do
       |> Game.begin_voting()
 
     assert Player.all_players_ready?(game.players) == true
-    assert game.fsm.state == :select_quest_members
+    assert game.fsm.state == :build_team
   end
 
   test "can begin voting if players are selected" do
@@ -166,7 +166,7 @@ defmodule Avalon.GameTest do
       |> Game.begin_voting()
 
     assert Player.all_players_ready?(game.players) == true
-    assert game.fsm.state == :vote_on_members
+    assert game.fsm.state == :team_vote
   end
 
   test "cannot begin voting after selecting same player twice" do
@@ -178,7 +178,7 @@ defmodule Avalon.GameTest do
       |> Game.begin_voting()
 
     assert Player.all_players_ready?(game.players) == true
-    assert game.fsm.state == :select_quest_members
+    assert game.fsm.state == :build_team
   end
 
   test "can begin voting after selecting too many players" do
@@ -193,7 +193,7 @@ defmodule Avalon.GameTest do
       |> Game.begin_voting()
 
     assert Player.all_players_ready?(game.players) == true
-    assert game.fsm.state == :vote_on_members
+    assert game.fsm.state == :team_vote
   end
 
   test "can vote to accept" do
@@ -203,7 +203,7 @@ defmodule Avalon.GameTest do
       |> select_players_and_begin_voting()
       |> all_players_vote(:accept)
 
-    assert game.fsm.state == :go_on_quest
+    assert game.fsm.state == :quest
   end
 
   test "can vote to reject" do
@@ -213,7 +213,7 @@ defmodule Avalon.GameTest do
       |> select_players_and_begin_voting()
       |> all_players_vote(:reject)
 
-    assert game.fsm.state == :select_quest_members
+    assert game.fsm.state == :build_team
   end
 
   test "voting to reject will select a new king" do
@@ -251,7 +251,7 @@ defmodule Avalon.GameTest do
       |> select_players_and_begin_voting()
       |> all_players_vote(:reject)
 
-    assert game.fsm.state == :select_quest_members
+    assert game.fsm.state == :build_team
   end
 
   test "evil win after failing five times" do
@@ -269,7 +269,7 @@ defmodule Avalon.GameTest do
       |> select_players_and_begin_voting()
       |> all_players_vote(:reject)
 
-    assert game.fsm.state == :evil_wins
+    assert game.fsm.state == :game_end_evil
   end
 
   defp all_players_ready(game) do
@@ -282,7 +282,7 @@ defmodule Avalon.GameTest do
   end
 
   defp select_players_and_begin_voting(game) do
-    assert game.fsm.state == :select_quest_members
+    assert game.fsm.state == :build_team
     player_names = Enum.map(game.players, fn p -> p.name end)
 
     Enum.reduce(player_names, game, fn player, acc -> Game.select_player(acc, player) end)
@@ -290,7 +290,7 @@ defmodule Avalon.GameTest do
   end
 
   defp all_players_vote(game, vote) when is_atom(vote) do
-    assert game.fsm.state == :vote_on_members
+    assert game.fsm.state == :team_vote
     player_names = Enum.map(game.players, fn p -> p.name end)
     Enum.reduce(player_names, game, fn player, acc -> Game.vote(acc, player, vote) end)
   end

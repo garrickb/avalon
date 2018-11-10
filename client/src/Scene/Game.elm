@@ -153,7 +153,7 @@ viewPlayerActions state player maybeSelf maybeQuest =
                             , Button.button [ Button.primary, Button.attrs [ onClick PlayerReady ], Button.disabled player.ready ] [ text buttonText ]
                             ]
 
-                    SelectQuestMembers ->
+                    BuildTeam ->
                         if player.king then
                             div []
                                 [ viewQuestSelectButton self maybeQuest
@@ -162,18 +162,24 @@ viewPlayerActions state player maybeSelf maybeQuest =
                         else
                             text "waiting for quest members to be selected"
 
-                    VoteOnMembers ->
+                    TeamVote ->
                         viewVotingButtons
 
-                    GoOnQuest ->
+                    OnQuest ->
                         viewQuestCardButtons player maybeQuest
+
+                    GameEndEvil ->
+                        text "evil wins"
+
+                    GameEndGood ->
+                        text "good wins"
 
                     Invalid state ->
                         text ("unknown game state: " ++ state)
             else
                 -- Viewing actions on another player
                 case state of
-                    SelectQuestMembers ->
+                    BuildTeam ->
                         if self.king then
                             div [] [ viewQuestSelectButton player maybeQuest ]
                         else

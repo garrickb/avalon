@@ -11,14 +11,14 @@ defmodule Avalon.FsmGameStateTest do
 
   test "starting the game brings you to quest member selection" do
     game = State.new() |> State.start_game()
-    assert game.state == :select_quest_members
+    assert game.state == :build_team
   end
 
   # Selecting quest members
 
   test "selecting quest members will begin voting" do
     game = State.new() |> State.start_game() |> State.begin_voting()
-    assert game.state == :vote_on_members
+    assert game.state == :team_vote
   end
 
   ##########
@@ -29,7 +29,7 @@ defmodule Avalon.FsmGameStateTest do
 
   test "if team is rejected, will go back to team selection" do
     game = State.new() |> State.start_game() |> State.begin_voting() |> State.reject()
-    assert game.state == :select_quest_members
+    assert game.state == :build_team
   end
 
   test "rejecting five times in a row results in evil winning" do
@@ -47,14 +47,14 @@ defmodule Avalon.FsmGameStateTest do
       |> State.begin_voting()
       |> State.reject()
 
-    assert game.state == :evil_wins
+    assert game.state == :game_end_evil
   end
 
   # Accepting a team
 
   test "accepted team will begin the quest" do
     game = State.new() |> State.start_game() |> State.begin_voting() |> State.accept()
-    assert game.state == :go_on_quest
+    assert game.state == :quest
   end
 
   test "accepting a team will reset the reject counter" do
@@ -69,7 +69,7 @@ defmodule Avalon.FsmGameStateTest do
       |> State.accept()
 
     assert game.data.reject_count == 0
-    assert game.state == :go_on_quest
+    assert game.state == :quest
   end
 
   ###########
@@ -87,7 +87,7 @@ defmodule Avalon.FsmGameStateTest do
       |> State.fail()
 
     assert game.data.failed_count == 1
-    assert game.state == :select_quest_members
+    assert game.state == :build_team
   end
 
   test "failing a quest three times will result in an evil win" do
@@ -105,7 +105,7 @@ defmodule Avalon.FsmGameStateTest do
       |> State.fail()
 
     assert game.data.failed_count == 3
-    assert game.state == :evil_wins
+    assert game.state == :game_end_evil
   end
 
   test "three fails will result in an evil win even with two successes" do
@@ -130,7 +130,7 @@ defmodule Avalon.FsmGameStateTest do
 
     assert game.data.succeeded_count == 2
     assert game.data.failed_count == 3
-    assert game.state == :evil_wins
+    assert game.state == :game_end_evil
   end
 
   test "restart game after an evil win" do
@@ -165,7 +165,7 @@ defmodule Avalon.FsmGameStateTest do
       |> State.succeed()
 
     assert game.data.succeeded_count == 1
-    assert game.state == :select_quest_members
+    assert game.state == :build_team
   end
 
   test "succeeding a quest three times will result in a good win" do
@@ -183,7 +183,7 @@ defmodule Avalon.FsmGameStateTest do
       |> State.succeed()
 
     assert game.data.succeeded_count == 3
-    assert game.state == :good_wins
+    assert game.state == :game_end_good
   end
 
   test "three successes will result in a good win even with two fails" do
@@ -208,7 +208,7 @@ defmodule Avalon.FsmGameStateTest do
 
     assert game.data.succeeded_count == 3
     assert game.data.failed_count == 2
-    assert game.state == :good_wins
+    assert game.state == :game_end_good
   end
 
   test "restart game after good win" do
