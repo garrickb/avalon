@@ -8,7 +8,7 @@ import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Bootstrap.Utilities.Spacing as Spacing
 import Data.Game exposing (Game, GameFsmState(..), Player, Quest)
-import Data.LobbyChannel as LobbyChannel exposing (LobbyState(..), lobbyChannel)
+import Data.LobbyChannel as LobbyChannel exposing (LobbyState(..), roomChannelName)
 import Data.Session exposing (Session)
 import Data.Socket exposing (SocketState(..), socketUrl)
 import Html exposing (..)
@@ -279,13 +279,13 @@ type Msg
 
 pushMessage : String -> String -> Cmd msg
 pushMessage lobby message =
-    Push.init (lobbyChannel lobby) message
+    Push.init (roomChannelName lobby) message
         |> Phoenix.push socketUrl
 
 
 pushMessageWithPayload : String -> String -> List ( String, JE.Value ) -> Cmd msg
 pushMessageWithPayload lobby message payload =
-    Push.init (lobbyChannel lobby) message
+    Push.init (roomChannelName lobby) message
         |> Push.withPayload (JE.object payload)
         |> Phoenix.push socketUrl
 

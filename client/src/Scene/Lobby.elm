@@ -1,4 +1,4 @@
-module Scene.Lobby exposing (Model, Msg, init, subscription, update, view)
+module Scene.Lobby exposing (Model, Msg, getChannel, init, update, view)
 
 import Bootstrap.Badge as Badge
 import Bootstrap.Button as Button
@@ -10,11 +10,10 @@ import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Bootstrap.Modal as Modal
-import Bootstrap.Popover as Popover
 import Bootstrap.Text as Text
 import Bootstrap.Utilities.Spacing as Spacing
 import Data.Game exposing (..)
-import Data.LobbyChannel as LobbyChannel exposing (LobbyState(..), lobbyChannel)
+import Data.LobbyChannel as LobbyChannel exposing (LobbyState(..), roomChannelName)
 import Data.Session exposing (Session)
 import Data.Socket exposing (SocketState(..), socketUrl)
 import Debug exposing (log)
@@ -28,7 +27,6 @@ import Phoenix
 import Phoenix.Channel as Channel exposing (Channel)
 import Phoenix.Presence as Presence exposing (Presence)
 import Phoenix.Push as Push
-import Phoenix.Socket as Socket exposing (Socket)
 import Route
 import Scene.Game
 
@@ -179,26 +177,6 @@ view session model =
 -- SUBSCRIPTION --
 
 
-initSocket : Session -> String -> Socket Msg
-initSocket session socketUrl =
-    let
-        params =
-            case session.userName of
-                Just user ->
-                    [ ( "username", user ) ]
-
-                Nothing ->
-                    []
-    in
-    Socket.init socketUrl
-        |> Socket.withParams params
-        |> Socket.onOpen (SetSocketState SocketOpened)
-        |> Socket.onClose (\_ -> GoToHomePage)
-        |> Socket.onAbnormalClose (\_ -> GoToHomePage)
-        |> Socket.reconnectTimer (\backoffIteration -> (backoffIteration + 1) * 5000 |> toFloat)
-        |> Socket.withDebug
-
-
 getChannel : Session -> Channel Msg
 getChannel session =
     let
@@ -208,7 +186,6 @@ getChannel session =
                     [ ( "username", JE.string user ) ]
 
                 Nothing ->
-                    -- TODO: redirect to home
                     []
 
         lobbyRoute =
@@ -218,7 +195,7 @@ getChannel session =
                     ""
 
                 Just lobby ->
-                    lobbyChannel lobby
+                    roomChannelName lobby
 
         presence =
             Presence.create
@@ -234,20 +211,6 @@ getChannel session =
         |> Channel.on "game:stop" (\msg -> NewGameState Nothing)
         |> Channel.withPresence presence
         |> Channel.withDebug
-
-
-subscription : Session -> Sub Msg
-subscription session =
-    let
-        phoenixSubscriptions =
-            case session.userName of
-                Nothing ->
-                    [ Phoenix.connect (initSocket session socketUrl) [] ]
-
-                Just lobby ->
-                    [ Phoenix.connect (initSocket session socketUrl) [ getChannel session ] ]
-    in
-    Sub.batch phoenixSubscriptions
 
 
 
@@ -323,7 +286,7 @@ update session msg model =
                 Just lobby ->
                     let
                         push =
-                            Push.init (lobbyChannel lobby) "game:start"
+                            Push.init (roomChannelName lobby) "game:start"
                     in
                     model ! [ Phoenix.push socketUrl push ]
 

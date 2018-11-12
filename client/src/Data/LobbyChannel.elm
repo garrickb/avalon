@@ -1,10 +1,10 @@
-module Data.LobbyChannel exposing (LobbyState(..), lobbyChannel)
+module Data.LobbyChannel exposing (LobbyState(..), roomChannelName)
 
 import Data.Game exposing (..)
 
 
-lobbyChannel : String -> String
-lobbyChannel lobbyName =
+roomChannelName : String -> String
+roomChannelName lobbyName =
     "room:" ++ lobbyName
 
 

@@ -1,11 +1,21 @@
 module Main exposing (main)
 
+import Bootstrap.Alert as Alert
 import Bootstrap.CDN as CDN
 import Bootstrap.Grid as Grid
-import Data.Session exposing (Session, initialSession)
+import Bootstrap.Grid.Col as Col
+import Bootstrap.Grid.Row as Row
+import Data.Session exposing (Session, SessionMessage(..), initialSession)
+import Data.Socket exposing (SocketState(..), socketUrl)
 import Html exposing (..)
+import Html.Attributes exposing (..)
 import Json.Decode as Decode exposing (Value)
 import Navigation exposing (Location)
+import Phoenix
+import Phoenix.Channel as Channel exposing (Channel)
+import Phoenix.Presence as Presence exposing (Presence)
+import Phoenix.Push as Push
+import Phoenix.Socket as Socket exposing (Socket)
 import Route exposing (Route)
 import Scene.Home as Home
 import Scene.Lobby as Lobby
@@ -18,6 +28,8 @@ import Task
 type alias Model =
     { session : Session
     , state : State
+    , socketState : SocketState
+    , message : SessionMessage
     }
 
 
@@ -33,6 +45,8 @@ init val location =
     setRoute (Route.fromLocation location)
         { session = initialSession
         , state = initialState
+        , socketState = SocketClosed
+        , message = EmptyMsg
         }
 
 
@@ -47,8 +61,25 @@ initialState =
 
 view : Model -> Html Msg
 view model =
+    let
+        message =
+            case model.message of
+                EmptyMsg ->
+                    text ""
+
+                InfoMsg msg ->
+                    Grid.row
+                        [ Row.middleXs, Row.attrs [ class "position-absolute text-center", style [ ( "top", "15px" ), ( "left", "15px" ), ( "width", "100%" ) ] ] ]
+                        [ Grid.col [ Col.xs12 ] [ Alert.simpleInfo [] [ text msg ] ] ]
+
+                ErrorMsg msg ->
+                    Grid.row
+                        [ Row.middleXs, Row.attrs [ class "position-absolute text-center", style [ ( "top", "15px" ), ( "left", "15px" ), ( "width", "100%" ) ] ] ]
+                        [ Grid.col [ Col.xs12 ] [ Alert.simpleDanger [] [ text msg ] ] ]
+    in
     Grid.container []
         [ CDN.stylesheet
+        , message
         , viewState model.session model.state
         ]
 
@@ -79,24 +110,36 @@ viewState session state =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.batch
-        [ stateSubscriptions model ]
+    let
+        socketSubscription =
+            Phoenix.connect (socket model.session socketUrl) (stateChannels model)
+    in
+    Sub.batch [ socketSubscription, stateSubscriptions model ]
 
 
 stateSubscriptions : Model -> Sub Msg
 stateSubscriptions model =
     case model.state of
-        Blank ->
+        _ ->
             Sub.none
 
-        NotFound ->
-            Sub.none
 
+stateChannels : Model -> List (Channel Msg)
+stateChannels model =
+    case model.state of
         Lobby _ ->
-            Sub.map LobbyMsg (Lobby.subscription model.session)
+            [ Channel.map LobbyMsg (Lobby.getChannel model.session) ]
 
-        Home _ ->
-            Sub.none
+        _ ->
+            []
+
+
+socket : Session -> String -> Socket Msg
+socket session socketUrl =
+    Socket.init socketUrl
+        |> Socket.onOpen (SetMessage EmptyMsg)
+        |> Socket.onClose (\_ -> SetMessage (ErrorMsg "No connection to server."))
+        |> Socket.withDebug
 
 
 
@@ -107,6 +150,7 @@ type Msg
     = SetRoute (Maybe Route)
     | LobbyMsg Lobby.Msg
     | HomeMsg Home.Msg
+    | SetMessage SessionMessage
 
 
 setRoute : Maybe Route -> Model -> ( Model, Cmd Msg )
@@ -148,6 +192,9 @@ updateState state msg model =
     case ( msg, state ) of
         ( SetRoute route, _ ) ->
             setRoute route model
+
+        ( SetMessage msg, _ ) ->
+            ( { model | message = msg }, Cmd.none )
 
         ( HomeMsg subMsg, Home subModel ) ->
             let

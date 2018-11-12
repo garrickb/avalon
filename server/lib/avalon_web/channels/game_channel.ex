@@ -9,23 +9,31 @@ defmodule AvalonWeb.GameChannel do
 
   intercept(["game:state"])
 
-  def join("room:" <> game_name, _params, socket) do
-    if String.length(game_name) > 0 do
-      case GameServer.game_pid(game_name) do
-        pid when is_pid(pid) ->
-          send(self(), {:after_join, game_name})
+  def join("room:" <> game_name, params, socket) do
+    new_socket = assign(socket, :username, params["username"])
 
-          # Alert the player of the existing game state
-          game = GameServer.summary(game_name)
-          {:ok, handle_out_game(game, socket), socket}
+    Logger.info("NEW SOCKET: '#{inspect(new_socket)}'")
 
-        nil ->
-          send(self(), {:after_join, game_name})
-          {:ok, socket}
-      end
+    if username(new_socket) == nil || Kernel.byte_size(username(new_socket)) == 0 do
+      {:error, {:reason, "You cannot join a room without a username set."}}
     else
-      logError(socket, "invalid room name")
-      {:error, "invalid room name"}
+      if String.length(game_name) > 0 do
+        case GameServer.game_pid(game_name) do
+          pid when is_pid(pid) ->
+            send(self(), {:after_join, game_name})
+
+            # Alert the player of the existing game state
+            game = GameServer.summary(game_name)
+            {:ok, handle_out_game(game, new_socket), new_socket}
+
+          nil ->
+            send(self(), {:after_join, game_name})
+            {:ok, new_socket}
+        end
+      else
+        logError(socket, "invalid room name")
+        {:error, {:reason, "invalid room name"}}
+      end
     end
   end
 
