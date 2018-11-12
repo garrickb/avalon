@@ -15,7 +15,7 @@ import Bootstrap.Utilities.Spacing as Spacing
 import Data.Game exposing (..)
 import Data.LobbyChannel as LobbyChannel exposing (LobbyState(..), roomChannelName)
 import Data.Session exposing (Session)
-import Data.Socket exposing (SocketState(..), socketUrl)
+import Data.Socket exposing (socketUrl)
 import Debug exposing (log)
 import Dict exposing (Dict)
 import Html exposing (Html, button, div, h1, h2, img, input, li, span, table, tbody, td, text, tr, ul)
@@ -35,8 +35,7 @@ import Scene.Game
 
 
 type alias Model =
-    { socketState : SocketState
-    , lobbyState : LobbyState
+    { lobbyState : LobbyState
     , presence : Dict String (List JD.Value)
     , settingsVisibility : Modal.Visibility
     }
@@ -44,8 +43,7 @@ type alias Model =
 
 init : Model
 init =
-    { socketState = SocketClosed
-    , lobbyState = LeftLobby
+    { lobbyState = JoiningLobby
     , presence = Dict.empty
     , settingsVisibility = Modal.hidden
     }
@@ -119,6 +117,12 @@ viewLobby session model =
 
         userName =
             Maybe.withDefault "" session.userName
+
+        players =
+            if model.lobbyState == LobbyChannel.JoiningLobby then
+                viewPlayers userName (Dict.fromList [ ( userName, [] ) ])
+            else
+                viewPlayers userName model.presence
     in
     Grid.row
         [ Row.centerXs, Row.attrs [ style [ ( "height", "100vh" ), ( "overflow", "auto" ) ] ] ]
@@ -127,7 +131,7 @@ viewLobby session model =
             , Card.config [ Card.align Text.alignXsCenter ]
                 |> Card.block []
                     [ Block.text []
-                        [ viewPlayers userName model.presence
+                        [ players
                         , Html.hr [] []
                         , Grid.container []
                             [ Grid.row
@@ -219,7 +223,6 @@ getChannel session =
 
 type Msg
     = GoToHomePage
-    | SetSocketState SocketState
     | LobbyJoining
     | LobbyJoined JD.Value
     | UpdatePresence (Dict String (List JD.Value))
@@ -234,9 +237,6 @@ update session msg model =
     case msg of
         GoToHomePage ->
             model ! [ Route.modifyUrl Route.Home ]
-
-        SetSocketState newSocketState ->
-            { model | socketState = newSocketState } ! []
 
         LobbyJoining ->
             { model | lobbyState = JoiningLobby } ! []

@@ -13,8 +13,6 @@ import Json.Decode as Decode exposing (Value)
 import Navigation exposing (Location)
 import Phoenix
 import Phoenix.Channel as Channel exposing (Channel)
-import Phoenix.Presence as Presence exposing (Presence)
-import Phoenix.Push as Push
 import Phoenix.Socket as Socket exposing (Socket)
 import Route exposing (Route)
 import Scene.Home as Home
@@ -28,7 +26,6 @@ import Task
 type alias Model =
     { session : Session
     , state : State
-    , socketState : SocketState
     , message : SessionMessage
     }
 
@@ -45,7 +42,6 @@ init val location =
     setRoute (Route.fromLocation location)
         { session = initialSession
         , state = initialState
-        , socketState = SocketClosed
         , message = EmptyMsg
         }
 
