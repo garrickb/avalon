@@ -6,20 +6,27 @@ defmodule Avalon.Game do
   alias Avalon.FsmGameState, as: GameState
   alias Avalon.Player, as: Player
   alias Avalon.Quest, as: Quest
+  alias Avalon.Settings, as: Settings
+  alias Avalon.Role, as: Role
 
   require Logger
 
   @doc """
   Creates a new game.
   """
-  def new(name, players) when is_binary(name) and is_list(players) do
+  def new(name, players, settings) when is_binary(name) and is_list(players) do
     num_players = length(players)
-    players_and_roles = Player.newFromList(players, Enum.shuffle(get_role_list(num_players)))
+    num_evil = number_of_evil(num_players)
+    num_good = num_players - num_evil
+
+    roles = settings |> Settings.get_roles() |> Role.pad(num_evil, num_good) |> Enum.shuffle()
+
+    players_and_roles = Player.newFromList(players, roles)
 
     game = %Game{
       name: name,
       players: players_and_roles |> Player.set_random_king(),
-      num_evil: Kernel.min(num_players, number_of_evil(num_players)),
+      num_evil: num_evil,
       quests: Quest.get_quests(length(players)),
       fsm: GameState.new()
     }
@@ -203,19 +210,18 @@ defmodule Avalon.Game do
     end
   end
 
-  defp get_role_list(size) when is_number(size) do
-    Enum.map(0..(size - 1), fn x -> if x < number_of_evil(size), do: :evil, else: :good end)
-  end
-
   defp number_of_evil(size) when is_number(size) do
-    case size do
-      5 -> 2
-      6 -> 2
-      7 -> 3
-      8 -> 3
-      9 -> 3
-      10 -> 4
-      _ -> if size < 5, do: 1, else: 4
-    end
+    num_evil =
+      case size do
+        5 -> 2
+        6 -> 2
+        7 -> 3
+        8 -> 3
+        9 -> 3
+        10 -> 4
+        _ -> if size < 5, do: 1, else: 4
+      end
+
+    Kernel.min(size, num_evil)
   end
 end

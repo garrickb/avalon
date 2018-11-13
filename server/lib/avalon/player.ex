@@ -16,7 +16,7 @@ defmodule Avalon.Player do
   @doc """
   Creates a new player.
   """
-  def new(name, role) when is_binary(name) and is_atom(role) do
+  def new(name, role) when is_binary(name) do
     %Player{name: name, role: role, ready: false, king: false}
   end
 

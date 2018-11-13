@@ -4,6 +4,9 @@ defmodule Avalon.Game.Server do
   """
 
   use GenServer
+
+  alias Avalon.Settings, as: Settings
+
   require Logger
 
   @timeout :timer.hours(1)
@@ -69,7 +72,7 @@ defmodule Avalon.Game.Server do
     game =
       case :ets.lookup(:games_table, game_name) do
         [] ->
-          game = Avalon.Game.new(game_name, players)
+          game = Avalon.Game.new(Settings.new(), game_name, players)
           :ets.insert(:games_table, {game_name, game})
           game
 

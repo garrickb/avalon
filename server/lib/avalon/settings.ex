@@ -2,6 +2,7 @@ defmodule Avalon.Settings do
   defstruct [:merlin, :assassin, :percival, :mordred, :oberon, :morgana]
 
   alias Avalon.Settings
+  alias Avalon.Role, as: Role
 
   require Logger
 
@@ -17,6 +18,12 @@ defmodule Avalon.Settings do
       oberon: false,
       morgana: false
     }
+  end
+
+  def get_roles(settings) do
+    [:merlin, :assassin, :percival, :mordred, :oberon, :morgana]
+    |> Enum.filter(fn role_name -> settings |> get(role_name) end)
+    |> Stream.map(fn role_name -> Role.new(role_name) end)
   end
 
   @doc """
@@ -45,6 +52,31 @@ defmodule Avalon.Settings do
       _ ->
         Logger.warn("Attempted to set unknown setting '#{setting_name}' to '#{value}'")
         settings
+    end
+  end
+
+  @doc """
+  Gets a setting. Returns false if it is invalid.
+  """
+  def get(settings, setting) do
+    case setting do
+      :merlin ->
+        settings.merlin
+
+      :assassin ->
+        settings.assassin
+
+      :percival ->
+        settings.percival
+
+      :mordred ->
+        settings.mordred
+
+      :oberon ->
+        settings.oberon
+
+      :morgana ->
+        settings.morgana
     end
   end
 end
