@@ -81,6 +81,25 @@ defmodule Avalon.FsmGameState do
           next_state(:build_team, fsm_data)
       end
     end
+
+    # Quest was succeeded (With Assassin + Merlin)
+    defevent succeed_with_assassin_and_merlin, data: fsm_data do
+      succeeded_count = fsm_data.succeeded_count + 1
+      fsm_data = %FsmGameData{fsm_data | succeeded_count: succeeded_count}
+
+      cond do
+        succeeded_count >= 3 ->
+          Logger.info(
+            "FSM: Quest was successful, and good wins? Allowing the assassin to guess Merlin."
+          )
+
+          next_state(:game_end_good_assassin, fsm_data)
+
+        succeeded_count ->
+          Logger.info("FSM: Quest was successful (with assassin and merlin)")
+          next_state(:build_team, fsm_data)
+      end
+    end
   end
 
   # Minions of Mordred win
@@ -89,6 +108,21 @@ defmodule Avalon.FsmGameState do
     defevent restart do
       Logger.info("FSM: Restarting game after evil win")
       next_state(:waiting, %Avalon.FsmGameData{})
+    end
+  end
+
+  # Loyal Servants of Arthur win, but there is Merlin + Assassin in game.
+  # And the Assassin can guess who Merlin is
+  defstate game_end_good_assassin do
+    # Play another game?
+    defevent correct_assassination, data: fsm_data do
+      Logger.info("FSM: Assassin guessed correctly. Evil win.")
+      next_state(:game_end_evil, fsm_data)
+    end
+
+    defevent incorrect_assassination, data: fsm_data do
+      Logger.info("FSM: Assassin guessed incorrectly. Good win.")
+      next_state(:game_end_good, fsm_data)
     end
   end
 

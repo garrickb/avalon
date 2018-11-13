@@ -74,8 +74,6 @@ defmodule Avalon.Role do
   end
 
   def peek(role, peek_at_role) do
-    Logger.warn("ALIGN: #{inspect(role)}")
-
     case role.alignment do
       :evil ->
         case peek_at_role.alignment do

@@ -68,4 +68,18 @@ defmodule Avalon.Player do
   def is_king?(players, player) do
     Enum.any?(players, fn p -> p.king && p.name == player end)
   end
+
+  @doc """
+  check if a player is the assassin
+  """
+  def is_assassin?(players, player) do
+    Enum.any?(players, fn p -> p.role.name == :assassin && p.name == player end)
+  end
+
+  @doc """
+  check if a player is the assassin
+  """
+  def is_merlin?(players, player) do
+    Enum.any?(players, fn p -> p.role.name == :merlin && p.name == player end)
+  end
 end

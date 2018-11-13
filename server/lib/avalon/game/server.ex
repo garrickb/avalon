@@ -49,6 +49,14 @@ defmodule Avalon.Game.Server do
     GenServer.call(via_tuple(game_name), {:play_quest_card, requester, card})
   end
 
+  def assassinate(game_name, requester, player) do
+    GenServer.call(via_tuple(game_name), {:assassinate, requester, player})
+  end
+
+  def restart_game(game_name) do
+    GenServer.call(via_tuple(game_name), {:restart_game})
+  end
+
   @doc """
   Returns a tuple used to register and lookup a game server process by name.
   """
@@ -169,6 +177,32 @@ defmodule Avalon.Game.Server do
 
   def handle_call({:play_quest_card, player, card}, _from, game) do
     new_game = Avalon.Game.quest_play_card(game, player, card)
+
+    :ets.insert(:games_table, {my_game_name(), new_game})
+
+    {:reply, new_game, new_game, @timeout}
+  end
+
+  def handle_call({:assassinate, requester, player}, _from, game) do
+    if game.players |> Avalon.Player.is_assassin?(requester) do
+      new_game = Avalon.Game.assassinate_player(game, player)
+
+      :ets.insert(:games_table, {my_game_name(), new_game})
+
+      {:reply, new_game, new_game, @timeout}
+    else
+      Logger.warn(
+        "Requester '#{requester} cannot assassinate player '#{player}' because they are not the assassin"
+      )
+
+      {:reply, nil, @timeout}
+    end
+  end
+
+  def handle_call({:restart_game}, _from, game) do
+    # TODO : Pull settings information from server?
+    player_names = game.players |> Enum.map(fn p -> p.name end)
+    new_game = Avalon.Game.new(game.name, player_names, Settings.new())
 
     :ets.insert(:games_table, {my_game_name(), new_game})
 

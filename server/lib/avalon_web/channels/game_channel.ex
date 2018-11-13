@@ -228,6 +228,40 @@ defmodule AvalonWeb.GameChannel do
     end
   end
 
+  def handle_in("player:assassinate", %{"player" => player}, socket) do
+    "room:" <> game_name = socket.topic
+
+    case GameServer.game_pid(game_name) do
+      pid when is_pid(pid) ->
+        log(socket, "player is assassinating '#{player}'")
+        game = GameServer.assassinate(game_name, username(socket), player)
+
+        broadcast!(socket, "game:state", game)
+
+        {:noreply, socket}
+
+      nil ->
+        {:reply, {:error, %{reason: "Game does not exist"}}, socket}
+    end
+  end
+
+  def handle_in("game:restart", _payload, socket) do
+    "room:" <> game_name = socket.topic
+
+    case GameServer.game_pid(game_name) do
+      pid when is_pid(pid) ->
+        log(socket, "player is restarting game")
+        game = GameServer.restart_game(game_name)
+
+        broadcast!(socket, "game:state", game)
+
+        {:noreply, socket}
+
+      nil ->
+        {:reply, {:error, %{reason: "Game does not exist"}}, socket}
+    end
+  end
+
   def handle_in(message, payload, socket) do
     logError(socket, "unknown command: '#{message}' payload: '#{inspect(payload)}'")
     {:noreply, socket}

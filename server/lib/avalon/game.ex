@@ -183,6 +183,31 @@ defmodule Avalon.Game do
     end
   end
 
+  def assassinate_player(game, player_name) when is_binary(player_name) do
+    if game.fsm.state != :game_end_good_assassin do
+      Logger.warn("Attempted to assassinate a player during wrong phase #{game.fsm.state}")
+      game
+    else
+      fsm =
+        if game.players |> Player.is_merlin?(player_name) do
+          GameState.correct_assassination(game.fsm)
+        else
+          GameState.incorrect_assassination(game.fsm)
+        end
+
+      %{game | fsm: fsm}
+    end
+  end
+
+  defp has_assassin_and_merlin(game) do
+    roles = Enum.map(game.players, fn p -> p.role end)
+
+    has_merlin = Enum.member?(roles, Avalon.Role.new(:merlin))
+    has_assassin = Enum.member?(roles, Avalon.Role.new(:assassin))
+
+    has_assassin && has_merlin
+  end
+
   defp quest_after_card(game, new_quests) do
     # Since new_quests will have the outcome stored, it will not be considered
     # :uncomplete anymore. Therefore we need to get the active quest from the
@@ -197,7 +222,11 @@ defmodule Avalon.Game do
 
     if new_active_quest |> Quest.quest_done_playing?() do
       if new_active_quest |> Quest.quest_passed?() do
-        new_fsm = GameState.succeed(game.fsm)
+        new_fsm =
+          if game |> has_assassin_and_merlin(),
+            do: GameState.succeed_with_assassin_and_merlin(game.fsm),
+            else: GameState.succeed(game.fsm)
+
         new_players = Player.set_next_king(game.players)
         %{game | quests: new_quests, fsm: new_fsm, players: new_players}
       else

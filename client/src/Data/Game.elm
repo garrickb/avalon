@@ -10,6 +10,7 @@ type GameFsmState
     | TeamVote
     | OnQuest
     | GameEndEvil
+    | GameEndAssassin
     | GameEndGood
 
 
@@ -133,6 +134,9 @@ decodeGameFsmState =
 
                     "game_end_evil" ->
                         succeed GameEndEvil
+
+                    "game_end_good_assassin" ->
+                        succeed GameEndAssassin
 
                     "game_end_good" ->
                         succeed GameEndGood

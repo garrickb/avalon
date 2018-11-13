@@ -7,7 +7,7 @@ import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Bootstrap.Utilities.Spacing as Spacing
-import Data.Game exposing (Alignment(..), Game, GameFsmState(..), Player, Quest)
+import Data.Game exposing (Alignment(..), Game, GameFsmState(..), Player, Quest, RoleType(..))
 import Data.LobbyChannel as LobbyChannel exposing (LobbyState(..), roomChannelName)
 import Data.Session exposing (Session)
 import Data.Socket exposing (SocketState(..), socketUrl)
@@ -39,8 +39,6 @@ viewBoard game =
                         ]
                     ]
                 |> Card.view
-            , div [ style [ ( "padding-top", "2%" ) ] ]
-                [ Button.button [ Button.outlineDanger, Button.attrs [ onClick StopGame ] ] [ text "Stop Game" ] ]
             ]
         ]
 
@@ -172,7 +170,7 @@ viewPlayerActions state player maybeSelf maybeQuest =
                                     "Ready"
                         in
                         div []
-                            [ p [] [ text ("You are: " ++ toString player.role.name ++ ", who is " ++ toString player.role.alignment) ]
+                            [ p [] [ text ("You are '" ++ toString player.role.name ++ "', who is '" ++ toString player.role.alignment ++ "'") ]
                             , Button.button [ Button.primary, Button.attrs [ onClick PlayerReady ], Button.disabled player.ready ] [ text buttonText ]
                             ]
 
@@ -200,10 +198,22 @@ viewPlayerActions state player maybeSelf maybeQuest =
                         viewQuestCardButtons player maybeQuest
 
                     GameEndEvil ->
-                        text "evil wins"
+                        div []
+                            [ div [] [ text "Evil Wins!" ]
+                            , viewGameRestartButton
+                            ]
+
+                    GameEndAssassin ->
+                        if player.role.name == Assassin then
+                            text "Good wins? You have a chance to guess who Merlin is."
+                        else
+                            text "Good wins? The Assassin has a chance to guess who Merlin is."
 
                     GameEndGood ->
-                        text "good wins"
+                        div []
+                            [ div [] [ text "Good Wins!" ]
+                            , viewGameRestartButton
+                            ]
 
                     Invalid state ->
                         text ("unknown game state: " ++ state)
@@ -213,6 +223,12 @@ viewPlayerActions state player maybeSelf maybeQuest =
                     BuildTeam ->
                         if self.king then
                             div [] [ viewQuestSelectButton player maybeQuest ]
+                        else
+                            text ""
+
+                    GameEndAssassin ->
+                        if self.role.name == Assassin then
+                            div [] [ viewAssassinateButton player ]
                         else
                             text ""
 
@@ -242,6 +258,24 @@ viewBeginVotingButton questMaybe =
                 Button.button [ Button.outlinePrimary, Button.attrs [ Spacing.ml1, onClick BeginVoting ] ] [ text "Begin Voting" ]
             else
                 text ""
+
+
+viewAssassinateButton : Player -> Html Msg
+viewAssassinateButton player =
+    Button.button
+        [ Button.danger
+        , Button.attrs [ onClick (AssassinatePlayer player) ]
+        ]
+        [ span [ class "fa fa-skull-crossbones" ] [] ]
+
+
+viewGameRestartButton : Html Msg
+viewGameRestartButton =
+    Button.button
+        [ Button.outlinePrimary
+        , Button.attrs [ onClick RestartGame ]
+        ]
+        [ text "Restart Game" ]
 
 
 viewQuestSelectButton : Player -> Maybe Quest -> Html Msg
@@ -303,6 +337,8 @@ type Msg
     | RejectVote
     | PlayQuestSuccessCard
     | PlayQuestFailCard
+    | AssassinatePlayer Player
+    | RestartGame
 
 
 pushMessage : String -> String -> Cmd msg
@@ -352,3 +388,9 @@ update session msg model =
 
                 PlayQuestFailCard ->
                     model ! [ pushMessage lobby "quest:fail" ]
+
+                AssassinatePlayer player ->
+                    model ! [ pushMessageWithPayload lobby "player:assassinate" [ ( "player", JE.string player.name ) ] ]
+
+                RestartGame ->
+                    model ! [ pushMessage lobby "game:restart" ]
