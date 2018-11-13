@@ -13,6 +13,10 @@ defmodule Avalon.Role do
     %Role{name: name, alignment: get_alignment(name)}
   end
 
+  def new(name, alignment) when is_atom(name) do
+    %Role{name: name, alignment: alignment}
+  end
+
   defp get_alignment(name) do
     case name do
       :merlin ->
@@ -67,5 +71,21 @@ defmodule Avalon.Role do
       end
 
     padded_evil ++ padded_good
+  end
+
+  def peek(role, peek_at_role) do
+    if role.alignment == :evil do
+      if peek_at_role.alignment == :evil do
+        new(:unknown, :evil)
+      else
+        new(:unknown, :unknown)
+      end
+    else
+      if peek_at_role.alignment == :evil do
+        new(:unknown, :evil)
+      else
+        new(:unknown, :unknown)
+      end
+    end
   end
 end

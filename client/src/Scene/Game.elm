@@ -7,7 +7,7 @@ import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Bootstrap.Utilities.Spacing as Spacing
-import Data.Game exposing (Game, GameFsmState(..), Player, Quest)
+import Data.Game exposing (Alignment(..), Game, GameFsmState(..), Player, Quest)
 import Data.LobbyChannel as LobbyChannel exposing (LobbyState(..), roomChannelName)
 import Data.Session exposing (Session)
 import Data.Socket exposing (SocketState(..), socketUrl)
@@ -172,7 +172,7 @@ viewPlayerActions state player maybeSelf maybeQuest =
                                     "Ready"
                         in
                         div []
-                            [ p [] [ text ("You are: " ++ player.role) ]
+                            [ p [] [ text ("You are: " ++ toString player.role.name ++ ", who is " ++ toString player.role.alignment) ]
                             , Button.button [ Button.primary, Button.attrs [ onClick PlayerReady ], Button.disabled player.ready ] [ text buttonText ]
                             ]
 
@@ -273,7 +273,7 @@ viewQuestCardButtons player maybeQuest =
                     if List.member player.name quest.team.players then
                         if List.member player.name quest.quest_card_players then
                             [ text "Waiting for other quest members to play a quest card..." ]
-                        else if player.role == "evil" then
+                        else if player.role.alignment == Evil then
                             [ text "Play a quest card:"
                             , div []
                                 [ Button.button [ Button.success, Button.attrs [ Spacing.ml1, onClick PlayQuestSuccessCard ] ]

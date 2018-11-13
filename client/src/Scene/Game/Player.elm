@@ -1,6 +1,6 @@
 module Scene.Game.Player exposing (..)
 
-import Data.Game exposing (GameFsmState(..), Player, Quest)
+import Data.Game exposing (Alignment(..), GameFsmState(..), Player, Quest)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 
@@ -58,11 +58,17 @@ viewModifier mod =
 viewName : Player -> GameFsmState -> Maybe Quest -> Html msg
 viewName player state maybeQuest =
     let
+        name =
+            if player.role.alignment /= AlignmentUnknown then
+                player.name ++ " (" ++ toString player.role.alignment ++ ")"
+            else
+                player.name
+
         playerName =
             if player.king then
-                span [] [ viewModifier King, text (" " ++ player.name) ]
+                span [] [ viewModifier King, text (" " ++ name) ]
             else
-                text player.name
+                text name
     in
     case maybeQuest of
         Nothing ->

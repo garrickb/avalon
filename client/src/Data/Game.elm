@@ -1,4 +1,4 @@
-module Data.Game exposing (Game, GameFsmState(..), Player, Quest, decodeGame)
+module Data.Game exposing (Alignment(..), Game, GameFsmState(..), Player, Quest, RoleType(..), decodeGame)
 
 import Json.Decode exposing (..)
 
@@ -11,6 +11,24 @@ type GameFsmState
     | OnQuest
     | GameEndEvil
     | GameEndGood
+
+
+type Alignment
+    = AlignmentUnknown
+    | Good
+    | Evil
+
+
+type RoleType
+    = RoleUnknown
+    | Servant
+    | Minion
+    | Merlin
+    | Assassin
+    | Percival
+    | Mordred
+    | Oberon
+    | Morgana
 
 
 type alias Game =
@@ -37,7 +55,7 @@ type alias GameStateData =
 
 type alias Player =
     { name : String
-    , role : String
+    , role : Role
     , ready : Bool
     , king : Bool
     }
@@ -57,6 +75,12 @@ type alias Team =
     { players : List String
     , num_players_required : Int
     , votes : List ( String, String )
+    }
+
+
+type alias Role =
+    { name : RoleType
+    , alignment : Alignment
     }
 
 
@@ -137,6 +161,65 @@ decodePlayer : Decoder Player
 decodePlayer =
     map4 Player
         (field "name" string)
-        (field "role" string)
+        (field "role" decodeRole)
         (field "ready" bool)
         (field "king" bool)
+
+
+decodeRoleType : Decoder RoleType
+decodeRoleType =
+    string
+        |> andThen
+            (\str ->
+                case str of
+                    "merlin" ->
+                        succeed Merlin
+
+                    "assassin" ->
+                        succeed Assassin
+
+                    "percival" ->
+                        succeed Percival
+
+                    "mordred" ->
+                        succeed Mordred
+
+                    "oberon" ->
+                        succeed Oberon
+
+                    "morgana" ->
+                        succeed Morgana
+
+                    "unknown" ->
+                        succeed RoleUnknown
+
+                    unknown ->
+                        fail ("Unknown role: " ++ unknown)
+            )
+
+
+decodeRoleAlignment : Decoder Alignment
+decodeRoleAlignment =
+    string
+        |> andThen
+            (\str ->
+                case str of
+                    "good" ->
+                        succeed Good
+
+                    "evil" ->
+                        succeed Evil
+
+                    "unknown" ->
+                        succeed AlignmentUnknown
+
+                    unknown ->
+                        fail ("Unknown alignment" ++ unknown)
+            )
+
+
+decodeRole : Decoder Role
+decodeRole =
+    map2 Role
+        (field "name" decodeRoleType)
+        (field "alignment" decodeRoleAlignment)

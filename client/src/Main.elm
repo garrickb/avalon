@@ -75,8 +75,8 @@ view model =
     in
     Grid.container []
         [ CDN.stylesheet
-        , message
         , viewState model.session model.state
+        , message
         ]
 
 
