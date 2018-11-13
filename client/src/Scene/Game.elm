@@ -35,6 +35,7 @@ viewBoard game =
                     [ Block.text []
                         [ Quest.viewQuests game.quests
                         , text ("Reject Counter: " ++ toString game.fsm.gameStateData.rejectCount)
+                        , text (", # Evil: " ++ toString game.numEvil)
                         ]
                     ]
                 |> Card.view
@@ -101,7 +102,7 @@ viewPlayerSelf state quest maybeSelf =
 
                 Nothing ->
                     -- Spectator's view of themselves
-                    text "you are a spectator"
+                    text "You are a spectator."
     in
     Grid.row
         [ Row.middleXs, Row.attrs [ class "position-absolute text-center", style [ ( "bottom", "15px" ), ( "left", "15px" ), ( "width", "100%" ) ] ] ]
@@ -113,16 +114,37 @@ viewPlayerSelf state quest maybeSelf =
 viewPlayers : List Player -> Maybe Player -> GameFsmState -> Maybe Quest -> Html Msg
 viewPlayers players maybeSelf state quest =
     let
-        filteredPlayers =
+        selfIndex =
             case maybeSelf of
                 Nothing ->
-                    players
+                    -1
 
                 Just self ->
-                    players |> List.filter (\p -> p.name /= self.name)
+                    Maybe.withDefault -1
+                        (players
+                            |> List.indexedMap (,)
+                            |> List.filter (\( i, p ) -> self.name == p.name)
+                            |> List.map (\( i, p ) -> i)
+                            |> List.head
+                        )
+
+        beforeSelf =
+            players
+                |> List.indexedMap (,)
+                |> List.filter (\( i, p ) -> i < selfIndex)
+                |> List.map (\( i, p ) -> p)
+
+        afterSelf =
+            players
+                |> List.indexedMap (,)
+                |> List.filter (\( i, p ) -> i > selfIndex)
+                |> List.map (\( i, p ) -> p)
+
+        orderedPlayers =
+            List.append afterSelf beforeSelf
 
         content =
-            filteredPlayers
+            orderedPlayers
                 |> List.map (viewPlayerOther state quest maybeSelf)
     in
     Grid.row
@@ -201,8 +223,11 @@ viewPlayerActions state player maybeSelf maybeQuest =
 viewVotingButtons : Html Msg
 viewVotingButtons =
     div []
-        [ Button.button [ Button.outlineSuccess, Button.attrs [ Spacing.ml1, onClick AcceptVote ] ] [ text "Accept" ]
-        , Button.button [ Button.outlineDanger, Button.attrs [ Spacing.ml1, onClick RejectVote ] ] [ text "Reject" ]
+        [ text "Vote on the team:"
+        , div []
+            [ Button.button [ Button.outlineSuccess, Button.attrs [ Spacing.ml1, onClick AcceptVote ] ] [ text "Accept" ]
+            , Button.button [ Button.outlineDanger, Button.attrs [ Spacing.ml1, onClick RejectVote ] ] [ text "Reject" ]
+            ]
         ]
 
 
@@ -249,11 +274,14 @@ viewQuestCardButtons player maybeQuest =
                         if List.member player.name quest.quest_card_players then
                             [ text "Waiting for other quest members to play a quest card..." ]
                         else if player.role == "evil" then
-                            [ Button.button [ Button.success, Button.attrs [ Spacing.ml1, onClick PlayQuestSuccessCard ] ]
-                                [ text "Success" ]
-                            , Button.button
-                                [ Button.danger, Button.attrs [ Spacing.ml1, onClick PlayQuestFailCard ] ]
-                                [ text "Fail" ]
+                            [ text "Play a quest card:"
+                            , div []
+                                [ Button.button [ Button.success, Button.attrs [ Spacing.ml1, onClick PlayQuestSuccessCard ] ]
+                                    [ text "Success" ]
+                                , Button.button
+                                    [ Button.danger, Button.attrs [ Spacing.ml1, onClick PlayQuestFailCard ] ]
+                                    [ text "Fail" ]
+                                ]
                             ]
                         else
                             [ Button.button [ Button.success, Button.attrs [ onClick PlayQuestSuccessCard ] ]

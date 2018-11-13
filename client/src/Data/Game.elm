@@ -16,6 +16,7 @@ type GameFsmState
 type alias Game =
     { name : String
     , players : List Player
+    , numEvil : Int
     , quests : List Quest
     , fsm : GameState
     }
@@ -61,9 +62,10 @@ type alias Team =
 
 decodeGame : Decoder Game
 decodeGame =
-    map4 Game
+    map5 Game
         (field "name" string)
         (field "players" (list decodePlayer))
+        (field "num_evil" int)
         (field "quests" (list decodeQuest))
         (field "fsm" decodeGameState)
 

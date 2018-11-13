@@ -1,6 +1,6 @@
 defmodule Avalon.Game do
   @enforce_keys [:name, :fsm]
-  defstruct [:name, :players, :quests, :fsm]
+  defstruct [:name, :players, :num_evil, :quests, :fsm]
 
   alias Avalon.Game
   alias Avalon.FsmGameState, as: GameState
@@ -13,11 +13,13 @@ defmodule Avalon.Game do
   Creates a new game.
   """
   def new(name, players) when is_binary(name) and is_list(players) do
-    players_and_roles = Player.newFromList(players, Enum.shuffle(get_role_list(length(players))))
+    num_players = length(players)
+    players_and_roles = Player.newFromList(players, Enum.shuffle(get_role_list(num_players)))
 
     game = %Game{
       name: name,
       players: players_and_roles |> Player.set_random_king(),
+      num_evil: Kernel.min(num_players, number_of_evil(num_players)),
       quests: Quest.get_quests(length(players)),
       fsm: GameState.new()
     }
