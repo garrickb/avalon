@@ -100,7 +100,7 @@ viewPlayerSelf state quest maybeSelf =
 
                 Nothing ->
                     -- Spectator's view of themselves
-                    text "You are a spectator."
+                    text ""
     in
     Grid.row
         [ Row.middleXs, Row.attrs [ class "position-absolute text-center", style [ ( "bottom", "15px" ), ( "left", "15px" ), ( "width", "100%" ) ] ] ]
@@ -111,43 +111,65 @@ viewPlayerSelf state quest maybeSelf =
 
 viewPlayers : List Player -> Maybe Player -> GameFsmState -> Maybe Quest -> Html Msg
 viewPlayers players maybeSelf state quest =
-    let
-        selfIndex =
-            case maybeSelf of
-                Nothing ->
-                    -1
+    case maybeSelf of
+        Nothing ->
+            let
+                half =
+                    round (toFloat (List.length players) / 2)
 
-                Just self ->
-                    Maybe.withDefault -1
-                        (players
-                            |> List.indexedMap (,)
-                            |> List.filter (\( i, p ) -> self.name == p.name)
-                            |> List.map (\( i, p ) -> i)
-                            |> List.head
-                        )
+                firstHalf =
+                    List.take half players
 
-        beforeSelf =
-            players
-                |> List.indexedMap (,)
-                |> List.filter (\( i, p ) -> i < selfIndex)
-                |> List.map (\( i, p ) -> p)
+                secondHalf =
+                    List.drop half players
+            in
+            span []
+                [ Grid.row
+                    [ Row.middleXs, Row.attrs [ class "position-absolute text-center", style [ ( "top", "15px" ), ( "left", "15px" ), ( "width", "100%" ) ] ] ]
+                    (firstHalf |> List.map (viewPlayerOther state quest Nothing))
+                , Grid.row
+                    [ Row.middleXs, Row.attrs [ class "position-absolute text-center", style [ ( "bottom", "15px" ), ( "left", "15px" ), ( "width", "100%" ) ] ] ]
+                    (secondHalf |> List.map (viewPlayerOther state quest Nothing))
+                ]
 
-        afterSelf =
-            players
-                |> List.indexedMap (,)
-                |> List.filter (\( i, p ) -> i > selfIndex)
-                |> List.map (\( i, p ) -> p)
+        Just self ->
+            let
+                selfIndex =
+                    case maybeSelf of
+                        Nothing ->
+                            -1
 
-        orderedPlayers =
-            List.append afterSelf beforeSelf
+                        Just self ->
+                            Maybe.withDefault -1
+                                (players
+                                    |> List.indexedMap (,)
+                                    |> List.filter (\( i, p ) -> self.name == p.name)
+                                    |> List.map (\( i, p ) -> i)
+                                    |> List.head
+                                )
 
-        content =
-            orderedPlayers
-                |> List.map (viewPlayerOther state quest maybeSelf)
-    in
-    Grid.row
-        [ Row.middleXs, Row.attrs [ class "position-absolute text-center", style [ ( "top", "15px" ), ( "left", "15px" ), ( "width", "100%" ) ] ] ]
-        content
+                beforeSelf =
+                    players
+                        |> List.indexedMap (,)
+                        |> List.filter (\( i, p ) -> i < selfIndex)
+                        |> List.map (\( i, p ) -> p)
+
+                afterSelf =
+                    players
+                        |> List.indexedMap (,)
+                        |> List.filter (\( i, p ) -> i > selfIndex)
+                        |> List.map (\( i, p ) -> p)
+
+                orderedPlayers =
+                    List.append afterSelf beforeSelf
+
+                content =
+                    orderedPlayers
+                        |> List.map (viewPlayerOther state quest maybeSelf)
+            in
+            Grid.row
+                [ Row.middleXs, Row.attrs [ class "position-absolute text-center", style [ ( "top", "15px" ), ( "left", "15px" ), ( "width", "100%" ) ] ] ]
+                content
 
 
 viewPlayerActions : GameFsmState -> Player -> Maybe Player -> Maybe Quest -> Html Msg
