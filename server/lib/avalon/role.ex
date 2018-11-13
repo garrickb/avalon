@@ -74,18 +74,29 @@ defmodule Avalon.Role do
   end
 
   def peek(role, peek_at_role) do
-    if role.alignment == :evil do
-      if peek_at_role.alignment == :evil do
-        new(:unknown, :evil)
-      else
+    Logger.warn("ALIGN: #{inspect(role)}")
+
+    case role.alignment do
+      :evil ->
+        case peek_at_role.alignment do
+          :evil -> new(:unknown, :evil)
+          _ -> new(:unknown, :unknown)
+        end
+
+      :good ->
+        case role.name do
+          :merlin ->
+            case peek_at_role.alignment do
+              :evil -> new(:unknown, :evil)
+              _ -> new(:unknown, :unknown)
+            end
+
+          _ ->
+            new(:unknown, :unknown)
+        end
+
+      _ ->
         new(:unknown, :unknown)
-      end
-    else
-      if peek_at_role.alignment == :evil do
-        new(:unknown, :evil)
-      else
-        new(:unknown, :unknown)
-      end
     end
   end
 end

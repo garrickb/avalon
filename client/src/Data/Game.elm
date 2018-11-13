@@ -193,6 +193,12 @@ decodeRoleType =
                     "unknown" ->
                         succeed RoleUnknown
 
+                    "minion" ->
+                        succeed Minion
+
+                    "servant" ->
+                        succeed Servant
+
                     unknown ->
                         fail ("Unknown role: " ++ unknown)
             )

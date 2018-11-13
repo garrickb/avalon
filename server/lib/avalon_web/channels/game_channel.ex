@@ -248,8 +248,10 @@ defmodule AvalonWeb.GameChannel do
   end
 
   defp handle_out_players(players, socket) do
+    player_names = Enum.map(players, fn p -> p.name end)
+
     role =
-      if Enum.member?(players, username(socket)) do
+      if Enum.member?(player_names, username(socket)) do
         Enum.find(players, fn p -> p.name == username(socket) end).role
       else
         Avalon.Role.new(:unknown, :unknown)
