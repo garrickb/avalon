@@ -80,7 +80,7 @@ defmodule Avalon.Game.Server do
     game =
       case :ets.lookup(:games_table, game_name) do
         [] ->
-          game = Avalon.Game.new(game_name, players, Settings.new())
+          game = Avalon.Game.new(players, Settings.new())
           :ets.insert(:games_table, {game_name, game})
           game
 
@@ -202,7 +202,7 @@ defmodule Avalon.Game.Server do
   def handle_call({:restart_game}, _from, game) do
     # TODO : Pull settings information from server?
     player_names = game.players |> Enum.map(fn p -> p.name end)
-    new_game = Avalon.Game.new(game.name, player_names, Settings.new())
+    new_game = Avalon.Game.new(player_names, Settings.new())
 
     :ets.insert(:games_table, {my_game_name(), new_game})
 

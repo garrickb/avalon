@@ -1,6 +1,6 @@
 defmodule Avalon.Game do
-  @enforce_keys [:name, :fsm]
-  defstruct [:name, :players, :num_evil, :quests, :fsm]
+  @enforce_keys [:fsm]
+  defstruct [:players, :num_evil, :quests, :fsm]
 
   alias Avalon.Game
   alias Avalon.FsmGameState, as: GameState
@@ -14,7 +14,7 @@ defmodule Avalon.Game do
   @doc """
   Creates a new game.
   """
-  def new(name, players, settings) when is_binary(name) and is_list(players) do
+  def new(players, settings) when is_list(players) do
     num_players = length(players)
     num_evil = number_of_evil(num_players)
     num_good = num_players - num_evil
@@ -24,14 +24,16 @@ defmodule Avalon.Game do
     players_and_roles = Player.newFromList(players, roles)
 
     game = %Game{
-      name: name,
       players: players_and_roles |> Player.set_random_king(),
       num_evil: num_evil,
       quests: Quest.get_quests(length(players)),
       fsm: GameState.new()
     }
 
-    Logger.info("Created new game: #{inspect(game)}")
+    Logger.info(
+      "Created new game with players '#{inspect(players)}' and settings '#{inspect(settings)}'"
+    )
+
     game
   end
 
@@ -50,7 +52,7 @@ defmodule Avalon.Game do
 
       fsm =
         if Player.all_players_ready?(new_players) do
-          Logger.info("Game '#{game.name}' has all players ready; starting the game!")
+          Logger.info("Game has all players ready; starting the game!")
           GameState.start_game(game.fsm)
         else
           game.fsm
@@ -94,10 +96,10 @@ defmodule Avalon.Game do
     else
       fsm =
         if Quest.get_active_quest(game.quests) |> Quest.voting_can_begin?() do
-          Logger.info("Game '#{game.name}' has began voting on active quest")
+          Logger.info("Game has began voting on active quest")
           GameState.begin_voting(game.fsm)
         else
-          Logger.info("Game '#{game.name}' does not have enough players selected to begin voting")
+          Logger.info("Game does not have enough players selected to begin voting")
           game.fsm
         end
 

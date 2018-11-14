@@ -29,8 +29,7 @@ viewBoard game =
     Grid.row
         [ Row.centerXs, Row.attrs [ style [ ( "height", "100vh" ), ( "overflow", "auto" ), ( "text-align", "center" ) ] ] ]
         [ Grid.col [ Col.middleXs ]
-            [ h1 [] [ text game.name ]
-            , Card.config []
+            [ Card.config []
                 |> Card.block [ Block.attrs [ style [ ( "padding", "5px" ) ] ] ]
                     [ Block.text []
                         [ Quest.viewQuests game.quests

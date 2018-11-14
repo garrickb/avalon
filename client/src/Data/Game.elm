@@ -33,8 +33,7 @@ type RoleType
 
 
 type alias Game =
-    { name : String
-    , players : List Player
+    { players : List Player
     , numEvil : Int
     , quests : List Quest
     , fsm : GameState
@@ -87,8 +86,7 @@ type alias Role =
 
 decodeGame : Decoder Game
 decodeGame =
-    map5 Game
-        (field "name" string)
+    map4 Game
         (field "players" (list decodePlayer))
         (field "num_evil" int)
         (field "quests" (list decodeQuest))
