@@ -186,6 +186,60 @@ defmodule Avalon.FsmGameStateTest do
     assert game.state == :game_end_good
   end
 
+  test "succeeding a quest three times with assassin & merlin will result in waiting for the assassin" do
+    game =
+      State.new()
+      |> State.start_game()
+      |> State.begin_voting()
+      |> State.accept()
+      |> State.succeed_with_assassin_and_merlin()
+      |> State.begin_voting()
+      |> State.accept()
+      |> State.succeed_with_assassin_and_merlin()
+      |> State.begin_voting()
+      |> State.accept()
+      |> State.succeed_with_assassin_and_merlin()
+
+    assert game.data.succeeded_count == 3
+    assert game.state == :game_end_good_assassin
+  end
+
+  test "assassin guesses correctly" do
+    game =
+      State.new()
+      |> State.start_game()
+      |> State.begin_voting()
+      |> State.accept()
+      |> State.succeed_with_assassin_and_merlin()
+      |> State.begin_voting()
+      |> State.accept()
+      |> State.succeed_with_assassin_and_merlin()
+      |> State.begin_voting()
+      |> State.accept()
+      |> State.succeed_with_assassin_and_merlin()
+      |> State.correct_assassination()
+
+    assert game.state == :game_end_evil
+  end
+
+  test "assassin guesses incorrectly" do
+    game =
+      State.new()
+      |> State.start_game()
+      |> State.begin_voting()
+      |> State.accept()
+      |> State.succeed_with_assassin_and_merlin()
+      |> State.begin_voting()
+      |> State.accept()
+      |> State.succeed_with_assassin_and_merlin()
+      |> State.begin_voting()
+      |> State.accept()
+      |> State.succeed_with_assassin_and_merlin()
+      |> State.incorrect_assassination()
+
+    assert game.state == :game_end_good
+  end
+
   test "three successes will result in a good win even with two fails" do
     game =
       State.new()

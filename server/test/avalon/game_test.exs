@@ -9,7 +9,7 @@ defmodule Avalon.GameTest do
   test "create a game with players" do
     game_name = "game_name"
     players = ["player1", "player2", "player3"]
-    game = Game.new(game_name, players)
+    game = Game.new(game_name, players, Avalon.Settings.new())
 
     assert game.name == game_name
     assert Enum.map(game.players, fn p -> p.name end) == players
@@ -52,8 +52,12 @@ defmodule Avalon.GameTest do
     game = make_game("name", size)
 
     assert length(game.players) == size
-    assert length(Enum.filter(game.players, fn p -> p.role == :evil end)) == expected_num_evil
-    assert length(Enum.filter(game.players, fn p -> p.role == :good end)) == expected_num_good
+
+    assert length(Enum.filter(game.players, fn p -> p.role.alignment == :evil end)) ==
+             expected_num_evil
+
+    assert length(Enum.filter(game.players, fn p -> p.role.alignment == :good end)) ==
+             expected_num_good
   end
 
   defp make_game(size) do
@@ -62,7 +66,7 @@ defmodule Avalon.GameTest do
 
   defp make_game(name, size) do
     players = Enum.map(1..size, fn num -> "player#{num}" end)
-    Game.new(name, players)
+    Game.new(name, players, Avalon.Settings.new())
   end
 
   # Waiting State test

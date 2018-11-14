@@ -1,4 +1,4 @@
-defmodule Avalon.SettingsTest do
+defmodule Avalon.RoleTest do
   use ExUnit.Case
 
   alias Avalon.Role, as: Role
