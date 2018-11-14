@@ -35,15 +35,17 @@ import Scene.Game
 
 
 type alias Model =
-    { lobbyState : LobbyState
+    { name : String
+    , lobbyState : LobbyState
     , presence : Dict String (List JD.Value)
     , settingsVisibility : Modal.Visibility
     }
 
 
-init : Model
-init =
-    { lobbyState = JoiningLobby
+init : String -> Model
+init name =
+    { name = name
+    , lobbyState = JoiningLobby
     , presence = Dict.empty
     , settingsVisibility = Modal.hidden
     }
@@ -112,9 +114,6 @@ viewPlayers playerName presence =
 viewLobby : Session -> Model -> Html Msg
 viewLobby session model =
     let
-        lobbyName =
-            Maybe.withDefault "" session.lobbyName
-
         userName =
             Maybe.withDefault "" session.userName
 
@@ -127,7 +126,7 @@ viewLobby session model =
     Grid.row
         [ Row.centerXs, Row.attrs [ style [ ( "height", "100vh" ), ( "overflow", "auto" ) ] ] ]
         [ Grid.col [ Col.middleXs ]
-            [ h1 [ style [ ( "text-align", "center" ) ] ] [ text lobbyName ]
+            [ h1 [ style [ ( "text-align", "center" ) ] ] [ text model.name ]
             , Card.config [ Card.align Text.alignXsCenter ]
                 |> Card.block []
                     [ Block.text []
@@ -181,8 +180,8 @@ view session model =
 -- SUBSCRIPTION --
 
 
-getChannel : Session -> Channel Msg
-getChannel session =
+getChannel : Session -> String -> Channel Msg
+getChannel session name =
     let
         params =
             case session.userName of
@@ -193,13 +192,7 @@ getChannel session =
                     []
 
         lobbyRoute =
-            case session.lobbyName of
-                -- TODO: redirect to home
-                Nothing ->
-                    ""
-
-                Just lobby ->
-                    roomChannelName lobby
+            roomChannelName name
 
         presence =
             Presence.create
@@ -279,23 +272,18 @@ update session msg model =
                             model ! []
 
         StartGame ->
-            case session.lobbyName of
-                Nothing ->
-                    model ! []
-
-                Just lobby ->
-                    let
-                        push =
-                            Push.init (roomChannelName lobby) "game:start"
-                    in
-                    model ! [ Phoenix.push socketUrl push ]
+            let
+                push =
+                    Push.init (roomChannelName model.name) "game:start"
+            in
+            model ! [ Phoenix.push socketUrl push ]
 
         GameMsg msg ->
             case model.lobbyState of
                 JoinedLobby (Just game_state) ->
                     let
                         ( stateModel, cmd ) =
-                            Scene.Game.update session msg game_state
+                            Scene.Game.update model.name session msg game_state
                     in
                     ( { model | lobbyState = JoinedLobby (Just stateModel) }, Cmd.map GameMsg cmd )
 

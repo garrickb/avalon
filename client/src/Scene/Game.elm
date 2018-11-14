@@ -375,43 +375,38 @@ pushMessageWithPayload lobby message payload =
         |> Phoenix.push socketUrl
 
 
-update : Session -> Msg -> Game -> ( Game, Cmd Msg )
-update session msg model =
-    case session.lobbyName of
-        Nothing ->
-            model ! []
+update : String -> Session -> Msg -> Game -> ( Game, Cmd Msg )
+update lobby session msg model =
+    case msg of
+        StopGame ->
+            model ! [ pushMessage lobby "game:stop" ]
 
-        Just lobby ->
-            case msg of
-                StopGame ->
-                    model ! [ pushMessage lobby "game:stop" ]
+        PlayerReady ->
+            model ! [ pushMessage lobby "player:ready" ]
 
-                PlayerReady ->
-                    model ! [ pushMessage lobby "player:ready" ]
+        SelectQuestMember player ->
+            model ! [ pushMessageWithPayload lobby "quest:select_player" [ ( "player", JE.string player.name ) ] ]
 
-                SelectQuestMember player ->
-                    model ! [ pushMessageWithPayload lobby "quest:select_player" [ ( "player", JE.string player.name ) ] ]
+        DeselectQuestMember player ->
+            model ! [ pushMessageWithPayload lobby "quest:deselect_player" [ ( "player", JE.string player.name ) ] ]
 
-                DeselectQuestMember player ->
-                    model ! [ pushMessageWithPayload lobby "quest:deselect_player" [ ( "player", JE.string player.name ) ] ]
+        BeginVoting ->
+            model ! [ pushMessage lobby "quest:begin_voting" ]
 
-                BeginVoting ->
-                    model ! [ pushMessage lobby "quest:begin_voting" ]
+        AcceptVote ->
+            model ! [ pushMessage lobby "quest:accept_vote" ]
 
-                AcceptVote ->
-                    model ! [ pushMessage lobby "quest:accept_vote" ]
+        RejectVote ->
+            model ! [ pushMessage lobby "quest:reject_vote" ]
 
-                RejectVote ->
-                    model ! [ pushMessage lobby "quest:reject_vote" ]
+        PlayQuestSuccessCard ->
+            model ! [ pushMessage lobby "quest:success" ]
 
-                PlayQuestSuccessCard ->
-                    model ! [ pushMessage lobby "quest:success" ]
+        PlayQuestFailCard ->
+            model ! [ pushMessage lobby "quest:fail" ]
 
-                PlayQuestFailCard ->
-                    model ! [ pushMessage lobby "quest:fail" ]
+        AssassinatePlayer player ->
+            model ! [ pushMessageWithPayload lobby "player:assassinate" [ ( "player", JE.string player.name ) ] ]
 
-                AssassinatePlayer player ->
-                    model ! [ pushMessageWithPayload lobby "player:assassinate" [ ( "player", JE.string player.name ) ] ]
-
-                RestartGame ->
-                    model ! [ pushMessage lobby "game:restart" ]
+        RestartGame ->
+            model ! [ pushMessage lobby "game:restart" ]

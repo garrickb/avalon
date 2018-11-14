@@ -12,7 +12,7 @@ import UrlParser as Url exposing ((</>), Parser, oneOf, parseHash, s, string)
 type Route
     = Root
     | Home
-    | Lobby
+    | Lobby String
 
 
 
@@ -23,7 +23,7 @@ route : Parser (Route -> a) a
 route =
     oneOf
         [ Url.map Home (s "")
-        , Url.map Lobby (s "lobby")
+        , Url.map Lobby (s "lobby" </> string)
         ]
 
 
@@ -42,8 +42,8 @@ routeToString route =
                 Root ->
                     []
 
-                Lobby ->
-                    [ "lobby" ]
+                Lobby name ->
+                    [ "lobby", name ]
 
         -- Lobby lobbyName ->
         --     [ "lobby", LobbyName.toString lobbyName ]

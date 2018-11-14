@@ -1,4 +1,4 @@
-module Main exposing (main)
+port module Main exposing (main)
 
 import Bootstrap.Alert as Alert
 import Bootstrap.CDN as CDN
@@ -9,7 +9,6 @@ import Data.Session exposing (Session, SessionMessage(..), initialSession)
 import Data.Socket exposing (SocketState(..), socketUrl)
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Json.Decode as Decode exposing (Value)
 import Navigation exposing (Location)
 import Phoenix
 import Phoenix.Channel as Channel exposing (Channel)
@@ -18,6 +17,10 @@ import Route exposing (Route)
 import Scene.Home as Home
 import Scene.Lobby as Lobby
 import Task
+
+
+port setStorage : Session -> Cmd msg
+
 
 
 -- MODEL --
@@ -37,10 +40,10 @@ type State
     | Lobby Lobby.Model
 
 
-init : Value -> Location -> ( Model, Cmd Msg )
-init val location =
+init : Maybe Session -> Location -> ( Model, Cmd Msg )
+init maybeSession location =
     setRoute (Route.fromLocation location)
-        { session = initialSession
+        { session = Maybe.withDefault initialSession maybeSession
         , state = initialState
         , message = EmptyMsg
         }
@@ -123,8 +126,8 @@ stateSubscriptions model =
 stateChannels : Model -> List (Channel Msg)
 stateChannels model =
     case model.state of
-        Lobby _ ->
-            [ Channel.map LobbyMsg (Lobby.getChannel model.session) ]
+        Lobby lobbyModel ->
+            [ Channel.map LobbyMsg (Lobby.getChannel model.session lobbyModel.name) ]
 
         _ ->
             []
@@ -165,15 +168,15 @@ setRoute maybeRoute model =
         Just Route.Home ->
             ( { model | state = Home (Home.init model.session) }, Cmd.none )
 
-        Just Route.Lobby ->
+        Just (Route.Lobby name) ->
             let
                 ( newState, cmd ) =
-                    case model.session.lobbyName of
+                    case model.session.userName of
                         Nothing ->
                             ( Home (Home.init model.session), Route.modifyUrl Route.Home )
 
-                        Just lobby ->
-                            ( Lobby Lobby.init, Cmd.none )
+                        Just _ ->
+                            ( Lobby (Lobby.init name), Cmd.none )
             in
             ( { model | state = newState }, cmd )
 
@@ -208,11 +211,20 @@ updateState state msg model =
                                     model.session
 
                                 newSession =
-                                    { oldSession | userName = user, lobbyName = lobby }
+                                    { oldSession | userName = user }
                             in
                             { model | session = newSession }
+
+                cmds =
+                    case msgFromPage of
+                        -- Update the storage if we are updating our session
+                        Home.SetSessionInfo _ _ ->
+                            [ setStorage newModel.session, Cmd.map HomeMsg cmd ]
+
+                        _ ->
+                            [ Cmd.map HomeMsg cmd ]
             in
-            ( { newModel | state = Home stateModel }, Cmd.map HomeMsg cmd )
+            ( { newModel | state = Home stateModel }, Cmd.batch cmds )
 
         ( LobbyMsg subMsg, Lobby subModel ) ->
             let
@@ -229,7 +241,7 @@ updateState state msg model =
 -- MAIN --
 
 
-main : Program Value Model Msg
+main : Program (Maybe Session) Model Msg
 main =
     Navigation.programWithFlags (Route.fromLocation >> SetRoute)
         { init = init

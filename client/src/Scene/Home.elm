@@ -30,11 +30,8 @@ init session =
     let
         userName =
             Maybe.withDefault "" session.userName
-
-        lobbyName =
-            Maybe.withDefault "" session.lobbyName
     in
-    { userName = userName, lobbyName = lobbyName }
+    { userName = userName, lobbyName = "" }
 
 
 
@@ -117,7 +114,7 @@ update msg model =
                     String.trim model.userName
             in
             if (String.length lobbyName > 0) && (String.length userName > 0) then
-                ( ( model, Cmd.batch [ Route.modifyUrl Route.Lobby ] )
+                ( ( model, Cmd.batch [ Route.modifyUrl (Route.Lobby lobbyName) ] )
                 , SetSessionInfo (Just lobbyName) (Just userName)
                 )
             else

@@ -15,10 +15,17 @@
     You need to enable JavaScript to run this app.
   </noscript>
 
-  <script>
+  <script type="text/javascript">
     (function() {
-      Elm.Main.fullscreen();
+      var storedState = localStorage.getItem('avalon-app');
+      var startingState = storedState ? JSON.parse(storedState) : null;
+      var app = Elm.Main.fullscreen(startingState);
+      app.ports.setStorage.subscribe(function(state) {
+          console.log("Storing new state: ", state)
+          localStorage.setItem('avalon-app', JSON.stringify(state));
+        });
     })();
   </script>
+
 </body>
 </html>
