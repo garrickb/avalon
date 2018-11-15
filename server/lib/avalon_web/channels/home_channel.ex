@@ -9,16 +9,9 @@ defmodule AvalonWeb.HomeChannel do
   end
 
   def handle_in("room:create", _payload, socket) do
-    # Create a room server
+    Logger.info("Creating a new room")
     {:ok, room_pid} = Avalon.Room.Supervisor.start_room()
-    room_id = GenServer.call(room_pid, :id)
-    {:reply, {:ok, %{room_id: room_id}}, socket}
-  end
-
-  def handle_in("room:create", _payload, socket) do
-    # Create a room server
-    {:ok, room_pid} = Avalon.Room.Supervisor.start_room()
-    room_id = GenServer.call(room_pid, :id)
+    room_id = GenServer.call(room_pid, :get_id)
     {:reply, {:ok, %{room_id: room_id}}, socket}
   end
 end
