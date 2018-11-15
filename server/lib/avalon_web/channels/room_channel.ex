@@ -70,42 +70,35 @@ defmodule AvalonWeb.RoomChannel do
 
   def handle_in("game:start", _payload, socket) do
     "room:" <> room_name = socket.topic
-    log(socket, "game started")
+    log(socket, "starting game")
 
     # If the game is not already started, start the game
-    if GameServer.room_pid(room_name) == nil do
-      players = Map.keys(Presence.list(socket))
-      GameSupervisor.start_game(room_name, players)
+    case GameServer.room_pid(room_name) do
+      pid when is_pid(pid) ->
+        players = Map.keys(Presence.list(socket))
+        new_room = GameServer.start_game(room_name, players)
+        broadcast!(socket, "room:state", new_room)
+        {:noreply, socket}
 
-      # Alert all players of the new game state
-      summary = GameServer.summary(room_name)
-      broadcast!(socket, "room:state", summary)
+      nil ->
+        {:reply, {:error, "Room does not exist"}, socket}
     end
-
-    {:noreply, socket}
   end
 
   def handle_in("game:stop", _payload, socket) do
     "room:" <> room_name = socket.topic
     log(socket, "game stopped")
 
-    if GameServer.room_pid(room_name) == nil do
-      GameSupervisor.stop_game(room_name)
+    # If the game is not already started, start the game
+    case GameServer.room_pid(room_name) do
+      pid when is_pid(pid) ->
+        new_room = GameServer.stop_game(room_name)
+        broadcast!(socket, "room:state", new_room)
+        {:noreply, socket}
 
-      # Alert all players of the new game state
-      summary = GameServer.summary(room_name)
-      broadcast!(socket, "room:state", summary)
+      nil ->
+        {:reply, {:error, "Room does not exist"}, socket}
     end
-
-    # If the game is running, stop the game
-    # if GameServer.room_pid(game_name) != nil do
-    #   GameSupervisor.stop_game(game_name)
-    # end
-
-    # Alert all players of the new game state
-    broadcast!(socket, "game:stop", %{})
-
-    {:noreply, socket}
   end
 
   def handle_in("game:restart", _payload, socket) do
