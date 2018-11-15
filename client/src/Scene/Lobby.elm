@@ -1,4 +1,4 @@
-module Scene.Lobby exposing (Model, Msg, getChannel, init, update, view)
+module Scene.Lobby exposing (ExternalMsg(..), Model, Msg, getChannel, init, update, view)
 
 import Bootstrap.Badge as Badge
 import Bootstrap.Button as Button
@@ -13,8 +13,8 @@ import Bootstrap.Modal as Modal
 import Bootstrap.Text as Text
 import Bootstrap.Utilities.Spacing as Spacing
 import Data.Game exposing (..)
-import Data.LobbyChannel as LobbyChannel exposing (LobbyState(..), roomChannelName)
-import Data.Session exposing (Session)
+import Data.RoomChannel as RoomChannel exposing (RoomState(..), roomChannelName)
+import Data.Session exposing (Session, SessionMessage(..))
 import Data.Socket exposing (socketUrl)
 import Debug exposing (log)
 import Dict exposing (Dict)
@@ -36,7 +36,7 @@ import Scene.Game
 
 type alias Model =
     { name : String
-    , lobbyState : LobbyState
+    , roomState : RoomState
     , presence : Dict String (List JD.Value)
     , settingsVisibility : Modal.Visibility
     }
@@ -45,7 +45,7 @@ type alias Model =
 init : String -> Model
 init name =
     { name = name
-    , lobbyState = JoiningLobby
+    , roomState = JoiningRoom
     , presence = Dict.empty
     , settingsVisibility = Modal.hidden
     }
@@ -118,7 +118,7 @@ viewLobby session model =
             Maybe.withDefault "" session.userName
 
         players =
-            if model.lobbyState == LobbyChannel.JoiningLobby then
+            if model.roomState == JoiningRoom then
                 viewPlayers userName (Dict.fromList [ ( userName, [] ) ])
             else
                 viewPlayers userName model.presence
@@ -138,7 +138,7 @@ viewLobby session model =
                                 [ Grid.col [ Col.xs4 ]
                                     [ Button.button
                                         [ Button.outlineDanger
-                                        , Button.attrs [ Spacing.ml1, onClick GoToHomePage ]
+                                        , Button.attrs [ Spacing.ml1, onClick (GoToHomePageWithMessage EmptyMsg) ]
                                         ]
                                         [ text "Leave" ]
                                     ]
@@ -168,9 +168,14 @@ viewLobby session model =
 
 view : Session -> Model -> Html Msg
 view session model =
-    case model.lobbyState of
-        JoinedLobby (Just game) ->
-            Html.map GameMsg <| Scene.Game.view session game
+    case model.roomState of
+        JoinedRoom (Just room) ->
+            case room.game of
+                Nothing ->
+                    text "no game?"
+
+                Just game ->
+                    Html.map GameMsg <| Scene.Game.view session game
 
         _ ->
             viewLobby session model
@@ -200,10 +205,10 @@ getChannel session name =
     in
     Channel.init lobbyRoute
         |> Channel.withPayload (JE.object params)
-        |> Channel.onRequestJoin LobbyJoining
-        |> Channel.onJoin (\msg -> LobbyJoined msg)
-        |> Channel.onLeave (\_ -> GoToHomePage)
-        |> Channel.onJoinError (\_ -> GoToHomePage)
+        |> Channel.onRequestJoin RoomJoining
+        |> Channel.onJoin (\msg -> RoomJoined msg)
+        --|> Channel.onLeave (\msg -> GoToHomePageWithMessage (InfoMsg (toString msg)))
+        |> Channel.onJoinError (\msg -> GoToHomePageWithMessage (ErrorMsg (toString msg)))
         |> Channel.on "game:state" (\msg -> NewGameState (Just msg))
         |> Channel.on "game:stop" (\msg -> NewGameState Nothing)
         |> Channel.withPresence presence
@@ -214,10 +219,15 @@ getChannel session name =
 -- UPDATE --
 
 
+type ExternalMsg
+    = NoOp
+    | SetMessage SessionMessage
+
+
 type Msg
-    = GoToHomePage
-    | LobbyJoining
-    | LobbyJoined JD.Value
+    = GoToHomePageWithMessage SessionMessage
+    | RoomJoining
+    | RoomJoined JD.Value
     | UpdatePresence (Dict String (List JD.Value))
     | SettingsModal Modal.Visibility
     | StartGame
@@ -225,25 +235,30 @@ type Msg
     | GameMsg Scene.Game.Msg
 
 
-update : Session -> Msg -> Model -> ( Model, Cmd Msg )
+update : Session -> Msg -> Model -> ( ( Model, Cmd Msg ), ExternalMsg )
 update session msg model =
     case msg of
-        GoToHomePage ->
-            model ! [ Route.modifyUrl Route.Home ]
+        GoToHomePageWithMessage msg ->
+            ( model ! [ Route.modifyUrl Route.Home ], SetMessage msg )
 
-        LobbyJoining ->
-            { model | lobbyState = JoiningLobby } ! []
+        RoomJoining ->
+            ( { model | roomState = JoiningRoom } ! [], NoOp )
 
-        LobbyJoined game ->
-            { model | lobbyState = JoinedLobby Nothing }
-                |> update session (NewGameState (Just game))
+        RoomJoined room ->
+            let
+                ( ( mdl, msg ), exMsg ) =
+                    update session (NewGameState (Just room)) model
+            in
+            ( { mdl | roomState = JoinedRoom Nothing } ! [ msg ], exMsg )
 
         UpdatePresence presenceState ->
-            { model | presence = Debug.log "presenceState " presenceState }
+            ( { model | presence = Debug.log "presenceState " presenceState }
                 ! []
+            , NoOp
+            )
 
         SettingsModal visibility ->
-            { model | settingsVisibility = visibility } ! []
+            ( { model | settingsVisibility = visibility } ! [], NoOp )
 
         NewGameState game_state ->
             let
@@ -252,40 +267,48 @@ update session msg model =
             in
             case game_state of
                 Nothing ->
-                    { model | lobbyState = JoinedLobby Nothing } ! []
+                    ( { model | roomState = JoinedRoom Nothing } ! [], NoOp )
 
                 Just payload ->
-                    case Debug.log "LOBBYSTATE: " model.lobbyState of
-                        JoinedLobby _ ->
-                            case JD.decodeValue decodeGame payload of
+                    case Debug.log "ROOMSTATE: " model.roomState of
+                        JoinedRoom _ ->
+                            case JD.decodeValue decodeRoom payload of
                                 Ok game ->
-                                    { model | lobbyState = JoinedLobby (Just (Debug.log "new game state" game)) } ! []
+                                    ( { model | roomState = JoinedRoom (Just (Debug.log "new game state" game)) } ! [], NoOp )
 
                                 Err err ->
                                     let
                                         log =
                                             Debug.log "Error decoding state: " err
                                     in
-                                    model ! []
+                                    ( model ! [], NoOp )
 
                         _ ->
-                            model ! []
+                            ( model ! [], NoOp )
 
         StartGame ->
             let
                 push =
                     Push.init (roomChannelName model.name) "game:start"
             in
-            model ! [ Phoenix.push socketUrl push ]
+            ( model ! [ Phoenix.push socketUrl push ], NoOp )
 
         GameMsg msg ->
-            case model.lobbyState of
-                JoinedLobby (Just game_state) ->
-                    let
-                        ( stateModel, cmd ) =
-                            Scene.Game.update model.name session msg game_state
-                    in
-                    ( { model | lobbyState = JoinedLobby (Just stateModel) }, Cmd.map GameMsg cmd )
+            case model.roomState of
+                JoinedRoom (Just roomState) ->
+                    case roomState.game of
+                        Nothing ->
+                            ( model ! [], NoOp )
+
+                        Just game ->
+                            let
+                                ( newGame, cmd ) =
+                                    Scene.Game.update model.name session msg game
+
+                                newState =
+                                    { roomState | game = Just newGame }
+                            in
+                            ( ( { model | roomState = JoinedRoom (Just newState) }, Cmd.map GameMsg cmd ), NoOp )
 
                 _ ->
-                    model ! []
+                    ( model ! [], NoOp )

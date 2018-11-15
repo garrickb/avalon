@@ -4,7 +4,8 @@ defmodule AvalonWeb.UserSocket do
   require Logger
 
   ## Channels
-  channel("room:*", AvalonWeb.GameChannel)
+  channel("home", AvalonWeb.HomeChannel)
+  channel("room:*", AvalonWeb.RoomChannel)
 
   ## Transports
   transport(:websocket, Phoenix.Transports.WebSocket)

@@ -8,7 +8,7 @@ import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Bootstrap.Utilities.Spacing as Spacing
 import Data.Game exposing (Alignment(..), Game, GameFsmState(..), Player, Quest, RoleType(..))
-import Data.LobbyChannel as LobbyChannel exposing (LobbyState(..), roomChannelName)
+import Data.RoomChannel as RoomChannel exposing (RoomState(..), roomChannelName)
 import Data.Session exposing (Session)
 import Data.Socket exposing (SocketState(..), socketUrl)
 import Html exposing (..)
@@ -385,19 +385,19 @@ update lobby session msg model =
             model ! [ pushMessage lobby "player:ready" ]
 
         SelectQuestMember player ->
-            model ! [ pushMessageWithPayload lobby "quest:select_player" [ ( "player", JE.string player.name ) ] ]
+            model ! [ pushMessageWithPayload lobby "team:select_player" [ ( "player", JE.string player.name ) ] ]
 
         DeselectQuestMember player ->
-            model ! [ pushMessageWithPayload lobby "quest:deselect_player" [ ( "player", JE.string player.name ) ] ]
+            model ! [ pushMessageWithPayload lobby "team:deselect_player" [ ( "player", JE.string player.name ) ] ]
 
         BeginVoting ->
-            model ! [ pushMessage lobby "quest:begin_voting" ]
+            model ! [ pushMessage lobby "team:begin_voting" ]
 
         AcceptVote ->
-            model ! [ pushMessage lobby "quest:accept_vote" ]
+            model ! [ pushMessage lobby "team:accept_vote" ]
 
         RejectVote ->
-            model ! [ pushMessage lobby "quest:reject_vote" ]
+            model ! [ pushMessage lobby "team:reject_vote" ]
 
         PlayQuestSuccessCard ->
             model ! [ pushMessage lobby "quest:success" ]

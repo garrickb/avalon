@@ -1,38 +1,36 @@
-defmodule AvalonWeb.GameChannel do
+defmodule AvalonWeb.RoomChannel do
   use AvalonWeb, :channel
 
   alias AvalonWeb.Presence
-  alias Avalon.Game.Server, as: GameServer
-  alias Avalon.Game.Supervisor, as: GameSupervisor
+  alias Avalon.Room.Server, as: GameServer
 
   require Logger
 
-  intercept(["game:state"])
-
-  def join("room:" <> game_name, params, socket) do
+  def join("room:" <> room_name, params, socket) do
     new_socket = assign(socket, :username, params["username"])
 
-    Logger.info("NEW SOCKET: '#{inspect(new_socket)}'")
-
     if username(new_socket) == nil || Kernel.byte_size(username(new_socket)) == 0 do
-      {:error, {:reason, "You cannot join a room without a username set."}}
+      {:error, "You cannot join a room without a username set."}
     else
-      if String.length(game_name) > 0 do
-        case GameServer.game_pid(game_name) do
+      if String.length(room_name) > 0 do
+        Logger.info("Player '#{username(new_socket)}' joined room '#{room_name}'")
+
+        case GameServer.room_pid(room_name) do
           pid when is_pid(pid) ->
-            send(self(), {:after_join, game_name})
+            Logger.info("Room already exists")
+            send(self(), {:after_join, room_name})
 
             # Alert the player of the existing game state
-            game = GameServer.summary(game_name)
-            {:ok, handle_out_game(game, new_socket), new_socket}
+            room = GameServer.summary(room_name)
+            {:ok, room, new_socket}
 
           nil ->
-            send(self(), {:after_join, game_name})
-            {:ok, new_socket}
+            Logger.info("Room does not exists")
+            {:error, "That room does not exist"}
         end
       else
         logError(socket, "invalid room name")
-        {:error, {:reason, "invalid room name"}}
+        {:error, "invalid room name"}
       end
     end
   end
@@ -51,17 +49,19 @@ defmodule AvalonWeb.GameChannel do
     {:noreply, socket}
   end
 
+  # GAME ACTIONS
+
   def handle_in("game:start", _payload, socket) do
-    "room:" <> game_name = socket.topic
+    "room:" <> room_name = socket.topic
     log(socket, "game started")
 
     # If the game is not already started, start the game
-    if GameServer.game_pid(game_name) == nil do
+    if GameServer.room_pid(room_name) == nil do
       players = Map.keys(Presence.list(socket))
-      GameSupervisor.start_game(game_name, players)
+      GameSupervisor.start_game(room_name, players)
 
       # Alert all players of the new game state
-      summary = GameServer.summary(game_name)
+      summary = GameServer.summary(room_name)
       broadcast!(socket, "game:state", summary)
     end
 
@@ -69,19 +69,46 @@ defmodule AvalonWeb.GameChannel do
   end
 
   def handle_in("game:stop", _payload, socket) do
-    "room:" <> game_name = socket.topic
+    "room:" <> room_name = socket.topic
     log(socket, "game stopped")
 
-    # If the game is running, stop the game
-    if GameServer.game_pid(game_name) != nil do
-      GameSupervisor.stop_game(game_name)
+    if GameServer.room_pid(room_name) == nil do
+      GameSupervisor.stop_game(room_name)
+
+      # Alert all players of the new game state
+      summary = GameServer.summary(room_name)
+      broadcast!(socket, "game:state", summary)
     end
+
+    # If the game is running, stop the game
+    # if GameServer.room_pid(game_name) != nil do
+    #   GameSupervisor.stop_game(game_name)
+    # end
 
     # Alert all players of the new game state
     broadcast!(socket, "game:stop", %{})
 
     {:noreply, socket}
   end
+
+  def handle_in("game:restart", _payload, socket) do
+    "room:" <> game_name = socket.topic
+
+    case GameServer.game_pid(game_name) do
+      pid when is_pid(pid) ->
+        log(socket, "player is restarting game")
+        game = GameServer.restart_game(game_name)
+
+        broadcast!(socket, "game:state", game)
+
+        {:noreply, socket}
+
+      nil ->
+        {:reply, {:error, "Game does not exist"}, socket}
+    end
+  end
+
+  # PLAYER ACTIONS
 
   def handle_in("player:ready", _payload, socket) do
     "room:" <> game_name = socket.topic
@@ -90,134 +117,6 @@ defmodule AvalonWeb.GameChannel do
       pid when is_pid(pid) ->
         log(socket, "player is ready")
         game = GameServer.player_ready(game_name, username(socket))
-
-        broadcast!(socket, "game:state", game)
-
-        {:noreply, socket}
-
-      nil ->
-        {:reply, {:error, %{reason: "Game does not exist"}}, socket}
-    end
-  end
-
-  def handle_in("quest:select_player", %{"player" => player}, socket) do
-    "room:" <> game_name = socket.topic
-
-    case GameServer.game_pid(game_name) do
-      pid when is_pid(pid) ->
-        log(socket, "selected player '#{player}' for quest")
-        game = GameServer.select_quest_member(game_name, username(socket), player)
-
-        if game != nil do
-          broadcast!(socket, "game:state", game)
-          {:noreply, socket}
-        else
-          {:reply, {:error, %{reason: "Error selecting quest member."}}, socket}
-        end
-
-      nil ->
-        {:reply, {:error, %{reason: "Game does not exist"}}, socket}
-    end
-  end
-
-  def handle_in("quest:deselect_player", %{"player" => player}, socket) do
-    "room:" <> game_name = socket.topic
-
-    case GameServer.game_pid(game_name) do
-      pid when is_pid(pid) ->
-        log(socket, "deselected player '#{player}' from quest")
-        game = GameServer.deselect_quest_member(game_name, username(socket), player)
-
-        if game != nil do
-          broadcast!(socket, "game:state", game)
-          {:noreply, socket}
-        else
-          {:reply, {:error, %{reason: "Error deselecting quest member."}}, socket}
-        end
-
-      nil ->
-        {:reply, {:error, %{reason: "Game does not exist"}}, socket}
-    end
-  end
-
-  def handle_in("quest:begin_voting", _payload, socket) do
-    "room:" <> game_name = socket.topic
-
-    case GameServer.game_pid(game_name) do
-      pid when is_pid(pid) ->
-        log(socket, "player '#{username(socket)}' began voting")
-        game = GameServer.begin_voting(game_name, username(socket))
-
-        if game != nil do
-          broadcast!(socket, "game:state", game)
-          {:noreply, socket}
-        else
-          {:reply, {:error, %{reason: "Error begining voting on quest."}}, socket}
-        end
-
-      nil ->
-        {:reply, {:error, %{reason: "Game does not exist"}}, socket}
-    end
-  end
-
-  def handle_in("quest:accept_vote", _payload, socket) do
-    "room:" <> game_name = socket.topic
-
-    case GameServer.game_pid(game_name) do
-      pid when is_pid(pid) ->
-        log(socket, "player is voing to accept")
-        game = GameServer.player_vote(game_name, username(socket), :accept)
-
-        broadcast!(socket, "game:state", game)
-
-        {:noreply, socket}
-
-      nil ->
-        {:reply, {:error, %{reason: "Game does not exist"}}, socket}
-    end
-  end
-
-  def handle_in("quest:reject_vote", _payload, socket) do
-    "room:" <> game_name = socket.topic
-
-    case GameServer.game_pid(game_name) do
-      pid when is_pid(pid) ->
-        log(socket, "player is voing to reject")
-        game = GameServer.player_vote(game_name, username(socket), :reject)
-
-        broadcast!(socket, "game:state", game)
-
-        {:noreply, socket}
-
-      nil ->
-        {:reply, {:error, %{reason: "Game does not exist"}}, socket}
-    end
-  end
-
-  def handle_in("quest:success", _payload, socket) do
-    "room:" <> game_name = socket.topic
-
-    case GameServer.game_pid(game_name) do
-      pid when is_pid(pid) ->
-        log(socket, "player is playing success quest card")
-        game = GameServer.play_quest_card(game_name, username(socket), :success)
-
-        broadcast!(socket, "game:state", game)
-
-        {:noreply, socket}
-
-      nil ->
-        {:reply, {:error, %{reason: "Game does not exist"}}, socket}
-    end
-  end
-
-  def handle_in("quest:fail", _payload, socket) do
-    "room:" <> game_name = socket.topic
-
-    case GameServer.game_pid(game_name) do
-      pid when is_pid(pid) ->
-        log(socket, "player is playing fail quest card")
-        game = GameServer.play_quest_card(game_name, username(socket), :fail)
 
         broadcast!(socket, "game:state", game)
 
@@ -241,32 +140,150 @@ defmodule AvalonWeb.GameChannel do
         {:noreply, socket}
 
       nil ->
-        {:reply, {:error, %{reason: "Game does not exist"}}, socket}
+        {:reply, {:error, "Game does not exist"}, socket}
     end
   end
 
-  def handle_in("game:restart", _payload, socket) do
+  # TEAM ACTIONS
+
+  def handle_in("team:select_player", %{"player" => player}, socket) do
     "room:" <> game_name = socket.topic
 
     case GameServer.game_pid(game_name) do
       pid when is_pid(pid) ->
-        log(socket, "player is restarting game")
-        game = GameServer.restart_game(game_name)
+        log(socket, "selected player '#{player}' for quest")
+        game = GameServer.select_quest_member(game_name, username(socket), player)
+
+        if game != nil do
+          broadcast!(socket, "game:state", game)
+          {:noreply, socket}
+        else
+          {:reply, {:error, "Error selecting quest member."}, socket}
+        end
+
+      nil ->
+        {:reply, {:error, "Game does not exist"}, socket}
+    end
+  end
+
+  def handle_in("team:deselect_player", %{"player" => player}, socket) do
+    "room:" <> game_name = socket.topic
+
+    case GameServer.game_pid(game_name) do
+      pid when is_pid(pid) ->
+        log(socket, "deselected player '#{player}' from quest")
+        game = GameServer.deselect_quest_member(game_name, username(socket), player)
+
+        if game != nil do
+          broadcast!(socket, "game:state", game)
+          {:noreply, socket}
+        else
+          {:reply, {:error, "Error deselecting quest member."}, socket}
+        end
+
+      nil ->
+        {:reply, {:error, "Game does not exist"}, socket}
+    end
+  end
+
+  def handle_in("team:begin_voting", _payload, socket) do
+    "room:" <> game_name = socket.topic
+
+    case GameServer.game_pid(game_name) do
+      pid when is_pid(pid) ->
+        log(socket, "player '#{username(socket)}' began voting")
+        game = GameServer.begin_voting(game_name, username(socket))
+
+        if game != nil do
+          broadcast!(socket, "game:state", game)
+          {:noreply, socket}
+        else
+          {:reply, {:error, "Error begining voting on quest."}, socket}
+        end
+
+      nil ->
+        {:reply, {:error, "Game does not exist"}, socket}
+    end
+  end
+
+  def handle_in("team:accept_vote", _payload, socket) do
+    "room:" <> game_name = socket.topic
+
+    case GameServer.game_pid(game_name) do
+      pid when is_pid(pid) ->
+        log(socket, "player is voing to accept")
+        game = GameServer.player_vote(game_name, username(socket), :accept)
 
         broadcast!(socket, "game:state", game)
 
         {:noreply, socket}
 
       nil ->
-        {:reply, {:error, %{reason: "Game does not exist"}}, socket}
+        {:reply, {:error, "Game does not exist"}, socket}
     end
   end
 
-  def handle_in(message, payload, socket) do
-    logError(socket, "unknown command: '#{message}' payload: '#{inspect(payload)}'")
-    {:noreply, socket}
+  def handle_in("team:reject_vote", _payload, socket) do
+    "room:" <> game_name = socket.topic
+
+    case GameServer.game_pid(game_name) do
+      pid when is_pid(pid) ->
+        log(socket, "player is voing to reject")
+        game = GameServer.player_vote(game_name, username(socket), :reject)
+
+        broadcast!(socket, "game:state", game)
+
+        {:noreply, socket}
+
+      nil ->
+        {:reply, {:error, "Game does not exist"}, socket}
+    end
   end
 
+  # QUEST ACTIONS
+
+  def handle_in("quest:success", _payload, socket) do
+    "room:" <> game_name = socket.topic
+
+    case GameServer.game_pid(game_name) do
+      pid when is_pid(pid) ->
+        log(socket, "player is playing success quest card")
+        game = GameServer.play_quest_card(game_name, username(socket), :success)
+
+        broadcast!(socket, "game:state", game)
+
+        {:noreply, socket}
+
+      nil ->
+        {:reply, {:error, "Game does not exist"}, socket}
+    end
+  end
+
+  def handle_in("quest:fail", _payload, socket) do
+    "room:" <> game_name = socket.topic
+
+    case GameServer.game_pid(game_name) do
+      pid when is_pid(pid) ->
+        log(socket, "player is playing fail quest card")
+        game = GameServer.play_quest_card(game_name, username(socket), :fail)
+
+        broadcast!(socket, "game:state", game)
+
+        {:noreply, socket}
+
+      nil ->
+        {:reply, {:error, "Game does not exist"}, socket}
+    end
+  end
+
+  # Handle invalid command
+  def handle_in(message, payload, socket) do
+    logError(socket, "unknown command: '#{message}' payload: '#{inspect(payload)}'")
+    {:reply, {:error, "Unknown command"}}
+  end
+
+  # Filter our output to only show the player what they are supposed
+  # to know.
   def handle_out("game:state", game, socket) do
     push(socket, "game:state", handle_out_game(game, socket))
 

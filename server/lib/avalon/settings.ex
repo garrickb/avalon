@@ -7,7 +7,7 @@ defmodule Avalon.Settings do
   require Logger
 
   @doc """
-  Creates a new lobby
+  Create new settings
   """
   def new() do
     %Settings{

@@ -11,11 +11,11 @@ defmodule Avalon.Application do
     children = [
       supervisor(AvalonWeb.Endpoint, []),
       AvalonWeb.Presence,
-      {Registry, keys: :unique, name: Avalon.GameRegistry},
-      Avalon.Game.Supervisor
+      {Registry, keys: :unique, name: Avalon.Room.Registry},
+      Avalon.Room.Supervisor
     ]
 
-    :ets.new(:games_table, [:public, :named_table])
+    :ets.new(:rooms_table, [:public, :named_table])
 
     opts = [strategy: :one_for_one, name: Avalon.Supervisor]
     Supervisor.start_link(children, opts)

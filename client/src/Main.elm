@@ -126,6 +126,9 @@ stateSubscriptions model =
 stateChannels : Model -> List (Channel Msg)
 stateChannels model =
     case model.state of
+        Home _ ->
+            [ Channel.map HomeMsg (Home.getChannel model.session) ]
+
         Lobby lobbyModel ->
             [ Channel.map LobbyMsg (Lobby.getChannel model.session lobbyModel.name) ]
 
@@ -205,7 +208,7 @@ updateState state msg model =
                         Home.NoOp ->
                             model
 
-                        Home.SetSessionInfo lobby user ->
+                        Home.SetSessionInfo user ->
                             let
                                 oldSession =
                                     model.session
@@ -215,10 +218,13 @@ updateState state msg model =
                             in
                             { model | session = newSession }
 
+                        Home.SetMessage msg ->
+                            { model | message = msg }
+
                 cmds =
                     case msgFromPage of
                         -- Update the storage if we are updating our session
-                        Home.SetSessionInfo _ _ ->
+                        Home.SetSessionInfo _ ->
                             [ setStorage newModel.session, Cmd.map HomeMsg cmd ]
 
                         _ ->
@@ -228,10 +234,18 @@ updateState state msg model =
 
         ( LobbyMsg subMsg, Lobby subModel ) ->
             let
-                ( stateModel, cmd ) =
+                ( ( stateModel, cmd ), msgFromPage ) =
                     Lobby.update model.session subMsg subModel
+
+                newModel =
+                    case msgFromPage of
+                        Lobby.NoOp ->
+                            model
+
+                        Lobby.SetMessage msg ->
+                            { model | message = msg }
             in
-            ( { model | state = Lobby stateModel }, Cmd.map LobbyMsg cmd )
+            ( { newModel | state = Lobby stateModel }, Cmd.map LobbyMsg cmd )
 
         ( _, _ ) ->
             ( model, Cmd.none )

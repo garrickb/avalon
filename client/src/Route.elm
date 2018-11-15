@@ -23,7 +23,7 @@ route : Parser (Route -> a) a
 route =
     oneOf
         [ Url.map Home (s "")
-        , Url.map Lobby (s "lobby" </> string)
+        , Url.map Lobby (s "room" </> string)
         ]
 
 
@@ -43,10 +43,7 @@ routeToString route =
                     []
 
                 Lobby name ->
-                    [ "lobby", name ]
-
-        -- Lobby lobbyName ->
-        --     [ "lobby", LobbyName.toString lobbyName ]
+                    [ "room", name ]
     in
     "#/" ++ String.join "/" pieces
 

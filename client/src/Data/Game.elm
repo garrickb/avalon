@@ -1,4 +1,4 @@
-module Data.Game exposing (Alignment(..), Game, GameFsmState(..), Player, Quest, RoleType(..), decodeGame)
+module Data.Game exposing (Alignment(..), Game, GameFsmState(..), Player, Quest, RoleType(..), Room, decodeGame, decodeRoom)
 
 import Json.Decode exposing (..)
 
@@ -30,6 +30,23 @@ type RoleType
     | Mordred
     | Oberon
     | Morgana
+
+
+type alias Room =
+    { id : String
+    , settings : Settings
+    , game : Maybe Game
+    }
+
+
+type alias Settings =
+    { merlin : Bool
+    , assassin : Bool
+    , percival : Bool
+    , mordred : Bool
+    , oberon : Bool
+    , morgana : Bool
+    }
 
 
 type alias Game =
@@ -82,6 +99,25 @@ type alias Role =
     { name : RoleType
     , alignment : Alignment
     }
+
+
+decodeRoom : Decoder Room
+decodeRoom =
+    map3 Room
+        (field "id" string)
+        (field "settings" decodeSettings)
+        (field "game" (maybe decodeGame))
+
+
+decodeSettings : Decoder Settings
+decodeSettings =
+    map6 Settings
+        (field "merlin" bool)
+        (field "assassin" bool)
+        (field "percival" bool)
+        (field "mordred" bool)
+        (field "oberon" bool)
+        (field "morgana" bool)
 
 
 decodeGame : Decoder Game
