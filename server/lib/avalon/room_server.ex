@@ -40,6 +40,10 @@ defmodule Avalon.Room.Server do
     GenServer.call(via_tuple(room_name), :stop_game)
   end
 
+  def set_setting(room_name, setting_name, setting_value) do
+    GenServer.call(via_tuple(room_name), {:set_setting, setting_name, setting_value})
+  end
+
   @doc """
   Returns a tuple used to register and lookup a room server process by name.
   """
@@ -94,6 +98,14 @@ defmodule Avalon.Room.Server do
 
   def handle_call(:stop_game, _from, room) do
     new_room = Avalon.Room.stop_game(room)
+
+    :ets.insert(:rooms_table, {my_room_name(), new_room})
+
+    {:reply, new_room, new_room, @timeout}
+  end
+
+  def handle_call({:set_setting, name, value}, _from, room) do
+    new_room = Avalon.Room.set_setting(room, name, value)
 
     :ets.insert(:rooms_table, {my_room_name(), new_room})
 

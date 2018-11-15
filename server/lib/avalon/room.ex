@@ -27,4 +27,12 @@ defmodule Avalon.Room do
   def stop_game(room) do
     %{room | game: nil}
   end
+
+  @doc """
+  Sets a setting value
+  """
+  def set_setting(room, setting_name, setting_value) do
+    new_settings = Avalon.Settings.set(room.settings, setting_name, setting_value)
+    %{room | settings: new_settings}
+  end
 end

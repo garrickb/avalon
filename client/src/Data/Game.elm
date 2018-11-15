@@ -1,4 +1,4 @@
-module Data.Game exposing (Alignment(..), Game, GameFsmState(..), Player, Quest, RoleType(..), Room, decodeGame, decodeRoom)
+module Data.Game exposing (Alignment(..), Game, GameFsmState(..), Player, Quest, RoleType(..), Room, Settings, decodeGame, decodeRoom)
 
 import Json.Decode exposing (..)
 

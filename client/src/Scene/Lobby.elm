@@ -60,14 +60,33 @@ characters =
 -- VIEW --
 
 
-viewSetting : String -> Html Msg
-viewSetting name =
+viewSetting : Settings -> String -> Html Msg
+viewSetting settings setting =
+    let
+        value =
+            case setting of
+                "merlin" ->
+                    settings.merlin
+
+                "assassin" ->
+                    settings.assassin
+
+                _ ->
+                    False
+
+        check =
+            \val -> SetSetting setting val
+    in
     div []
-        [ Checkbox.checkbox [ Checkbox.id name ] name ]
+        [ Checkbox.checkbox [ Checkbox.id setting, Checkbox.checked value, Checkbox.onCheck check ] setting ]
 
 
-viewSettings : Modal.Visibility -> Html Msg
-viewSettings visibility =
+viewSettings : Settings -> Modal.Visibility -> Html Msg
+viewSettings settings visibility =
+    let
+        settingNames =
+            [ "merlin", "assassin" ]
+    in
     Modal.config (SettingsModal Modal.hidden)
         |> Modal.small
         |> Modal.hideOnBackdropClick True
@@ -75,7 +94,7 @@ viewSettings visibility =
         |> Modal.body []
             [ Form.form
                 []
-                (List.map viewSetting characters)
+                (List.map (viewSetting settings) settingNames)
             ]
         |> Modal.footer []
             [ Button.button
@@ -122,6 +141,19 @@ viewLobby session model =
                 viewPlayers userName (Dict.fromList [ ( userName, [] ) ])
             else
                 viewPlayers userName model.presence
+
+        settings =
+            case model.roomState of
+                JoinedRoom maybeRoom ->
+                    case maybeRoom of
+                        Nothing ->
+                            text "Invalid room"
+
+                        Just room ->
+                            viewSettings room.settings model.settingsVisibility
+
+                _ ->
+                    text "No Room"
     in
     Grid.row
         [ Row.centerXs, Row.attrs [ style [ ( "height", "100vh" ), ( "overflow", "auto" ) ] ] ]
@@ -161,7 +193,7 @@ viewLobby session model =
                         ]
                     ]
                 |> Card.view
-            , viewSettings model.settingsVisibility
+            , settings
             ]
         ]
 
@@ -172,12 +204,13 @@ view session model =
         JoinedRoom (Just room) ->
             case room.game of
                 Nothing ->
-                    text "no game?"
+                    viewLobby session model
 
                 Just game ->
                     Html.map GameMsg <| Scene.Game.view session game
 
         _ ->
+            -- TODO: Display a loading page?
             viewLobby session model
 
 
@@ -207,10 +240,9 @@ getChannel session name =
         |> Channel.withPayload (JE.object params)
         |> Channel.onRequestJoin RoomJoining
         |> Channel.onJoin (\msg -> RoomJoined msg)
-        --|> Channel.onLeave (\msg -> GoToHomePageWithMessage (InfoMsg (toString msg)))
         |> Channel.onJoinError (\msg -> GoToHomePageWithMessage (ErrorMsg (toString msg)))
-        |> Channel.on "game:state" (\msg -> NewGameState (Just msg))
-        |> Channel.on "game:stop" (\msg -> NewGameState Nothing)
+        |> Channel.on "room:state" (\msg -> NewRoomState (Just msg))
+        |> Channel.on "game:stop" (\msg -> NewRoomState Nothing)
         |> Channel.withPresence presence
         |> Channel.withDebug
 
@@ -231,13 +263,25 @@ type Msg
     | UpdatePresence (Dict String (List JD.Value))
     | SettingsModal Modal.Visibility
     | StartGame
-    | NewGameState (Maybe JD.Value)
+    | NewRoomState (Maybe JD.Value)
     | GameMsg Scene.Game.Msg
+    | SetSetting String Bool
 
 
 update : Session -> Msg -> Model -> ( ( Model, Cmd Msg ), ExternalMsg )
 update session msg model =
     case msg of
+        SetSetting name value ->
+            let
+                params =
+                    [ ( "name", JE.string name ), ( "value", JE.bool value ) ]
+
+                push =
+                    Push.init (roomChannelName model.name) "setting:set"
+                        |> Push.withPayload (JE.object params)
+            in
+            ( model ! [ Phoenix.push socketUrl push ], NoOp )
+
         GoToHomePageWithMessage msg ->
             ( model ! [ Route.modifyUrl Route.Home ], SetMessage msg )
 
@@ -247,9 +291,9 @@ update session msg model =
         RoomJoined room ->
             let
                 ( ( mdl, msg ), exMsg ) =
-                    update session (NewGameState (Just room)) model
+                    update session (NewRoomState (Just room)) model
             in
-            ( { mdl | roomState = JoinedRoom Nothing } ! [ msg ], exMsg )
+            ( mdl ! [ msg ], exMsg )
 
         UpdatePresence presenceState ->
             ( { model | presence = Debug.log "presenceState " presenceState }
@@ -260,31 +304,18 @@ update session msg model =
         SettingsModal visibility ->
             ( { model | settingsVisibility = visibility } ! [], NoOp )
 
-        NewGameState game_state ->
-            let
-                log =
-                    Debug.log "NewGameState: " game_state
-            in
-            case game_state of
+        NewRoomState roomState ->
+            case roomState of
                 Nothing ->
                     ( { model | roomState = JoinedRoom Nothing } ! [], NoOp )
 
                 Just payload ->
-                    case Debug.log "ROOMSTATE: " model.roomState of
-                        JoinedRoom _ ->
-                            case JD.decodeValue decodeRoom payload of
-                                Ok game ->
-                                    ( { model | roomState = JoinedRoom (Just (Debug.log "new game state" game)) } ! [], NoOp )
+                    case JD.decodeValue decodeRoom payload of
+                        Ok newRoom ->
+                            ( { model | roomState = JoinedRoom (Just newRoom) } ! [], SetMessage (InfoMsg ("Joined: " ++ toString newRoom)) )
 
-                                Err err ->
-                                    let
-                                        log =
-                                            Debug.log "Error decoding state: " err
-                                    in
-                                    ( model ! [], NoOp )
-
-                        _ ->
-                            ( model ! [], NoOp )
+                        Err err ->
+                            ( model ! [], SetMessage (ErrorMsg (toString err)) )
 
         StartGame ->
             let

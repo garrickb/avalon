@@ -51,6 +51,23 @@ defmodule AvalonWeb.RoomChannel do
 
   # GAME ACTIONS
 
+  def handle_in("setting:set", %{"name" => name, "value" => value}, socket) do
+    "room:" <> room_name = socket.topic
+    log(socket, "setting #{name}, #{value}")
+
+    case GameServer.room_pid(room_name) do
+      pid when is_pid(pid) ->
+        log(socket, "player is changing setting for #{name} to #{value}")
+        room = GameServer.set_setting(room_name, name, value)
+
+        broadcast!(socket, "room:state", room)
+        {:noreply, socket}
+
+      nil ->
+        {:reply, {:error, "Room does not exist"}, socket}
+    end
+  end
+
   def handle_in("game:start", _payload, socket) do
     "room:" <> room_name = socket.topic
     log(socket, "game started")
@@ -62,7 +79,7 @@ defmodule AvalonWeb.RoomChannel do
 
       # Alert all players of the new game state
       summary = GameServer.summary(room_name)
-      broadcast!(socket, "game:state", summary)
+      broadcast!(socket, "room:state", summary)
     end
 
     {:noreply, socket}
@@ -77,7 +94,7 @@ defmodule AvalonWeb.RoomChannel do
 
       # Alert all players of the new game state
       summary = GameServer.summary(room_name)
-      broadcast!(socket, "game:state", summary)
+      broadcast!(socket, "room:state", summary)
     end
 
     # If the game is running, stop the game
@@ -99,7 +116,7 @@ defmodule AvalonWeb.RoomChannel do
         log(socket, "player is restarting game")
         game = GameServer.restart_game(game_name)
 
-        broadcast!(socket, "game:state", game)
+        broadcast!(socket, "room:state", game)
 
         {:noreply, socket}
 
@@ -118,7 +135,7 @@ defmodule AvalonWeb.RoomChannel do
         log(socket, "player is ready")
         game = GameServer.player_ready(game_name, username(socket))
 
-        broadcast!(socket, "game:state", game)
+        broadcast!(socket, "room:state", game)
 
         {:noreply, socket}
 
@@ -135,7 +152,7 @@ defmodule AvalonWeb.RoomChannel do
         log(socket, "player is assassinating '#{player}'")
         game = GameServer.assassinate(game_name, username(socket), player)
 
-        broadcast!(socket, "game:state", game)
+        broadcast!(socket, "room:state", game)
 
         {:noreply, socket}
 
@@ -155,7 +172,7 @@ defmodule AvalonWeb.RoomChannel do
         game = GameServer.select_quest_member(game_name, username(socket), player)
 
         if game != nil do
-          broadcast!(socket, "game:state", game)
+          broadcast!(socket, "room:state", game)
           {:noreply, socket}
         else
           {:reply, {:error, "Error selecting quest member."}, socket}
@@ -175,7 +192,7 @@ defmodule AvalonWeb.RoomChannel do
         game = GameServer.deselect_quest_member(game_name, username(socket), player)
 
         if game != nil do
-          broadcast!(socket, "game:state", game)
+          broadcast!(socket, "room:state", game)
           {:noreply, socket}
         else
           {:reply, {:error, "Error deselecting quest member."}, socket}
@@ -195,7 +212,7 @@ defmodule AvalonWeb.RoomChannel do
         game = GameServer.begin_voting(game_name, username(socket))
 
         if game != nil do
-          broadcast!(socket, "game:state", game)
+          broadcast!(socket, "room:state", game)
           {:noreply, socket}
         else
           {:reply, {:error, "Error begining voting on quest."}, socket}
@@ -214,7 +231,7 @@ defmodule AvalonWeb.RoomChannel do
         log(socket, "player is voing to accept")
         game = GameServer.player_vote(game_name, username(socket), :accept)
 
-        broadcast!(socket, "game:state", game)
+        broadcast!(socket, "room:state", game)
 
         {:noreply, socket}
 
@@ -231,7 +248,7 @@ defmodule AvalonWeb.RoomChannel do
         log(socket, "player is voing to reject")
         game = GameServer.player_vote(game_name, username(socket), :reject)
 
-        broadcast!(socket, "game:state", game)
+        broadcast!(socket, "room:state", game)
 
         {:noreply, socket}
 
@@ -250,7 +267,7 @@ defmodule AvalonWeb.RoomChannel do
         log(socket, "player is playing success quest card")
         game = GameServer.play_quest_card(game_name, username(socket), :success)
 
-        broadcast!(socket, "game:state", game)
+        broadcast!(socket, "room:state", game)
 
         {:noreply, socket}
 
@@ -267,7 +284,7 @@ defmodule AvalonWeb.RoomChannel do
         log(socket, "player is playing fail quest card")
         game = GameServer.play_quest_card(game_name, username(socket), :fail)
 
-        broadcast!(socket, "game:state", game)
+        broadcast!(socket, "room:state", game)
 
         {:noreply, socket}
 
@@ -284,8 +301,8 @@ defmodule AvalonWeb.RoomChannel do
 
   # Filter our output to only show the player what they are supposed
   # to know.
-  def handle_out("game:state", game, socket) do
-    push(socket, "game:state", handle_out_game(game, socket))
+  def handle_out("room:state", game, socket) do
+    push(socket, "room:state", handle_out_game(game, socket))
 
     {:noreply, socket}
   end
