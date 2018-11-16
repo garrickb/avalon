@@ -31,10 +31,11 @@ config :avalon, AvalonWeb.Endpoint,
 
 # tell logger to load a LoggerFileBackend processes
 config :logger,
-  backends: [{LoggerFileBackend, :error_log}]
+  backends: [{LoggerFileBackend, :warn_log}, :console]
 
 # Do not include metadata nor timestamps in development logs
-config :logger, :error_log, level: :debug, path: "/tmp/avalon-debug.log"
+config :logger, :console, format: "[$level] $message\n"
+config :logger, :warn_log, level: :warn, path: "/tmp/avalon-debug.log"
 
 # Set a higher stacktrace during development. Avoid configuring such
 # in production as building large stacktraces may be expensive.

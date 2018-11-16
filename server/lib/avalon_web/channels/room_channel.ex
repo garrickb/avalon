@@ -9,7 +9,7 @@ defmodule AvalonWeb.RoomChannel do
   intercept(["room:state"])
 
   def join("room:" <> room_name, params, socket) do
-    new_socket = assign(socket, :username, params["username"])
+    new_socket = socket |> assign(:username, params["username"])
 
     if username(new_socket) == nil || Kernel.byte_size(username(new_socket)) == 0 do
       {:error, "You cannot join a room without a username set."}
@@ -17,17 +17,11 @@ defmodule AvalonWeb.RoomChannel do
       if String.length(room_name) > 0 do
         Logger.info("Player '#{username(new_socket)}' joined room '#{room_name}'")
 
-        case GameServer.room_pid(room_name) do
-          pid when is_pid(pid) ->
-            send(self(), {:after_join, room_name})
-            room = GameServer.summary(room_name)
-
-            {:ok, %{room | game: handle_out_game(room.game, new_socket)}, new_socket}
-
-          nil ->
-            Logger.info("Room does not exists")
-            {:error, "That room does not exist"}
-        end
+        find_room(socket, fn _ ->
+          send(self(), {:after_join, room_name})
+          room = GameServer.summary(room_name)
+          {:ok, %{room | game: handle_out_game(room.game, new_socket)}, new_socket}
+        end)
       else
         logError(socket, "invalid room name")
         {:error, "invalid room name"}
@@ -52,238 +46,127 @@ defmodule AvalonWeb.RoomChannel do
   # GAME ACTIONS
 
   def handle_in("setting:set", %{"name" => name, "value" => value}, socket) do
-    "room:" <> room_name = socket.topic
-    log(socket, "setting #{name}, #{value}")
-
-    case GameServer.room_pid(room_name) do
-      pid when is_pid(pid) ->
-        log(socket, "player is changing setting for #{name} to #{value}")
-        room = GameServer.set_setting(room_name, name, value)
-
-        broadcast!(socket, "room:state", room)
-        {:noreply, socket}
-
-      nil ->
-        {:reply, {:error, "Room does not exist"}, socket}
-    end
+    find_room_with_reply(socket, fn _ ->
+      log(socket, "player is changing setting for #{name} to #{value}")
+      room = GameServer.set_setting(room_name(socket), name, value)
+      broadcast!(socket, "room:state", room)
+      {:noreply, socket}
+    end)
   end
 
   def handle_in("game:start", _payload, socket) do
-    "room:" <> room_name = socket.topic
-    log(socket, "starting game")
-
-    # If the game is not already started, start the game
-    case GameServer.room_pid(room_name) do
-      pid when is_pid(pid) ->
-        players = Map.keys(Presence.list(socket))
-        new_room = GameServer.start_game(room_name, players)
-        broadcast!(socket, "room:state", new_room)
-        {:noreply, socket}
-
-      nil ->
-        {:reply, {:error, "Room does not exist"}, socket}
-    end
+    find_room_with_reply(socket, fn _ ->
+      log(socket, "game started")
+      players = Map.keys(Presence.list(socket))
+      new_room = GameServer.start_game(room_name(socket), players)
+      broadcast!(socket, "room:state", new_room)
+      {:noreply, socket}
+    end)
   end
 
   def handle_in("game:stop", _payload, socket) do
-    "room:" <> room_name = socket.topic
-    log(socket, "game stopped")
-
-    # If the game is not already started, start the game
-    case GameServer.room_pid(room_name) do
-      pid when is_pid(pid) ->
-        new_room = GameServer.stop_game(room_name)
-        broadcast!(socket, "room:state", new_room)
-        {:noreply, socket}
-
-      nil ->
-        {:reply, {:error, "Room does not exist"}, socket}
-    end
+    find_room_with_reply(socket, fn _ ->
+      log(socket, "game stopped")
+      room = GameServer.stop_game(room_name(socket))
+      broadcast!(socket, "room:state", room)
+      {:noreply, socket}
+    end)
   end
 
   def handle_in("game:restart", _payload, socket) do
-    "room:" <> game_name = socket.topic
-
-    case GameServer.room_pid(game_name) do
-      pid when is_pid(pid) ->
-        log(socket, "player is restarting game")
-        game = GameServer.restart_game(game_name)
-
-        broadcast!(socket, "room:state", game)
-
-        {:noreply, socket}
-
-      nil ->
-        {:reply, {:error, "Game does not exist"}, socket}
-    end
+    find_room_with_reply(socket, fn _ ->
+      log(socket, "restarting game")
+      room = GameServer.restart_game(room_name(socket))
+      broadcast!(socket, "room:state", room)
+      {:noreply, socket}
+    end)
   end
 
   # PLAYER ACTIONS
 
   def handle_in("player:ready", _payload, socket) do
-    "room:" <> game_name = socket.topic
-
-    case GameServer.room_pid(game_name) do
-      pid when is_pid(pid) ->
-        log(socket, "player is ready")
-        game = GameServer.player_ready(game_name, username(socket))
-
-        broadcast!(socket, "room:state", game)
-
-        {:noreply, socket}
-
-      nil ->
-        {:reply, {:error, %{reason: "Game does not exist"}}, socket}
-    end
+    find_room_with_reply(socket, fn _ ->
+      log(socket, "player is ready")
+      room = GameServer.player_ready(room_name(socket), username(socket))
+      broadcast!(socket, "room:state", room)
+      {:noreply, socket}
+    end)
   end
 
   def handle_in("player:assassinate", %{"player" => player}, socket) do
-    "room:" <> game_name = socket.topic
-
-    case GameServer.room_pid(game_name) do
-      pid when is_pid(pid) ->
-        log(socket, "player is assassinating '#{player}'")
-        game = GameServer.assassinate(game_name, username(socket), player)
-
-        broadcast!(socket, "room:state", game)
-
-        {:noreply, socket}
-
-      nil ->
-        {:reply, {:error, "Game does not exist"}, socket}
-    end
+    find_room_with_reply(socket, fn _ ->
+      log(socket, "player is assassinating '#{player}'")
+      room = GameServer.assassinate(room_name(socket), username(socket), player)
+      broadcast!(socket, "room:state", room)
+      {:noreply, socket}
+    end)
   end
 
   # TEAM ACTIONS
 
   def handle_in("team:select_player", %{"player" => player}, socket) do
-    "room:" <> game_name = socket.topic
-
-    case GameServer.room_pid(game_name) do
-      pid when is_pid(pid) ->
-        log(socket, "selected player '#{player}' for quest")
-        game = GameServer.select_quest_member(game_name, username(socket), player)
-
-        if game != nil do
-          broadcast!(socket, "room:state", game)
-          {:noreply, socket}
-        else
-          {:reply, {:error, "Error selecting quest member."}, socket}
-        end
-
-      nil ->
-        {:reply, {:error, "Game does not exist"}, socket}
-    end
+    find_room_with_reply(socket, fn _ ->
+      log(socket, "selected player '#{player}' for quest")
+      room = GameServer.select_quest_member(room_name(socket), username(socket), player)
+      broadcast!(socket, "room:state", room)
+      {:noreply, socket}
+    end)
   end
 
   def handle_in("team:deselect_player", %{"player" => player}, socket) do
-    "room:" <> game_name = socket.topic
-
-    case GameServer.room_pid(game_name) do
-      pid when is_pid(pid) ->
-        log(socket, "deselected player '#{player}' from quest")
-        game = GameServer.deselect_quest_member(game_name, username(socket), player)
-
-        if game != nil do
-          broadcast!(socket, "room:state", game)
-          {:noreply, socket}
-        else
-          {:reply, {:error, "Error deselecting quest member."}, socket}
-        end
-
-      nil ->
-        {:reply, {:error, "Game does not exist"}, socket}
-    end
+    find_room_with_reply(socket, fn _ ->
+      log(socket, "deselected player '#{player}' from quest")
+      room = GameServer.deselect_quest_member(room_name(socket), username(socket), player)
+      broadcast!(socket, "room:state", room)
+      {:noreply, socket}
+    end)
   end
 
   def handle_in("team:begin_voting", _payload, socket) do
-    "room:" <> game_name = socket.topic
-
-    case GameServer.room_pid(game_name) do
-      pid when is_pid(pid) ->
-        log(socket, "player '#{username(socket)}' began voting")
-        game = GameServer.begin_voting(game_name, username(socket))
-
-        if game != nil do
-          broadcast!(socket, "room:state", game)
-          {:noreply, socket}
-        else
-          {:reply, {:error, "Error begining voting on quest."}, socket}
-        end
-
-      nil ->
-        {:reply, {:error, "Game does not exist"}, socket}
-    end
+    find_room_with_reply(socket, fn _ ->
+      log(socket, "player '#{username(socket)}' began voting")
+      room = GameServer.begin_voting(room_name(socket), username(socket))
+      broadcast!(socket, "room:state", room)
+      {:noreply, socket}
+    end)
   end
 
   def handle_in("team:accept_vote", _payload, socket) do
-    "room:" <> game_name = socket.topic
-
-    case GameServer.room_pid(game_name) do
-      pid when is_pid(pid) ->
-        log(socket, "player is voing to accept")
-        game = GameServer.player_vote(game_name, username(socket), :accept)
-
-        broadcast!(socket, "room:state", game)
-
-        {:noreply, socket}
-
-      nil ->
-        {:reply, {:error, "Game does not exist"}, socket}
-    end
+    find_room_with_reply(socket, fn _ ->
+      log(socket, "player is voing to accept")
+      room = GameServer.player_vote(room_name(socket), username(socket), :accept)
+      broadcast!(socket, "room:state", room)
+      {:noreply, socket}
+    end)
   end
 
   def handle_in("team:reject_vote", _payload, socket) do
-    "room:" <> game_name = socket.topic
-
-    case GameServer.room_pid(game_name) do
-      pid when is_pid(pid) ->
-        log(socket, "player is voing to reject")
-        game = GameServer.player_vote(game_name, username(socket), :reject)
-
-        broadcast!(socket, "room:state", game)
-
-        {:noreply, socket}
-
-      nil ->
-        {:reply, {:error, "Game does not exist"}, socket}
-    end
+    find_room_with_reply(socket, fn _ ->
+      log(socket, "player is voing to reject")
+      room = GameServer.player_vote(room_name(socket), username(socket), :reject)
+      broadcast!(socket, "room:state", room)
+      {:noreply, socket}
+    end)
   end
 
   # QUEST ACTIONS
 
   def handle_in("quest:success", _payload, socket) do
-    "room:" <> game_name = socket.topic
-
-    case GameServer.room_pid(game_name) do
-      pid when is_pid(pid) ->
-        log(socket, "player is playing success quest card")
-        game = GameServer.play_quest_card(game_name, username(socket), :success)
-
-        broadcast!(socket, "room:state", game)
-
-        {:noreply, socket}
-
-      nil ->
-        {:reply, {:error, "Game does not exist"}, socket}
-    end
+    find_room_with_reply(socket, fn _ ->
+      log(socket, "player is playing success quest card")
+      room = GameServer.play_quest_card(room_name(socket), username(socket), :success)
+      broadcast!(socket, "room:state", room)
+      {:noreply, socket}
+    end)
   end
 
   def handle_in("quest:fail", _payload, socket) do
-    "room:" <> game_name = socket.topic
-
-    case GameServer.room_pid(game_name) do
-      pid when is_pid(pid) ->
-        log(socket, "player is playing fail quest card")
-        game = GameServer.play_quest_card(game_name, username(socket), :fail)
-
-        broadcast!(socket, "room:state", game)
-
-        {:noreply, socket}
-
-      nil ->
-        {:reply, {:error, "Game does not exist"}, socket}
-    end
+    find_room_with_reply(socket, fn _ ->
+      log(socket, "player is playing fail quest card")
+      room = GameServer.play_quest_card(room_name(socket), username(socket), :fail)
+      broadcast!(socket, "room:state", room)
+      {:noreply, socket}
+    end)
   end
 
   # Handle invalid command
@@ -365,7 +248,7 @@ defmodule AvalonWeb.RoomChannel do
   end
 
   def terminate(reason, socket) do
-    log(socket, "player left game; reason: #{inspect(reason)}")
+    log(socket, "player left room; reason: #{inspect(reason)}")
     :ok
   end
 
@@ -373,14 +256,41 @@ defmodule AvalonWeb.RoomChannel do
     socket.assigns.username
   end
 
+  defp room_name(socket) do
+    "room:" <> room_name = socket.topic
+    room_name
+  end
+
+  defp find_room(socket, func) do
+    room_name = room_name(socket)
+
+    case GameServer.room_pid(room_name) do
+      pid when is_pid(pid) ->
+        func.(pid)
+
+      nil ->
+        {:error, "Room '#{room_name}' does not exist"}
+    end
+  end
+
+  defp find_room_with_reply(socket, func) do
+    room_name = room_name(socket)
+
+    case GameServer.room_pid(room_name) do
+      pid when is_pid(pid) ->
+        func.(pid)
+
+      nil ->
+        {:reply, {:error, "Room '#{room_name}' does not exist"}, socket}
+    end
+  end
+
   # Ensures that all logs contain the room and player name
   defp log(socket, message) do
-    "room:" <> game_name = socket.topic
-    Logger.info("[game: '#{game_name}' | user: '#{username(socket)}'] " <> message)
+    Logger.info("[room: '#{room_name(socket)}' | user: '#{username(socket)}'] " <> message)
   end
 
   defp logError(socket, message) do
-    "room:" <> game_name = socket.topic
-    Logger.error("[game: '#{game_name}' | user: '#{username(socket)}'] " <> message)
+    Logger.error("[room: '#{room_name(socket)}' | user: '#{username(socket)}'] " <> message)
   end
 end
