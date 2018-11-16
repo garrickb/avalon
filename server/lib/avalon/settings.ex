@@ -41,7 +41,7 @@ defmodule Avalon.Settings do
         %{settings | percival: value}
 
       "mordred" ->
-        %{settings | oberon: value}
+        %{settings | mordred: value}
 
       "oberon" ->
         %{settings | oberon: value}

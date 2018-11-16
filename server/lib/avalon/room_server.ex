@@ -195,19 +195,17 @@ defmodule Avalon.Room.Server do
     end
   end
 
-  def handle_call({:player_vote, requester, vote}, _from, game) do
-    new_room = Avalon.Game.vote(game, requester, vote)
-
+  def handle_call({:player_vote, requester, vote}, _from, room) do
+    new_game = Avalon.Game.vote(room.game, requester, vote)
+    new_room = %{room | game: new_game}
     :ets.insert(:rooms_table, {my_room_name(), new_room})
-
     {:reply, new_room, new_room, @timeout}
   end
 
-  def handle_call({:reject_vote, player}, _from, game) do
-    new_room = Avalon.Game.vote(game, player, :reject)
-
+  def handle_call({:reject_vote, player}, _from, room) do
+    new_game = Avalon.Game.vote(room.game, player, :reject)
+    new_room = %{room | game: new_game}
     :ets.insert(:rooms_table, {my_room_name(), new_room})
-
     {:reply, new_room, new_room, @timeout}
   end
 
@@ -252,14 +250,12 @@ defmodule Avalon.Room.Server do
 
   def handle_info(:timeout, room) do
     room_name = my_room_name()
-
     Logger.info("room '#{room_name}' has timed out")
     {:stop, {:shutdown, :timeout}, room}
   end
 
   def terminate({:shutdown, :timeout}, _room) do
     room_name = my_room_name()
-
     Logger.info("Terminating room server process '#{room_name}'")
     :ets.delete(:rooms_table, room_name)
     :ok
@@ -267,7 +263,6 @@ defmodule Avalon.Room.Server do
 
   def terminate(_reason, _room) do
     room_name = my_room_name()
-
     Logger.info("room '#{room_name}' terminated")
     :ok
   end

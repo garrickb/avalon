@@ -21,7 +21,8 @@ defmodule AvalonWeb.RoomChannel do
           pid when is_pid(pid) ->
             send(self(), {:after_join, room_name})
             room = GameServer.summary(room_name)
-            {:ok, room, new_socket}
+
+            {:ok, %{room | game: handle_out_game(room.game, new_socket)}, new_socket}
 
           nil ->
             Logger.info("Room does not exists")
@@ -294,7 +295,11 @@ defmodule AvalonWeb.RoomChannel do
   # Filter our output to only show the player what they are supposed
   # to know.
   def handle_out("room:state", room, socket) do
-    push(socket, "room:state", %{room | game: handle_out_game(room.game, socket)})
+    push(socket, "room:state", %{
+      room
+      | game: handle_out_game(room.game, socket)
+    })
+
     {:noreply, socket}
   end
 

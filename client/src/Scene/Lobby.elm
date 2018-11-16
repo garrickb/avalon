@@ -51,11 +51,6 @@ init name =
     }
 
 
-characters : List String
-characters =
-    [ "Merlin", "Assassin", "Percival", "Mordred", "Oberon", "Morgana" ]
-
-
 
 -- VIEW --
 
@@ -64,12 +59,24 @@ viewSetting : Settings -> String -> Html Msg
 viewSetting settings setting =
     let
         value =
-            case setting of
+            case setting |> String.toLower of
                 "merlin" ->
                     settings.merlin
 
                 "assassin" ->
                     settings.assassin
+
+                "percival" ->
+                    settings.percival
+
+                "mordred" ->
+                    settings.mordred
+
+                "oberon" ->
+                    settings.oberon
+
+                "morgana" ->
+                    settings.morgana
 
                 _ ->
                     False
@@ -85,7 +92,7 @@ viewSettings : Settings -> Modal.Visibility -> Html Msg
 viewSettings settings visibility =
     let
         settingNames =
-            [ "merlin", "assassin" ]
+            [ "Merlin", "Assassin", "Percival", "Mordred", "Oberon", "Morgana" ]
     in
     Modal.config (SettingsModal Modal.hidden)
         |> Modal.small
@@ -312,7 +319,7 @@ update session msg model =
                 Just payload ->
                     case JD.decodeValue decodeRoom payload of
                         Ok newRoom ->
-                            ( { model | roomState = JoinedRoom (Just newRoom) } ! [], SetMessage (InfoMsg (toString payload)) )
+                            ( { model | roomState = JoinedRoom (Just newRoom) } ! [], SetMessage EmptyMsg )
 
                         Err err ->
                             ( { model | roomState = JoinedRoom Nothing } ! [], SetMessage (ErrorMsg (toString err)) )
@@ -339,7 +346,7 @@ update session msg model =
                                 newState =
                                     { roomState | game = Just newGame }
                             in
-                            ( ( { model | roomState = JoinedRoom (Just newState) }, Cmd.map GameMsg cmd ), SetMessage (InfoMsg "got game") )
+                            ( ( { model | roomState = JoinedRoom (Just newState) }, Cmd.map GameMsg cmd ), SetMessage EmptyMsg )
 
                 _ ->
                     ( model ! [], NoOp )
