@@ -11,10 +11,11 @@ import Html.Attributes exposing (..)
 type Modifier
     = Ready Bool
     | King
-    | IsOnQuest Bool
-    | HasVotedOnTeam Bool
+    | IsOnQuest
+    | HasVotedOnTeam
+    | AcceptedLastTeam Bool
     | AcceptedTeam Bool
-    | PlayedQuestCard Bool
+    | PlayedQuestCard
 
 
 viewModifier : Modifier -> Html msg
@@ -33,17 +34,17 @@ viewModifier mod =
         Ready False ->
             span [ class (classes ++ "fa-times-circle"), style [ ( "color", "red" ) ] ] []
 
-        IsOnQuest val ->
-            if val then
-                span [ class (classes ++ "fa-shield-alt"), style [ ( "color", "#B8860B" ) ] ] []
-            else
-                text ""
+        IsOnQuest ->
+            span [ class (classes ++ "fa-shield-alt"), style [ ( "color", "#B8860B" ) ] ] []
 
-        HasVotedOnTeam val ->
+        HasVotedOnTeam ->
+            span [] [ text "(voted)" ]
+
+        AcceptedLastTeam val ->
             if val then
-                span [] [ text "(voted)" ]
+                span [] [ text "(accepted)" ]
             else
-                span [] []
+                span [] [ text "(rejected)" ]
 
         AcceptedTeam val ->
             if val then
@@ -51,11 +52,8 @@ viewModifier mod =
             else
                 span [] [ text "(rejected)" ]
 
-        PlayedQuestCard val ->
-            if val then
-                span [] [ text "(played)" ]
-            else
-                text ""
+        PlayedQuestCard ->
+            span [] [ text "(played)" ]
 
 
 viewName : Player -> GameState.FsmState -> Maybe Quest -> Html msg
@@ -78,16 +76,41 @@ viewName player state maybeQuest =
             playerName
 
         Just quest ->
+            let
+                onQuest =
+                    if List.member player.name quest.team.players then
+                        viewModifier IsOnQuest
+                    else
+                        text ""
+            in
             case state of
                 Waiting ->
                     span [] [ playerName, text " ", viewModifier (Ready player.ready) ]
 
+                BuildTeam ->
+                    let
+                        lastTeam =
+                            List.head quest.team_history
+
+                        lastVote =
+                            case lastTeam of
+                                Nothing ->
+                                    text ""
+
+                                Just team ->
+                                    viewModifier (AcceptedLastTeam (List.any (\tuple -> tuple == ( player.name, "accept" )) team.votes))
+                    in
+                    span [] [ playerName, text " ", onQuest, lastVote ]
+
                 TeamVote ->
                     let
                         hasVoted =
-                            List.any (\tuple -> Tuple.first tuple == player.name) quest.team.votes
+                            if List.any (\tuple -> Tuple.first tuple == player.name) quest.team.votes then
+                                viewModifier HasVotedOnTeam
+                            else
+                                text ""
                     in
-                    span [] [ playerName, text " ", viewModifier (IsOnQuest (List.member player.name quest.team.players)), viewModifier (HasVotedOnTeam hasVoted) ]
+                    span [] [ playerName, text " ", onQuest, hasVoted ]
 
                 OnQuest ->
                     let
@@ -95,12 +118,12 @@ viewName player state maybeQuest =
                             List.any (\tuple -> tuple == ( player.name, "accept" )) quest.team.votes
 
                         playedQuestCard =
-                            List.member player.name quest.quest_card_players
-
-                        onQuest =
-                            List.member player.name quest.team.players
+                            if List.member player.name quest.quest_card_players then
+                                viewModifier PlayedQuestCard
+                            else
+                                text ""
                     in
-                    span [] [ playerName, text " ", viewModifier (IsOnQuest onQuest), viewModifier (AcceptedTeam votedToAccept), viewModifier (PlayedQuestCard playedQuestCard) ]
+                    span [] [ playerName, text " ", onQuest, viewModifier (AcceptedTeam votedToAccept), playedQuestCard ]
 
                 _ ->
-                    span [] [ playerName, text " ", viewModifier (IsOnQuest (List.member player.name quest.team.players)) ]
+                    span [] [ playerName, text " ", onQuest ]

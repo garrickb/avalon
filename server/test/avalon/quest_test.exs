@@ -11,6 +11,63 @@ defmodule Avalon.QuestTest do
     assert quest |> Quest.voting_can_begin?() == false
   end
 
+  # Quest team voting
+  test "vote to accept team" do
+    quest =
+      new_quest(2, 1)
+      |> Quest.select_player("alice")
+      |> Quest.select_player("bob")
+      |> Quest.player_accept_vote("alice")
+      |> Quest.player_accept_vote("bob")
+
+    assert quest |> Quest.team_done_voting?(2) == true
+    assert quest |> Quest.team_voting_passed?() == true
+  end
+
+  test "vote to reject team" do
+    quest =
+      new_quest(2, 1)
+      |> Quest.select_player("alice")
+      |> Quest.select_player("bob")
+      |> Quest.player_reject_vote("alice")
+      |> Quest.player_reject_vote("bob")
+
+    assert quest |> Quest.team_done_voting?(2) == true
+    assert quest |> Quest.team_voting_passed?() == false
+  end
+
+  test "clearing a rejected team adds it to the history" do
+    quest =
+      new_quest(2, 1)
+      |> Quest.select_player("alice")
+      |> Quest.select_player("bob")
+      |> Quest.player_reject_vote("alice")
+      |> Quest.player_reject_vote("bob")
+      |> Quest.team_clear_votes()
+
+    assert quest |> Quest.team_done_voting?(2) == false
+    assert quest.team_history |> length == 1
+    assert quest.team_history |> List.first() |> Avalon.Team.num_votes() == 2
+  end
+
+  test "clearing a rejected team twice adds it to the history" do
+    quest =
+      new_quest(2, 1)
+      |> Quest.select_player("alice")
+      |> Quest.select_player("bob")
+      |> Quest.player_reject_vote("alice")
+      |> Quest.player_reject_vote("bob")
+      |> Quest.team_clear_votes()
+      |> Quest.player_accept_vote("alice")
+      |> Quest.player_reject_vote("bob")
+      |> Quest.team_clear_votes()
+
+    assert quest |> Quest.team_done_voting?(2) == false
+    assert quest.team_history |> length == 2
+    assert quest.team_history |> List.first() |> Avalon.Team.num_votes() == 2
+    assert quest.team_history |> List.first() |> Avalon.Team.num_votes(:accept) == 1
+  end
+
   # Quest Completion Tests
 
   test "select members for a quest" do

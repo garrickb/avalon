@@ -2,13 +2,12 @@ defmodule Avalon.Quest do
   @enforce_keys [
     :id,
     :state,
-    :team,
-    :num_fails_required,
-    :quest_cards
+    :num_fails_required
   ]
   defstruct [
     :id,
     :state,
+    :team_history,
     :team,
     :num_fails_required,
     :quest_cards
@@ -27,6 +26,7 @@ defmodule Avalon.Quest do
     %Quest{
       id: id,
       state: :uncompleted,
+      team_history: [],
       team: Team.new(num_players_required),
       num_fails_required: num_fails_required,
       quest_cards: %{}
@@ -206,11 +206,11 @@ defmodule Avalon.Quest do
   end
 
   @doc """
-  clears the vote history to start fresh
+  clears the vote history to start fresh, and stores the old quest in the history.
   """
   def team_clear_votes(quest) do
     new_team = %{quest.team | votes: %{}}
-    %{quest | team: new_team}
+    %{quest | team: new_team, team_history: [quest.team] ++ quest.team_history}
   end
 
   def player_quest_card(quest, player_name, card) do

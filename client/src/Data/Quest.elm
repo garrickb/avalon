@@ -8,6 +8,7 @@ type alias Quest =
     { active : Bool
     , state : String
     , team : Team
+    , team_history : List Team
     , num_fails_required : Int
     , quest_card_players : List String
     , quest_cards : List String
@@ -16,12 +17,11 @@ type alias Quest =
 
 decodeQuest : Decoder Quest
 decodeQuest =
-    map6 Quest
+    map7 Quest
         (field "active" bool)
         (field "state" string)
-        (field "team"
-            decodeTeam
-        )
+        (field "team" decodeTeam)
+        (field "team_history" (list decodeTeam))
         (field "num_fails_required" int)
         (field "quest_card_players" (list string))
         (field "quest_cards" (list string))

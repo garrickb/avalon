@@ -29,9 +29,12 @@ config :avalon, AvalonWeb.Endpoint,
 # configured to run both http and https servers on
 # different ports.
 
+# tell logger to load a LoggerFileBackend processes
+config :logger,
+  backends: [{LoggerFileBackend, :error_log}]
+
 # Do not include metadata nor timestamps in development logs
-config :logger, :debug,
-  path: "/tmp/avalon.log"
+config :logger, :error_log, level: :debug, path: "/tmp/avalon-debug.log"
 
 # Set a higher stacktrace during development. Avoid configuring such
 # in production as building large stacktraces may be expensive.
