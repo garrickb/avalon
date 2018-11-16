@@ -7,7 +7,8 @@ import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Bootstrap.Utilities.Spacing as Spacing
-import Data.Game exposing (Alignment(..), Game, GameFsmState(..), Player, Quest, RoleType(..))
+import Data.Game exposing (Alignment(..), Game, Player, Quest, RoleType(..))
+import Data.GameState exposing (FsmState(..))
 import Data.RoomChannel as RoomChannel exposing (RoomState(..), roomChannelName)
 import Data.Session exposing (Session)
 import Data.Socket exposing (SocketState(..), socketUrl)
@@ -61,7 +62,7 @@ view session game =
         ]
 
 
-viewPlayerOther : GameFsmState -> Maybe Quest -> Maybe Player -> Player -> Grid.Column Msg
+viewPlayerOther : FsmState -> Maybe Quest -> Maybe Player -> Player -> Grid.Column Msg
 viewPlayerOther state quest self player =
     let
         playerAction =
@@ -79,7 +80,7 @@ viewPlayerOther state quest self player =
         ]
 
 
-viewPlayerSelf : GameFsmState -> Maybe Quest -> Maybe Player -> Html Msg
+viewPlayerSelf : FsmState -> Maybe Quest -> Maybe Player -> Html Msg
 viewPlayerSelf state quest maybeSelf =
     let
         content =
@@ -108,7 +109,7 @@ viewPlayerSelf state quest maybeSelf =
         ]
 
 
-viewPlayers : List Player -> Maybe Player -> GameFsmState -> Maybe Quest -> Html Msg
+viewPlayers : List Player -> Maybe Player -> FsmState -> Maybe Quest -> Html Msg
 viewPlayers players maybeSelf state quest =
     case maybeSelf of
         Nothing ->
@@ -171,7 +172,7 @@ viewPlayers players maybeSelf state quest =
                 content
 
 
-viewPlayerActions : GameFsmState -> Player -> Maybe Player -> Maybe Quest -> Html Msg
+viewPlayerActions : FsmState -> Player -> Maybe Player -> Maybe Quest -> Html Msg
 viewPlayerActions state player maybeSelf maybeQuest =
     case maybeSelf of
         Nothing ->

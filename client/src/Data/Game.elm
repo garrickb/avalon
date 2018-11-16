@@ -1,17 +1,7 @@
-module Data.Game exposing (Alignment(..), Game, GameFsmState(..), Player, Quest, RoleType(..), Room, Settings, decodeGame, decodeRoom)
+module Data.Game exposing (Alignment(..), Game, Player, Quest, RoleType(..), Room, Settings, decodeGame, decodeRoom)
 
+import Data.GameState exposing (GameState, decodeGameState)
 import Json.Decode exposing (..)
-
-
-type GameFsmState
-    = Invalid String
-    | Waiting
-    | BuildTeam
-    | TeamVote
-    | OnQuest
-    | GameEndEvil
-    | GameEndAssassin
-    | GameEndGood
 
 
 type Alignment
@@ -54,19 +44,6 @@ type alias Game =
     , numEvil : Int
     , quests : List Quest
     , fsm : GameState
-    }
-
-
-type alias GameState =
-    { state : GameFsmState
-    , gameStateData : GameStateData
-    }
-
-
-type alias GameStateData =
-    { succeededCount : Int
-    , rejectCount : Int
-    , failedCount : Int
     }
 
 
@@ -146,53 +123,6 @@ decodeQuest =
         (field "num_fails_required" int)
         (field "quest_card_players" (list string))
         (field "quest_cards" (list string))
-
-
-decodeGameFsmState : Decoder GameFsmState
-decodeGameFsmState =
-    string
-        |> andThen
-            (\str ->
-                case str of
-                    "waiting" ->
-                        succeed Waiting
-
-                    "build_team" ->
-                        succeed BuildTeam
-
-                    "team_vote" ->
-                        succeed TeamVote
-
-                    "quest" ->
-                        succeed OnQuest
-
-                    "game_end_evil" ->
-                        succeed GameEndEvil
-
-                    "game_end_good_assassin" ->
-                        succeed GameEndAssassin
-
-                    "game_end_good" ->
-                        succeed GameEndGood
-
-                    unknown ->
-                        succeed (Invalid unknown)
-            )
-
-
-decodeGameState : Decoder GameState
-decodeGameState =
-    map2 GameState
-        (field "state" decodeGameFsmState)
-        (field "data" decodeGameStateData)
-
-
-decodeGameStateData : Decoder GameStateData
-decodeGameStateData =
-    map3 GameStateData
-        (field "succeeded_count" int)
-        (field "reject_count" int)
-        (field "failed_count" int)
 
 
 decodePlayer : Decoder Player

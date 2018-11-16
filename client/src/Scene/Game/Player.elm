@@ -1,6 +1,7 @@
 module Scene.Game.Player exposing (..)
 
-import Data.Game exposing (Alignment(..), GameFsmState(..), Player, Quest)
+import Data.Game exposing (Alignment(..), Player, Quest)
+import Data.GameState as GameState exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 
@@ -55,7 +56,7 @@ viewModifier mod =
                 text ""
 
 
-viewName : Player -> GameFsmState -> Maybe Quest -> Html msg
+viewName : Player -> GameState.FsmState -> Maybe Quest -> Html msg
 viewName player state maybeQuest =
     let
         name =
