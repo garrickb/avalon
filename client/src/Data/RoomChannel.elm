@@ -1,6 +1,6 @@
 module Data.RoomChannel exposing (RoomState(..), roomChannelName)
 
-import Data.Game exposing (..)
+import Data.Room exposing (Room)
 
 
 roomChannelName : String -> String

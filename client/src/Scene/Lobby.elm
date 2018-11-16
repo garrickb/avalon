@@ -12,9 +12,10 @@ import Bootstrap.Grid.Row as Row
 import Bootstrap.Modal as Modal
 import Bootstrap.Text as Text
 import Bootstrap.Utilities.Spacing as Spacing
-import Data.Game exposing (..)
+import Data.Room exposing (Room, decodeRoom)
 import Data.RoomChannel as RoomChannel exposing (RoomState(..), roomChannelName)
 import Data.Session exposing (Session, SessionMessage(..))
+import Data.Settings exposing (Settings)
 import Data.Socket exposing (socketUrl)
 import Debug exposing (log)
 import Dict exposing (Dict)

@@ -7,8 +7,11 @@ import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Bootstrap.Utilities.Spacing as Spacing
-import Data.Game exposing (Alignment(..), Game, Player, Quest, RoleType(..))
+import Data.Game exposing (Game)
 import Data.GameState exposing (FsmState(..))
+import Data.Player exposing (Player)
+import Data.Quest exposing (Quest)
+import Data.Role exposing (Alignment(..), RoleType(..))
 import Data.RoomChannel as RoomChannel exposing (RoomState(..), roomChannelName)
 import Data.Session exposing (Session)
 import Data.Socket exposing (SocketState(..), socketUrl)

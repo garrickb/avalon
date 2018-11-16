@@ -1,6 +1,6 @@
 module Scene.Game.Quest exposing (..)
 
-import Data.Game exposing (Quest)
+import Data.Quest exposing (Quest)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Svg

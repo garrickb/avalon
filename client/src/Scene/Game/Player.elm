@@ -1,7 +1,9 @@
 module Scene.Game.Player exposing (..)
 
-import Data.Game exposing (Alignment(..), Player, Quest)
 import Data.GameState as GameState exposing (..)
+import Data.Player exposing (Player)
+import Data.Quest exposing (Quest)
+import Data.Role exposing (Alignment(..))
 import Html exposing (..)
 import Html.Attributes exposing (..)
 
