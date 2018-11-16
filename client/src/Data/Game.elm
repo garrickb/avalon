@@ -106,7 +106,7 @@ decodeRoom =
     map3 Room
         (field "id" string)
         (field "settings" decodeSettings)
-        (field "game" (maybe decodeGame))
+        (field "game" (nullable decodeGame))
 
 
 decodeSettings : Decoder Settings
@@ -135,26 +135,22 @@ decodeQuest =
         (field "active" bool)
         (field "state" string)
         (field "team"
-            decodeTeam
+            (map3 Team
+                (field "players" (list string))
+                (field "num_players_required" int)
+                (field "votes"
+                    (list
+                        (map2 (,)
+                            (index 0 string)
+                            (index 1 string)
+                        )
+                    )
+                )
+            )
         )
         (field "num_fails_required" int)
         (field "quest_card_players" (list string))
         (field "quest_cards" (list string))
-
-
-decodeTeam : Decoder Team
-decodeTeam =
-    map3 Team
-        (field "players" (list string))
-        (field "num_players_required" int)
-        (field "votes"
-            (list
-                (map2 (,)
-                    (index 0 string)
-                    (index 1 string)
-                )
-            )
-        )
 
 
 decodeGameFsmState : Decoder GameFsmState

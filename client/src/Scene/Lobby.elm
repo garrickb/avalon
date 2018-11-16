@@ -312,10 +312,10 @@ update session msg model =
                 Just payload ->
                     case JD.decodeValue decodeRoom payload of
                         Ok newRoom ->
-                            ( { model | roomState = JoinedRoom (Just newRoom) } ! [], SetMessage (InfoMsg ("Joined: " ++ toString newRoom)) )
+                            ( { model | roomState = JoinedRoom (Just newRoom) } ! [], SetMessage (InfoMsg (toString payload)) )
 
                         Err err ->
-                            ( model ! [], SetMessage (ErrorMsg (toString err)) )
+                            ( { model | roomState = JoinedRoom Nothing } ! [], SetMessage (ErrorMsg (toString err)) )
 
         StartGame ->
             let
@@ -339,7 +339,7 @@ update session msg model =
                                 newState =
                                     { roomState | game = Just newGame }
                             in
-                            ( ( { model | roomState = JoinedRoom (Just newState) }, Cmd.map GameMsg cmd ), NoOp )
+                            ( ( { model | roomState = JoinedRoom (Just newState) }, Cmd.map GameMsg cmd ), SetMessage (InfoMsg "got game") )
 
                 _ ->
                     ( model ! [], NoOp )

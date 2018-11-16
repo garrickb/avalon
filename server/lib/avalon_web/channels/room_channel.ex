@@ -6,6 +6,8 @@ defmodule AvalonWeb.RoomChannel do
 
   require Logger
 
+  intercept(["room:state"])
+
   def join("room:" <> room_name, params, socket) do
     new_socket = assign(socket, :username, params["username"])
 
@@ -17,10 +19,7 @@ defmodule AvalonWeb.RoomChannel do
 
         case GameServer.room_pid(room_name) do
           pid when is_pid(pid) ->
-            Logger.info("Room already exists")
             send(self(), {:after_join, room_name})
-
-            # Alert the player of the existing game state
             room = GameServer.summary(room_name)
             {:ok, room, new_socket}
 
@@ -104,7 +103,7 @@ defmodule AvalonWeb.RoomChannel do
   def handle_in("game:restart", _payload, socket) do
     "room:" <> game_name = socket.topic
 
-    case GameServer.game_pid(game_name) do
+    case GameServer.room_pid(game_name) do
       pid when is_pid(pid) ->
         log(socket, "player is restarting game")
         game = GameServer.restart_game(game_name)
@@ -123,7 +122,7 @@ defmodule AvalonWeb.RoomChannel do
   def handle_in("player:ready", _payload, socket) do
     "room:" <> game_name = socket.topic
 
-    case GameServer.game_pid(game_name) do
+    case GameServer.room_pid(game_name) do
       pid when is_pid(pid) ->
         log(socket, "player is ready")
         game = GameServer.player_ready(game_name, username(socket))
@@ -140,7 +139,7 @@ defmodule AvalonWeb.RoomChannel do
   def handle_in("player:assassinate", %{"player" => player}, socket) do
     "room:" <> game_name = socket.topic
 
-    case GameServer.game_pid(game_name) do
+    case GameServer.room_pid(game_name) do
       pid when is_pid(pid) ->
         log(socket, "player is assassinating '#{player}'")
         game = GameServer.assassinate(game_name, username(socket), player)
@@ -159,7 +158,7 @@ defmodule AvalonWeb.RoomChannel do
   def handle_in("team:select_player", %{"player" => player}, socket) do
     "room:" <> game_name = socket.topic
 
-    case GameServer.game_pid(game_name) do
+    case GameServer.room_pid(game_name) do
       pid when is_pid(pid) ->
         log(socket, "selected player '#{player}' for quest")
         game = GameServer.select_quest_member(game_name, username(socket), player)
@@ -179,7 +178,7 @@ defmodule AvalonWeb.RoomChannel do
   def handle_in("team:deselect_player", %{"player" => player}, socket) do
     "room:" <> game_name = socket.topic
 
-    case GameServer.game_pid(game_name) do
+    case GameServer.room_pid(game_name) do
       pid when is_pid(pid) ->
         log(socket, "deselected player '#{player}' from quest")
         game = GameServer.deselect_quest_member(game_name, username(socket), player)
@@ -199,7 +198,7 @@ defmodule AvalonWeb.RoomChannel do
   def handle_in("team:begin_voting", _payload, socket) do
     "room:" <> game_name = socket.topic
 
-    case GameServer.game_pid(game_name) do
+    case GameServer.room_pid(game_name) do
       pid when is_pid(pid) ->
         log(socket, "player '#{username(socket)}' began voting")
         game = GameServer.begin_voting(game_name, username(socket))
@@ -219,7 +218,7 @@ defmodule AvalonWeb.RoomChannel do
   def handle_in("team:accept_vote", _payload, socket) do
     "room:" <> game_name = socket.topic
 
-    case GameServer.game_pid(game_name) do
+    case GameServer.room_pid(game_name) do
       pid when is_pid(pid) ->
         log(socket, "player is voing to accept")
         game = GameServer.player_vote(game_name, username(socket), :accept)
@@ -236,7 +235,7 @@ defmodule AvalonWeb.RoomChannel do
   def handle_in("team:reject_vote", _payload, socket) do
     "room:" <> game_name = socket.topic
 
-    case GameServer.game_pid(game_name) do
+    case GameServer.room_pid(game_name) do
       pid when is_pid(pid) ->
         log(socket, "player is voing to reject")
         game = GameServer.player_vote(game_name, username(socket), :reject)
@@ -255,7 +254,7 @@ defmodule AvalonWeb.RoomChannel do
   def handle_in("quest:success", _payload, socket) do
     "room:" <> game_name = socket.topic
 
-    case GameServer.game_pid(game_name) do
+    case GameServer.room_pid(game_name) do
       pid when is_pid(pid) ->
         log(socket, "player is playing success quest card")
         game = GameServer.play_quest_card(game_name, username(socket), :success)
@@ -272,7 +271,7 @@ defmodule AvalonWeb.RoomChannel do
   def handle_in("quest:fail", _payload, socket) do
     "room:" <> game_name = socket.topic
 
-    case GameServer.game_pid(game_name) do
+    case GameServer.room_pid(game_name) do
       pid when is_pid(pid) ->
         log(socket, "player is playing fail quest card")
         game = GameServer.play_quest_card(game_name, username(socket), :fail)
@@ -294,18 +293,21 @@ defmodule AvalonWeb.RoomChannel do
 
   # Filter our output to only show the player what they are supposed
   # to know.
-  def handle_out("room:state", game, socket) do
-    push(socket, "room:state", handle_out_game(game, socket))
-
+  def handle_out("room:state", room, socket) do
+    push(socket, "room:state", %{room | game: handle_out_game(room.game, socket)})
     {:noreply, socket}
   end
 
   defp handle_out_game(game, socket) do
-    %{
-      game
-      | players: handle_out_players(game.players, socket),
-        quests: handle_out_quests(game.quests, socket)
-    }
+    if game == nil do
+      nil
+    else
+      %{
+        game
+        | players: handle_out_players(game.players, socket),
+          quests: handle_out_quests(game.quests, socket)
+      }
+    end
   end
 
   defp handle_out_players(players, socket) do
