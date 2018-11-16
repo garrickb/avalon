@@ -2,7 +2,7 @@ defmodule AvalonWeb.RoomChannel do
   use AvalonWeb, :channel
 
   alias AvalonWeb.Presence
-  alias Avalon.Room.Server, as: GameServer
+  alias Avalon.Room.Server, as: RoomServer
 
   require Logger
 
@@ -19,7 +19,7 @@ defmodule AvalonWeb.RoomChannel do
 
         find_room(socket, fn _ ->
           send(self(), {:after_join, room_name})
-          room = GameServer.summary(room_name)
+          room = RoomServer.summary(room_name)
           {:ok, %{room | game: handle_out_game(room.game, new_socket)}, new_socket}
         end)
       else
@@ -48,7 +48,7 @@ defmodule AvalonWeb.RoomChannel do
   def handle_in("setting:set", %{"name" => name, "value" => value}, socket) do
     find_room_with_reply(socket, fn _ ->
       log(socket, "player is changing setting for #{name} to #{value}")
-      room = GameServer.set_setting(room_name(socket), name, value)
+      room = RoomServer.set_setting(room_name(socket), name, value)
       broadcast!(socket, "room:state", room)
       {:noreply, socket}
     end)
@@ -58,7 +58,7 @@ defmodule AvalonWeb.RoomChannel do
     find_room_with_reply(socket, fn _ ->
       log(socket, "game started")
       players = Map.keys(Presence.list(socket))
-      new_room = GameServer.start_game(room_name(socket), players)
+      new_room = RoomServer.start_game(room_name(socket), players)
       broadcast!(socket, "room:state", new_room)
       {:noreply, socket}
     end)
@@ -67,7 +67,7 @@ defmodule AvalonWeb.RoomChannel do
   def handle_in("game:stop", _payload, socket) do
     find_room_with_reply(socket, fn _ ->
       log(socket, "game stopped")
-      room = GameServer.stop_game(room_name(socket))
+      room = RoomServer.stop_game(room_name(socket))
       broadcast!(socket, "room:state", room)
       {:noreply, socket}
     end)
@@ -76,7 +76,7 @@ defmodule AvalonWeb.RoomChannel do
   def handle_in("game:restart", _payload, socket) do
     find_room_with_reply(socket, fn _ ->
       log(socket, "restarting game")
-      room = GameServer.restart_game(room_name(socket))
+      room = RoomServer.restart_game(room_name(socket))
       broadcast!(socket, "room:state", room)
       {:noreply, socket}
     end)
@@ -87,7 +87,7 @@ defmodule AvalonWeb.RoomChannel do
   def handle_in("player:ready", _payload, socket) do
     find_room_with_reply(socket, fn _ ->
       log(socket, "player is ready")
-      room = GameServer.player_ready(room_name(socket), username(socket))
+      room = RoomServer.player_ready(room_name(socket), username(socket))
       broadcast!(socket, "room:state", room)
       {:noreply, socket}
     end)
@@ -96,7 +96,7 @@ defmodule AvalonWeb.RoomChannel do
   def handle_in("player:assassinate", %{"player" => player}, socket) do
     find_room_with_reply(socket, fn _ ->
       log(socket, "player is assassinating '#{player}'")
-      room = GameServer.assassinate(room_name(socket), username(socket), player)
+      room = RoomServer.assassinate(room_name(socket), username(socket), player)
       broadcast!(socket, "room:state", room)
       {:noreply, socket}
     end)
@@ -107,7 +107,7 @@ defmodule AvalonWeb.RoomChannel do
   def handle_in("team:select_player", %{"player" => player}, socket) do
     find_room_with_reply(socket, fn _ ->
       log(socket, "selected player '#{player}' for quest")
-      room = GameServer.select_quest_member(room_name(socket), username(socket), player)
+      room = RoomServer.select_quest_member(room_name(socket), username(socket), player)
       broadcast!(socket, "room:state", room)
       {:noreply, socket}
     end)
@@ -116,7 +116,7 @@ defmodule AvalonWeb.RoomChannel do
   def handle_in("team:deselect_player", %{"player" => player}, socket) do
     find_room_with_reply(socket, fn _ ->
       log(socket, "deselected player '#{player}' from quest")
-      room = GameServer.deselect_quest_member(room_name(socket), username(socket), player)
+      room = RoomServer.deselect_quest_member(room_name(socket), username(socket), player)
       broadcast!(socket, "room:state", room)
       {:noreply, socket}
     end)
@@ -125,7 +125,7 @@ defmodule AvalonWeb.RoomChannel do
   def handle_in("team:begin_voting", _payload, socket) do
     find_room_with_reply(socket, fn _ ->
       log(socket, "player '#{username(socket)}' began voting")
-      room = GameServer.begin_voting(room_name(socket), username(socket))
+      room = RoomServer.begin_voting(room_name(socket), username(socket))
       broadcast!(socket, "room:state", room)
       {:noreply, socket}
     end)
@@ -134,7 +134,7 @@ defmodule AvalonWeb.RoomChannel do
   def handle_in("team:accept_vote", _payload, socket) do
     find_room_with_reply(socket, fn _ ->
       log(socket, "player is voing to accept")
-      room = GameServer.player_vote(room_name(socket), username(socket), :accept)
+      room = RoomServer.player_vote(room_name(socket), username(socket), :accept)
       broadcast!(socket, "room:state", room)
       {:noreply, socket}
     end)
@@ -143,7 +143,7 @@ defmodule AvalonWeb.RoomChannel do
   def handle_in("team:reject_vote", _payload, socket) do
     find_room_with_reply(socket, fn _ ->
       log(socket, "player is voing to reject")
-      room = GameServer.player_vote(room_name(socket), username(socket), :reject)
+      room = RoomServer.player_vote(room_name(socket), username(socket), :reject)
       broadcast!(socket, "room:state", room)
       {:noreply, socket}
     end)
@@ -154,7 +154,7 @@ defmodule AvalonWeb.RoomChannel do
   def handle_in("quest:success", _payload, socket) do
     find_room_with_reply(socket, fn _ ->
       log(socket, "player is playing success quest card")
-      room = GameServer.play_quest_card(room_name(socket), username(socket), :success)
+      room = RoomServer.play_quest_card(room_name(socket), username(socket), :success)
       broadcast!(socket, "room:state", room)
       {:noreply, socket}
     end)
@@ -163,7 +163,7 @@ defmodule AvalonWeb.RoomChannel do
   def handle_in("quest:fail", _payload, socket) do
     find_room_with_reply(socket, fn _ ->
       log(socket, "player is playing fail quest card")
-      room = GameServer.play_quest_card(room_name(socket), username(socket), :fail)
+      room = RoomServer.play_quest_card(room_name(socket), username(socket), :fail)
       broadcast!(socket, "room:state", room)
       {:noreply, socket}
     end)
@@ -264,7 +264,7 @@ defmodule AvalonWeb.RoomChannel do
   defp find_room(socket, func) do
     room_name = room_name(socket)
 
-    case GameServer.room_pid(room_name) do
+    case RoomServer.room_pid(room_name) do
       pid when is_pid(pid) ->
         func.(pid)
 
@@ -276,7 +276,7 @@ defmodule AvalonWeb.RoomChannel do
   defp find_room_with_reply(socket, func) do
     room_name = room_name(socket)
 
-    case GameServer.room_pid(room_name) do
+    case RoomServer.room_pid(room_name) do
       pid when is_pid(pid) ->
         func.(pid)
 

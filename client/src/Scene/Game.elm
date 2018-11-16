@@ -10,7 +10,7 @@ import Bootstrap.Utilities.Spacing as Spacing
 import Data.Game exposing (Game)
 import Data.GameState exposing (FsmState(..))
 import Data.Player exposing (Player)
-import Data.Quest exposing (Quest)
+import Data.Quest as Quest exposing (Quest)
 import Data.Role exposing (Alignment(..), RoleType(..))
 import Data.RoomChannel as RoomChannel exposing (RoomState(..), roomChannelName)
 import Data.Session exposing (Session)
@@ -21,24 +21,38 @@ import Html.Events exposing (keyCode, on, onClick, onInput)
 import Json.Encode as JE
 import Phoenix
 import Phoenix.Push as Push
-import Scene.Game.Player as Player
-import Scene.Game.Quest as Quest
+import Scene.Game.Player as PlayerView
+import Scene.Game.Quest
+
+
+type alias Model =
+    { game : Game
+    , questView : Scene.Game.Quest.Model
+    }
+
 
 
 -- VIEW --
 
 
-viewBoard : Game -> Html Msg
-viewBoard game =
+viewBoard : Model -> Html Msg
+viewBoard model =
+    let
+        activeQuest =
+            Quest.activeQuest model.game.quests
+
+        quests =
+            Html.map QuestMsg <| Scene.Game.Quest.view model.questView model.game.quests
+    in
     Grid.row
         [ Row.centerXs, Row.attrs [ style [ ( "height", "100vh" ), ( "overflow", "auto" ), ( "text-align", "center" ) ] ] ]
         [ Grid.col [ Col.middleXs ]
             [ Card.config []
                 |> Card.block [ Block.attrs [ style [ ( "padding", "5px" ) ] ] ]
                     [ Block.text []
-                        [ Quest.viewQuests game.quests
-                        , text ("Reject Counter: " ++ toString game.fsm.gameStateData.rejectCount)
-                        , text (", # Evil: " ++ toString game.numEvil)
+                        [ quests
+                        , text ("Reject Counter: " ++ toString model.game.fsm.gameStateData.rejectCount)
+                        , text (", # Evil: " ++ toString model.game.numEvil)
                         ]
                     ]
                 |> Card.view
@@ -46,22 +60,22 @@ viewBoard game =
         ]
 
 
-view : Session -> Game -> Html Msg
-view session game =
+view : Session -> Model -> Html Msg
+view session model =
     let
         username =
             Maybe.withDefault "" session.userName
 
         maybeSelf =
-            List.head <| List.filter (\p -> p.name == username) game.players
+            List.head <| List.filter (\p -> p.name == username) model.game.players
 
-        maybeQuest =
-            List.head <| List.filter (\q -> q.active == True) game.quests
+        activeQuest =
+            Quest.activeQuest model.game.quests
     in
     div []
-        [ viewBoard game
-        , viewPlayers game.players maybeSelf game.fsm.state maybeQuest
-        , viewPlayerSelf game.fsm.state maybeQuest maybeSelf
+        [ viewBoard model
+        , viewPlayers model.game.players maybeSelf model.game.fsm.state activeQuest
+        , viewPlayerSelf model.game.fsm.state activeQuest maybeSelf
         ]
 
 
@@ -75,7 +89,7 @@ viewPlayerOther state quest self player =
         [ Card.config []
             |> Card.block []
                 [ Block.text []
-                    [ Player.viewName player state quest
+                    [ PlayerView.viewName player state quest
                     , viewPlayerActions state player self quest
                     ]
                 ]
@@ -93,7 +107,7 @@ viewPlayerSelf state quest maybeSelf =
                     Card.config []
                         |> Card.block []
                             [ Block.text []
-                                [ h5 [] [ Player.viewName self state quest ]
+                                [ h5 [] [ PlayerView.viewName self state quest ]
                                 , hr [] []
                                 , p [] []
                                 , viewPlayerActions state self (Just self) quest
@@ -364,24 +378,15 @@ type Msg
     | PlayQuestFailCard
     | AssassinatePlayer Player
     | RestartGame
+    | QuestMsg Scene.Game.Quest.Msg
 
 
-pushMessage : String -> String -> Cmd msg
-pushMessage lobby message =
-    Push.init (roomChannelName lobby) message
-        |> Phoenix.push socketUrl
-
-
-pushMessageWithPayload : String -> String -> List ( String, JE.Value ) -> Cmd msg
-pushMessageWithPayload lobby message payload =
-    Push.init (roomChannelName lobby) message
-        |> Push.withPayload (JE.object payload)
-        |> Phoenix.push socketUrl
-
-
-update : String -> Session -> Msg -> Game -> ( Game, Cmd Msg )
+update : String -> Session -> Msg -> Model -> ( Model, Cmd Msg )
 update lobby session msg model =
     case msg of
+        QuestMsg msg ->
+            model ! []
+
         StopGame ->
             model ! [ pushMessage lobby "game:stop" ]
 
@@ -414,3 +419,16 @@ update lobby session msg model =
 
         RestartGame ->
             model ! [ pushMessage lobby "game:restart" ]
+
+
+pushMessage : String -> String -> Cmd msg
+pushMessage lobby message =
+    Push.init (roomChannelName lobby) message
+        |> Phoenix.push socketUrl
+
+
+pushMessageWithPayload : String -> String -> List ( String, JE.Value ) -> Cmd msg
+pushMessageWithPayload lobby message payload =
+    Push.init (roomChannelName lobby) message
+        |> Push.withPayload (JE.object payload)
+        |> Phoenix.push socketUrl

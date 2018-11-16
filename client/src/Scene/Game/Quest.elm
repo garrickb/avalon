@@ -1,10 +1,24 @@
 module Scene.Game.Quest exposing (..)
 
+import Bootstrap.Button as Button
+import Bootstrap.Modal as Modal
 import Data.Quest exposing (Quest)
 import Html exposing (..)
 import Html.Attributes exposing (..)
+import Html.Events exposing (onClick)
 import Svg
 import Svg.Attributes as SvgAttr
+
+
+type alias Model =
+    { quests : List Quest
+    , questSelected : Maybe Quest
+    }
+
+
+viewQuestDetails : Quest -> Html msg
+viewQuestDetails quest =
+    text "Quest Details"
 
 
 viewQuest : Quest -> Svg.Svg msg
@@ -85,7 +99,43 @@ viewQuest quest =
         ]
 
 
+viewQuestDetailsModal : Maybe Quest -> Html Msg
+viewQuestDetailsModal maybeQuest =
+    let
+        modalVisibility =
+            case maybeQuest of
+                Nothing ->
+                    Modal.hidden
+
+                Just quest ->
+                    Modal.shown
+    in
+    Modal.config DeselectQuest
+        |> Modal.small
+        |> Modal.hideOnBackdropClick True
+        |> Modal.h3 [] [ text "Quest Details" ]
+        |> Modal.body [] [ p [] [ text "...details..." ] ]
+        |> Modal.footer []
+            [ Button.button
+                [ Button.outlinePrimary
+                , Button.attrs [ onClick DeselectQuest ]
+                ]
+                [ text "Close" ]
+            ]
+        |> Modal.view modalVisibility
+
+
 viewQuests : List Quest -> Html msg
 viewQuests quests =
     div []
         (List.map viewQuest quests)
+
+
+view : Model -> List Quest -> Html Msg
+view model quests =
+    text "quests be here"
+
+
+type Msg
+    = SelectQuest Quest
+    | DeselectQuest

@@ -25,3 +25,8 @@ decodeQuest =
         (field "num_fails_required" int)
         (field "quest_card_players" (list string))
         (field "quest_cards" (list string))
+
+
+activeQuest : List Quest -> Maybe Quest
+activeQuest quests =
+    List.head <| List.filter (\q -> q.active == True) quests

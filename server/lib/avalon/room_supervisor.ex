@@ -5,7 +5,7 @@ defmodule Avalon.Room.Supervisor do
 
   use DynamicSupervisor
   require Logger
-  alias Avalon.Room.Server, as: GameServer
+  alias Avalon.Room.Server, as: RoomServer
 
   def start_link(_arg) do
     DynamicSupervisor.start_link(__MODULE__, :ok, name: __MODULE__)
@@ -22,8 +22,8 @@ defmodule Avalon.Room.Supervisor do
     Logger.info("Starting new room")
 
     child_spec = %{
-      id: GameServer,
-      start: {GameServer, :start_link, []},
+      id: RoomServer,
+      start: {RoomServer, :start_link, []},
       restart: :transient
     }
 
@@ -38,7 +38,7 @@ defmodule Avalon.Room.Supervisor do
 
     :ets.delete(:rooms_table, room_name)
 
-    child_pid = GameServer.room_pid(room_name)
+    child_pid = RoomServer.room_pid(room_name)
     DynamicSupervisor.terminate_child(__MODULE__, child_pid)
   end
 end
