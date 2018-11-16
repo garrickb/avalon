@@ -139,12 +139,7 @@ decodeQuest =
                 (field "players" (list string))
                 (field "num_players_required" int)
                 (field "votes"
-                    (list
-                        (map2 (,)
-                            (index 0 string)
-                            (index 1 string)
-                        )
-                    )
+                    (keyValuePairs string)
                 )
             )
         )
