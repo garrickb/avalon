@@ -73,19 +73,41 @@ defmodule Avalon.Role do
     padded_evil ++ padded_good
   end
 
-  def peek(role, peek_at_role) do
-    case role.alignment do
+  def peek(self, target) do
+    case self.alignment do
       :evil ->
-        case peek_at_role.alignment do
-          :evil -> new(:unknown, :evil)
-          _ -> new(:unknown, :unknown)
+        case target.alignment do
+          :evil ->
+            case target.name do
+              :mordred ->
+                # Mordred is not known by other evil
+                new(:unknown, :unknown)
+
+              _ ->
+                case self.name do
+                  # Mordred does not know other evil
+                  :mordred -> new(:unknown, :unknown)
+                  _ -> new(:unknown, :evil)
+                end
+            end
+
+          _ ->
+            new(:unknown, :unknown)
         end
 
       :good ->
-        case role.name do
+        case self.name do
           :merlin ->
-            case peek_at_role.alignment do
+            case target.alignment do
               :evil -> new(:unknown, :evil)
+              _ -> new(:unknown, :unknown)
+            end
+
+          :percival ->
+            case target.name do
+              # Percival sees both Merlin and Morgana as Merlin
+              :merlin -> new(:merlin, :unknown)
+              :morgana -> new(:merlin, :unknown)
               _ -> new(:unknown, :unknown)
             end
 
