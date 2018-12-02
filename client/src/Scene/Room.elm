@@ -1,4 +1,4 @@
-module Scene.Lobby exposing (ExternalMsg(..), Model, Msg, getChannel, init, update, view)
+module Scene.Room exposing (ExternalMsg(..), Model, Msg, getChannel, init, update, view)
 
 import Bootstrap.Badge as Badge
 import Bootstrap.Button as Button
@@ -12,8 +12,8 @@ import Bootstrap.Grid.Row as Row
 import Bootstrap.Modal as Modal
 import Bootstrap.Text as Text
 import Bootstrap.Utilities.Spacing as Spacing
-import Data.Room exposing (Room, decodeRoom)
-import Data.RoomChannel as RoomChannel exposing (RoomState(..), roomChannelName)
+import Data.Room exposing (Room, RoomScene, decodeRoom, initRoomScene)
+import Data.RoomChannel as RoomChannel exposing (roomChannelName)
 import Data.Session exposing (Session, SessionMessage(..))
 import Data.Settings exposing (Settings)
 import Data.Socket exposing (socketUrl)
@@ -41,6 +41,12 @@ type alias Model =
     , presence : Dict String (List JD.Value)
     , settingsVisibility : Modal.Visibility
     }
+
+
+type RoomState
+    = JoiningRoom
+    | JoinedRoom ( Maybe Room, RoomScene )
+    | LeftRoom
 
 
 init : String -> Model
@@ -138,8 +144,8 @@ viewPlayers playerName presence =
         ]
 
 
-viewLobby : Session -> Model -> Html Msg
-viewLobby session model =
+viewRoom : Session -> Model -> Html Msg
+viewRoom session model =
     let
         userName =
             Maybe.withDefault "" session.userName
@@ -152,7 +158,7 @@ viewLobby session model =
 
         settings =
             case model.roomState of
-                JoinedRoom maybeRoom ->
+                JoinedRoom ( maybeRoom, roomScene ) ->
                     case maybeRoom of
                         Nothing ->
                             text "Invalid room"
@@ -209,17 +215,17 @@ viewLobby session model =
 view : Session -> Model -> Html Msg
 view session model =
     case model.roomState of
-        JoinedRoom (Just room) ->
+        JoinedRoom ( Just room, roomScene ) ->
             case room.game of
                 Nothing ->
-                    viewLobby session model
+                    viewRoom session model
 
                 Just game ->
-                    Html.map GameMsg <| Scene.Game.view session game
+                    Html.map GameMsg <| Scene.Game.view session roomScene.gameScene game
 
         _ ->
             -- TODO: Display a loading page?
-            viewLobby session model
+            viewRoom session model
 
 
 
@@ -237,14 +243,14 @@ getChannel session name =
                 Nothing ->
                     []
 
-        lobbyRoute =
+        roomRoute =
             roomChannelName name
 
         presence =
             Presence.create
                 |> Presence.onChange UpdatePresence
     in
-    Channel.init lobbyRoute
+    Channel.init roomRoute
         |> Channel.withPayload (JE.object params)
         |> Channel.onRequestJoin RoomJoining
         |> Channel.onJoin (\msg -> RoomJoined msg)
@@ -313,17 +319,26 @@ update session msg model =
             ( { model | settingsVisibility = visibility } ! [], NoOp )
 
         NewRoomState roomState ->
+            let
+                roomScene =
+                    case model.roomState of
+                        JoinedRoom ( roomMaybe, roomScene ) ->
+                            roomScene
+
+                        _ ->
+                            initRoomScene
+            in
             case roomState of
                 Nothing ->
-                    ( { model | roomState = JoinedRoom Nothing } ! [], NoOp )
+                    ( { model | roomState = JoinedRoom ( Nothing, roomScene ) } ! [], NoOp )
 
                 Just payload ->
                     case JD.decodeValue decodeRoom payload of
                         Ok newRoom ->
-                            ( { model | roomState = JoinedRoom (Just newRoom) } ! [], SetMessage EmptyMsg )
+                            ( { model | roomState = JoinedRoom ( Just newRoom, roomScene ) } ! [], SetMessage EmptyMsg )
 
                         Err err ->
-                            ( { model | roomState = JoinedRoom Nothing } ! [], SetMessage (ErrorMsg (toString err)) )
+                            ( { model | roomState = JoinedRoom ( Nothing, roomScene ) } ! [], SetMessage (ErrorMsg (toString err)) )
 
         StartGame ->
             let
@@ -334,20 +349,20 @@ update session msg model =
 
         GameMsg msg ->
             case model.roomState of
-                JoinedRoom (Just roomState) ->
+                JoinedRoom ( Just roomState, scene ) ->
                     case roomState.game of
                         Nothing ->
                             ( model ! [], NoOp )
 
                         Just game ->
                             let
-                                ( newGame, cmd ) =
-                                    Scene.Game.update model.name session msg game
+                                ( newGameScene, cmd ) =
+                                    Scene.Game.update model.name session msg game scene.gameScene
 
-                                newState =
-                                    { roomState | game = Just newGame }
+                                newScene =
+                                    { scene | gameScene = newGameScene }
                             in
-                            ( ( { model | roomState = JoinedRoom (Just newState) }, Cmd.map GameMsg cmd ), SetMessage EmptyMsg )
+                            ( ( { model | roomState = JoinedRoom ( Just roomState, newScene ) }, Cmd.map GameMsg cmd ), SetMessage EmptyMsg )
 
                 _ ->
                     ( model ! [], NoOp )

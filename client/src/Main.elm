@@ -15,7 +15,7 @@ import Phoenix.Channel as Channel exposing (Channel)
 import Phoenix.Socket as Socket exposing (Socket)
 import Route exposing (Route)
 import Scene.Home as Home
-import Scene.Lobby as Lobby
+import Scene.Room as Room
 import Task
 
 
@@ -37,7 +37,7 @@ type State
     = Blank
     | NotFound
     | Home Home.Model
-    | Lobby Lobby.Model
+    | Room Room.Model
 
 
 init : Maybe Session -> Location -> ( Model, Cmd Msg )
@@ -94,9 +94,9 @@ viewState session state =
             -- TODO: Route to home with an error visible
             Html.text "Page Not Found"
 
-        Lobby subModel ->
-            Lobby.view session subModel
-                |> Html.map LobbyMsg
+        Room subModel ->
+            Room.view session subModel
+                |> Html.map RoomMsg
 
         Home subModel ->
             Home.view session subModel
@@ -129,8 +129,8 @@ stateChannels model =
         Home _ ->
             [ Channel.map HomeMsg (Home.getChannel model.session) ]
 
-        Lobby lobbyModel ->
-            [ Channel.map LobbyMsg (Lobby.getChannel model.session lobbyModel.name) ]
+        Room roomModel ->
+            [ Channel.map RoomMsg (Room.getChannel model.session roomModel.name) ]
 
         _ ->
             []
@@ -150,7 +150,7 @@ socket session socketUrl =
 
 type Msg
     = SetRoute (Maybe Route)
-    | LobbyMsg Lobby.Msg
+    | RoomMsg Room.Msg
     | HomeMsg Home.Msg
     | SetMessage SessionMessage
 
@@ -171,7 +171,7 @@ setRoute maybeRoute model =
         Just Route.Home ->
             ( { model | state = Home (Home.init model.session) }, Cmd.none )
 
-        Just (Route.Lobby name) ->
+        Just (Route.Room name) ->
             let
                 ( newState, cmd ) =
                     case model.session.userName of
@@ -179,7 +179,7 @@ setRoute maybeRoute model =
                             ( Home (Home.init model.session), Route.modifyUrl Route.Home )
 
                         Just _ ->
-                            ( Lobby (Lobby.init name), Cmd.none )
+                            ( Room (Room.init name), Cmd.none )
             in
             ( { model | state = newState }, cmd )
 
@@ -232,20 +232,20 @@ updateState state msg model =
             in
             ( { newModel | state = Home stateModel }, Cmd.batch cmds )
 
-        ( LobbyMsg subMsg, Lobby subModel ) ->
+        ( RoomMsg subMsg, Room subModel ) ->
             let
                 ( ( stateModel, cmd ), msgFromPage ) =
-                    Lobby.update model.session subMsg subModel
+                    Room.update model.session subMsg subModel
 
                 newModel =
                     case msgFromPage of
-                        Lobby.NoOp ->
+                        Room.NoOp ->
                             model
 
-                        Lobby.SetMessage msg ->
+                        Room.SetMessage msg ->
                             { model | message = msg }
             in
-            ( { newModel | state = Lobby stateModel }, Cmd.map LobbyMsg cmd )
+            ( { newModel | state = Room stateModel }, Cmd.map RoomMsg cmd )
 
         ( _, _ ) ->
             ( model, Cmd.none )

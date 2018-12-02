@@ -223,6 +223,7 @@ defmodule AvalonWeb.RoomChannel do
 
     quests
     |> Enum.map(fn q ->
+      # Mark the active quest
       if q.id == active_quest.id,
         do: Map.put(Map.delete(q, :id), :active, true),
         else: Map.put(Map.delete(q, :id), :active, false)

@@ -7,12 +7,12 @@ import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Bootstrap.Utilities.Spacing as Spacing
-import Data.Game exposing (Game)
+import Data.Game exposing (Game, GameScene)
 import Data.GameState exposing (FsmState(..))
 import Data.Player exposing (Player)
 import Data.Quest as Quest exposing (Quest)
 import Data.Role exposing (Alignment(..), RoleType(..))
-import Data.RoomChannel as RoomChannel exposing (RoomState(..), roomChannelName)
+import Data.RoomChannel as RoomChannel exposing (roomChannelName)
 import Data.Session exposing (Session)
 import Data.Socket exposing (SocketState(..), socketUrl)
 import Html exposing (..)
@@ -25,24 +25,17 @@ import Scene.Game.Player as PlayerView
 import Scene.Game.Quest
 
 
-type alias Model =
-    { game : Game
-    , questView : Scene.Game.Quest.Model
-    }
-
-
-
 -- VIEW --
 
 
-viewBoard : Model -> Html Msg
-viewBoard model =
+viewBoard : GameScene -> Game -> Html Msg
+viewBoard scene game =
     let
         activeQuest =
-            Quest.activeQuest model.game.quests
+            Quest.activeQuest game.quests
 
         quests =
-            Html.map QuestMsg <| Scene.Game.Quest.view model.questView model.game.quests
+            Html.map QuestMsg <| Scene.Game.Quest.view scene.questScene game.quests
     in
     Grid.row
         [ Row.centerXs, Row.attrs [ style [ ( "height", "100vh" ), ( "overflow", "auto" ), ( "text-align", "center" ) ] ] ]
@@ -51,8 +44,8 @@ viewBoard model =
                 |> Card.block [ Block.attrs [ style [ ( "padding", "5px" ) ] ] ]
                     [ Block.text []
                         [ quests
-                        , text ("Reject Counter: " ++ toString model.game.fsm.gameStateData.rejectCount)
-                        , text (", # Evil: " ++ toString model.game.numEvil)
+                        , text ("Reject Counter: " ++ toString game.fsm.gameStateData.rejectCount)
+                        , text (", # Evil: " ++ toString game.numEvil)
                         ]
                     ]
                 |> Card.view
@@ -60,22 +53,22 @@ viewBoard model =
         ]
 
 
-view : Session -> Model -> Html Msg
-view session model =
+view : Session -> GameScene -> Game -> Html Msg
+view session scene game =
     let
         username =
             Maybe.withDefault "" session.userName
 
         maybeSelf =
-            List.head <| List.filter (\p -> p.name == username) model.game.players
+            List.head <| List.filter (\p -> p.name == username) game.players
 
         activeQuest =
-            Quest.activeQuest model.game.quests
+            Quest.activeQuest game.quests
     in
     div []
-        [ viewBoard model
-        , viewPlayers model.game.players maybeSelf model.game.fsm.state activeQuest
-        , viewPlayerSelf model.game.fsm.state activeQuest maybeSelf
+        [ viewBoard scene game
+        , viewPlayers game.players maybeSelf game.fsm.state activeQuest
+        , viewPlayerSelf game.fsm.state activeQuest maybeSelf
         ]
 
 
@@ -381,54 +374,58 @@ type Msg
     | QuestMsg Scene.Game.Quest.Msg
 
 
-update : String -> Session -> Msg -> Model -> ( Model, Cmd Msg )
-update lobby session msg model =
+update : String -> Session -> Msg -> Game -> GameScene -> ( GameScene, Cmd Msg )
+update room session msg game model =
     case msg of
         QuestMsg msg ->
-            model ! []
+            let
+                ( newQuestScene, cmd ) =
+                    Scene.Game.Quest.update msg model.questScene
+            in
+            { model | questScene = newQuestScene } ! []
 
         StopGame ->
-            model ! [ pushMessage lobby "game:stop" ]
+            model ! [ pushMessage room "game:stop" ]
 
         PlayerReady ->
-            model ! [ pushMessage lobby "player:ready" ]
+            model ! [ pushMessage room "player:ready" ]
 
         SelectQuestMember player ->
-            model ! [ pushMessageWithPayload lobby "team:select_player" [ ( "player", JE.string player.name ) ] ]
+            model ! [ pushMessageWithPayload room "team:select_player" [ ( "player", JE.string player.name ) ] ]
 
         DeselectQuestMember player ->
-            model ! [ pushMessageWithPayload lobby "team:deselect_player" [ ( "player", JE.string player.name ) ] ]
+            model ! [ pushMessageWithPayload room "team:deselect_player" [ ( "player", JE.string player.name ) ] ]
 
         BeginVoting ->
-            model ! [ pushMessage lobby "team:begin_voting" ]
+            model ! [ pushMessage room "team:begin_voting" ]
 
         AcceptVote ->
-            model ! [ pushMessage lobby "team:accept_vote" ]
+            model ! [ pushMessage room "team:accept_vote" ]
 
         RejectVote ->
-            model ! [ pushMessage lobby "team:reject_vote" ]
+            model ! [ pushMessage room "team:reject_vote" ]
 
         PlayQuestSuccessCard ->
-            model ! [ pushMessage lobby "quest:success" ]
+            model ! [ pushMessage room "quest:success" ]
 
         PlayQuestFailCard ->
-            model ! [ pushMessage lobby "quest:fail" ]
+            model ! [ pushMessage room "quest:fail" ]
 
         AssassinatePlayer player ->
-            model ! [ pushMessageWithPayload lobby "player:assassinate" [ ( "player", JE.string player.name ) ] ]
+            model ! [ pushMessageWithPayload room "player:assassinate" [ ( "player", JE.string player.name ) ] ]
 
         RestartGame ->
-            model ! [ pushMessage lobby "game:restart" ]
+            model ! [ pushMessage room "game:restart" ]
 
 
 pushMessage : String -> String -> Cmd msg
-pushMessage lobby message =
-    Push.init (roomChannelName lobby) message
+pushMessage room message =
+    Push.init (roomChannelName room) message
         |> Phoenix.push socketUrl
 
 
 pushMessageWithPayload : String -> String -> List ( String, JE.Value ) -> Cmd msg
-pushMessageWithPayload lobby message payload =
-    Push.init (roomChannelName lobby) message
+pushMessageWithPayload room message payload =
+    Push.init (roomChannelName room) message
         |> Push.withPayload (JE.object payload)
         |> Phoenix.push socketUrl

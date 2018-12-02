@@ -1,5 +1,6 @@
 module Data.Quest exposing (..)
 
+import Bootstrap.Tab as Tab
 import Data.Team exposing (..)
 import Json.Decode exposing (..)
 
@@ -13,6 +14,17 @@ type alias Quest =
     , quest_card_players : List String
     , quest_cards : List String
     }
+
+
+type alias QuestScene =
+    { tabState : Tab.State
+    , selectedQuest : Maybe Quest
+    }
+
+
+initQuestScene : QuestScene
+initQuestScene =
+    { tabState = Tab.initialState, selectedQuest = Nothing }
 
 
 decodeQuest : Decoder Quest

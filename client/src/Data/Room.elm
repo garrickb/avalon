@@ -12,6 +12,16 @@ type alias Room =
     }
 
 
+type alias RoomScene =
+    { gameScene : GameScene
+    }
+
+
+initRoomScene : RoomScene
+initRoomScene =
+    { gameScene = initGameScene }
+
+
 decodeRoom : Decoder Room
 decodeRoom =
     map3 Room

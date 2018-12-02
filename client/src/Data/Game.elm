@@ -14,6 +14,19 @@ type alias Game =
     }
 
 
+type alias GameScene =
+    { questScene : QuestScene
+    , playerScene : PlayerScene
+    }
+
+
+initGameScene : GameScene
+initGameScene =
+    { questScene = initQuestScene
+    , playerScene = initPlayerScene
+    }
+
+
 decodeGame : Decoder Game
 decodeGame =
     map4 Game

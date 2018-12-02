@@ -26,14 +26,14 @@ import Route exposing (Route)
 
 type alias Model =
     { userName : String
-    , lobbyName : String
+    , roomName : String
     , state : HomePageState
     }
 
 
 type HomePageState
-    = JoinLobbyPage
-    | CreateLobbyPage
+    = JoinRoomPage
+    | CreateRoomPage
 
 
 init : Session -> Model
@@ -42,7 +42,7 @@ init session =
         userName =
             Maybe.withDefault "" session.userName
     in
-    { userName = userName, lobbyName = "", state = JoinLobbyPage }
+    { userName = userName, roomName = "", state = JoinRoomPage }
 
 
 
@@ -59,29 +59,29 @@ view session model =
     let
         content =
             case model.state of
-                JoinLobbyPage ->
+                JoinRoomPage ->
                     [ Form.group []
                         [ Form.label [] [ text "Username" ]
                         , Input.text [ Input.attrs [ value model.userName, onInput InputUserName, placeholder "Username" ] ]
                         ]
                     , Form.group []
-                        [ Form.label [] [ text "Lobby Name" ]
-                        , Input.text [ Input.attrs [ value model.lobbyName, onInput InputLobbyName, onKeyDown LobbyNameKeyDown, placeholder "Lobby Name" ] ]
+                        [ Form.label [] [ text "Room Name" ]
+                        , Input.text [ Input.attrs [ value model.roomName, onInput InputRoomName, onKeyDown RoomNameKeyDown, placeholder "Room Name" ] ]
                         ]
                     , div [ class "text-center" ]
-                        [ Button.button [ Button.primary, Button.attrs [ onClick JoinLobby ] ] [ text "Join Lobby" ]
-                        , Button.button [ Button.roleLink, Button.attrs [ onClick (SetPageState CreateLobbyPage) ] ] [ text "Create Lobby" ]
+                        [ Button.button [ Button.primary, Button.attrs [ onClick JoinRoom ] ] [ text "Join Room" ]
+                        , Button.button [ Button.roleLink, Button.attrs [ onClick (SetPageState CreateRoomPage) ] ] [ text "Create Room" ]
                         ]
                     ]
 
-                CreateLobbyPage ->
+                CreateRoomPage ->
                     [ Form.group []
                         [ Form.label [] [ text "Username" ]
                         , Input.text [ Input.attrs [ value model.userName, onInput InputUserName, placeholder "Username" ] ]
                         ]
                     , div [ class "text-center" ]
-                        [ Button.button [ Button.roleLink, Button.attrs [ onClick (SetPageState JoinLobbyPage) ] ] [ text "Back" ]
-                        , Button.button [ Button.primary, Button.attrs [ onClick CreateLobby ] ] [ text "Create Lobby" ]
+                        [ Button.button [ Button.roleLink, Button.attrs [ onClick (SetPageState JoinRoomPage) ] ] [ text "Back" ]
+                        , Button.button [ Button.primary, Button.attrs [ onClick CreateRoom ] ] [ text "Create Room" ]
                         ]
                     ]
     in
@@ -125,8 +125,8 @@ getChannel session =
 -- UPDATE --
 
 
-decodeCreatedLobbyName : JD.Decoder String
-decodeCreatedLobbyName =
+decodeCreatedRoomName : JD.Decoder String
+decodeCreatedRoomName =
     JD.field "room_id" JD.string
 
 
@@ -143,11 +143,11 @@ createRoomPush model =
 
 
 type Msg
-    = InputLobbyName String
+    = InputRoomName String
     | InputUserName String
-    | LobbyNameKeyDown Int
-    | JoinLobby
-    | CreateLobby
+    | RoomNameKeyDown Int
+    | JoinRoom
+    | CreateRoom
     | SetMessage2 SessionMessage
     | SetPageState HomePageState
     | RoomCreated JD.Value
@@ -169,40 +169,40 @@ update msg model =
         SetMessage2 msg ->
             ( model ! [], SetMessage msg )
 
-        InputLobbyName name ->
-            ( ( { model | lobbyName = name }, Cmd.none ), NoOp )
+        InputRoomName name ->
+            ( ( { model | roomName = name }, Cmd.none ), NoOp )
 
         InputUserName name ->
             ( ( { model | userName = name }, Cmd.none ), SetSessionInfo (Just name) )
 
-        LobbyNameKeyDown key ->
+        RoomNameKeyDown key ->
             if key == 13 then
-                update JoinLobby model
+                update JoinRoom model
             else
                 ( ( model, Cmd.none ), NoOp )
 
-        JoinLobby ->
+        JoinRoom ->
             let
-                lobbyName =
-                    String.trim model.lobbyName
+                roomName =
+                    String.trim model.roomName
 
                 userName =
                     String.trim model.userName
             in
-            if (String.length lobbyName > 0) && (String.length userName > 0) then
-                ( ( model, Cmd.batch [ Route.modifyUrl (Route.Lobby lobbyName) ] )
+            if (String.length roomName > 0) && (String.length userName > 0) then
+                ( ( model, Cmd.batch [ Route.modifyUrl (Route.Room roomName) ] )
                 , SetMessage EmptyMsg
                 )
             else
                 ( ( model, Cmd.none ), SetMessage (InfoMsg "Invalid username or room name.") )
 
-        CreateLobby ->
+        CreateRoom ->
             ( model ! [ createRoomPush model ], NoOp )
 
         RoomCreated payload ->
-            case JD.decodeValue decodeCreatedLobbyName payload of
+            case JD.decodeValue decodeCreatedRoomName payload of
                 Ok roomName ->
-                    ( ( model, Cmd.batch [ Route.modifyUrl (Route.Lobby roomName) ] )
+                    ( ( model, Cmd.batch [ Route.modifyUrl (Route.Room roomName) ] )
                     , SetMessage EmptyMsg
                     )
 

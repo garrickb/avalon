@@ -12,6 +12,15 @@ type alias Player =
     }
 
 
+type alias PlayerScene =
+    {}
+
+
+initPlayerScene : PlayerScene
+initPlayerScene =
+    {}
+
+
 decodePlayer : Decoder Player
 decodePlayer =
     map4 Player

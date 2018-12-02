@@ -85,4 +85,11 @@ defmodule Avalon.Team do
   def num_votes(team, vote) do
     Enum.count(team.votes, fn {_, v} -> v == vote end)
   end
+
+  def hide_votes(team) do
+      filtered_votes =
+          Enum.map((fn (p, v) -> (p, "unknown") end), team.votes)
+
+      %{team | votes = filtered_votes}
+  end
 end
