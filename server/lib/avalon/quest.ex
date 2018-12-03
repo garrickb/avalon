@@ -268,4 +268,29 @@ defmodule Avalon.Quest do
       end
     end)
   end
+
+  def handle_out(quest, requester) do
+    # Hide what cards a player played
+    quest_card_players =
+      quest.quest_cards
+      |> Enum.map(fn {p, _} -> p end)
+
+    # Show the player the quest card values if the quest is done
+    quest_card_values =
+      if quest |> Avalon.Quest.quest_done_playing?() do
+        quest.quest_cards
+        |> Enum.map(fn {_, c} -> c end)
+        |> Enum.shuffle()
+      else
+        []
+      end
+
+    quest
+    # Hide the quest ID
+    |> Map.delete(:id)
+    # Add the player's who have played a quest card
+    |> Map.put(:quest_card_players, quest_card_players)
+    # Add the quest votes
+    |> Map.put(:quest_cards, quest_card_values)
+  end
 end

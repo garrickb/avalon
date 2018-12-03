@@ -178,10 +178,7 @@ defmodule AvalonWeb.RoomChannel do
   # Filter our output to only show the player what they are supposed
   # to know.
   def handle_out("room:state", room, socket) do
-    push(socket, "room:state", %{
-      room
-      | game: handle_out_game(room.game, socket)
-    })
+    push(socket, "room:state", %{room | game: handle_out_game(room.game, socket)})
 
     {:noreply, socket}
   end
@@ -190,62 +187,8 @@ defmodule AvalonWeb.RoomChannel do
     if game == nil do
       nil
     else
-      %{
-        game
-        | players: handle_out_players(game.players, socket),
-          quests: handle_out_quests(game.quests, socket)
-      }
+      Avalon.Game.handle_out(game, username(socket))
     end
-  end
-
-  defp handle_out_players(players, socket) do
-    player_names = Enum.map(players, fn p -> p.name end)
-
-    role =
-      if Enum.member?(player_names, username(socket)) do
-        Enum.find(players, fn p -> p.name == username(socket) end).role
-      else
-        Avalon.Role.new(:unknown, :unknown)
-      end
-
-    players
-    |> Enum.map(fn p ->
-      if p.name == username(socket),
-        do: p,
-        else: %{p | role: Avalon.Role.peek(role, p.role)}
-    end)
-  end
-
-  defp handle_out_quests(quests, _socket) do
-    active_quest =
-      Avalon.Quest.get_active_quest(quests) ||
-        %Avalon.Quest{id: -1, state: nil, team: nil, num_fails_required: nil, quest_cards: nil}
-
-    quests
-    |> Enum.map(fn q ->
-      # Mark the active quest
-      if q.id == active_quest.id,
-        do: Map.put(Map.delete(q, :id), :active, true),
-        else: Map.put(Map.delete(q, :id), :active, false)
-    end)
-    |> Enum.map(fn q ->
-      quest_card_players =
-        q.quest_cards
-        |> Enum.map(fn {p, _} -> p end)
-
-      # Show the player the quest card values if the quest is done
-      quest_card_values =
-        if q |> Avalon.Quest.quest_done_playing?() do
-          q.quest_cards
-          |> Enum.map(fn {_, c} -> c end)
-          |> Enum.shuffle()
-        else
-          []
-        end
-
-      Map.put(q, :quest_card_players, quest_card_players)
-      |> Map.put(:quest_cards, quest_card_values)
-    end)
   end
 
   def terminate(reason, socket) do

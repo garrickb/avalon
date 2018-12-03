@@ -1,8 +1,9 @@
-module Scene.Game.Quest exposing (..)
+module Scene.Game.Quest exposing (Msg(..), update, view, viewAllTeamDetails, viewQuest, viewQuestDetails, viewQuestDetailsModal, viewQuests, viewTeamDetails)
 
 import Bootstrap.Button as Button
 import Bootstrap.Modal as Modal
 import Bootstrap.Tab as Tab
+import Bootstrap.Table as Table
 import Bootstrap.Utilities.Spacing as Spacing
 import Data.Quest exposing (Quest, QuestScene)
 import Data.Team exposing (Team)
@@ -36,6 +37,7 @@ viewQuest scene quest =
                     , SvgAttr.strokeWidth "1.5px"
                     ]
                     []
+
             else
                 Svg.circle
                     [ SvgAttr.cx (toString (size - (size / 12)))
@@ -96,24 +98,63 @@ viewQuest scene quest =
 
 viewTeamDetails : String -> Team -> Tab.Item Msg
 viewTeamDetails label team =
+    let
+        viewVote ( player, vote ) =
+            let
+                formattedName =
+                    if List.member player team.players then
+                        span [] [ text (player ++ " "), span [ class "fa fa-small fa-shield-alt", style [ ( "color", "#B8860B" ) ] ] [] ]
+
+                    else
+                        text player
+
+                formattedVote =
+                    case vote of
+                        "accept" ->
+                            span [ style [ ( "color", "green" ) ] ] [ text vote ]
+
+                        "reject" ->
+                            span [ style [ ( "color", "red" ) ] ] [ text vote ]
+
+                        _ ->
+                            text vote
+            in
+            Table.tr []
+                [ Table.td [] [ formattedName ]
+                , Table.td [] [ formattedVote ]
+                ]
+    in
     Tab.item
-        { id = "pillItem1"
+        { id = label
         , link = Tab.link [] [ text label ]
         , pane =
             Tab.pane [ Spacing.mt3 ]
-                [ p [] [ text ("Num players required: " ++ toString team.num_players_required) ]
-                , p [] [ text ("Players: " ++ toString team.players) ]
-                , p [] [ text ("Votes: " ++ toString team.votes) ]
+                [ Table.table
+                    { options = [ Table.striped, Table.hover, Table.small ]
+                    , thead =
+                        Table.simpleThead
+                            [ Table.th [] [ text "Player" ]
+                            , Table.th [] [ text "Vote" ]
+                            ]
+                    , tbody =
+                        Table.tbody []
+                            (List.map (\vote -> viewVote vote) team.votes)
+                    }
                 ]
         }
 
 
 viewAllTeamDetails : QuestScene -> Team -> List Team -> Html Msg
 viewAllTeamDetails scene team teamHistory =
+    let
+        indexedTeams =
+            List.reverse (List.indexedMap (\index team -> ( index, team )) (List.reverse teamHistory))
+    in
     Tab.config QuestTab
-        |> Tab.pills
         |> Tab.items
-            ([ viewTeamDetails "Current" team ] ++ List.map (viewTeamDetails "History") teamHistory)
+            (viewTeamDetails "Current" team
+                :: List.map (\( index, team ) -> viewTeamDetails ("Team " ++ toString (index + 1)) team) indexedTeams
+            )
         |> Tab.view scene.tabState
 
 
@@ -121,13 +162,15 @@ viewQuestDetails : QuestScene -> Quest -> Html Msg
 viewQuestDetails scene quest =
     let
         questInfo =
-            div []
-                [ p [] [ text ("Active: " ++ toString quest.active) ]
-                , p [] [ text ("Num Fails required: " ++ toString quest.num_fails_required) ]
-                , p [] [ text ("State: " ++ quest.state) ]
-                , p [] [ text ("Quest Card Players: " ++ toString quest.quest_card_players) ]
-                , p [] [ text ("Quest Cards: " ++ toString quest.quest_cards) ]
-                ]
+            if quest.state == "uncompleted" then
+                text ""
+
+            else
+                div []
+                    [ p [] [ text ("State: " ++ quest.state) ]
+                    , p [] [ text ("Quest Card Players: " ++ toString quest.quest_card_players) ]
+                    , p [] [ text ("Quest Cards: " ++ toString quest.quest_cards) ]
+                    ]
     in
     div []
         [ questInfo

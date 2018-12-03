@@ -1,4 +1,4 @@
-module Scene.Game exposing (..)
+module Scene.Game exposing (Msg(..), pushMessage, pushMessageWithPayload, update, view, viewAssassinateButton, viewBeginVotingButton, viewBoard, viewGameRestartButton, viewPlayerActions, viewPlayerOther, viewPlayerSelf, viewPlayers, viewQuestCardButtons, viewQuestSelectButton, viewVotingButtons)
 
 import Bootstrap.Button as Button
 import Bootstrap.Card as Card
@@ -23,6 +23,7 @@ import Phoenix
 import Phoenix.Push as Push
 import Scene.Game.Player as PlayerView
 import Scene.Game.Quest
+
 
 
 -- VIEW --
@@ -198,6 +199,7 @@ viewPlayerActions state player maybeSelf maybeQuest =
                             buttonText =
                                 if player.ready then
                                     "Waiting..."
+
                                 else
                                     "Ready"
                         in
@@ -207,11 +209,22 @@ viewPlayerActions state player maybeSelf maybeQuest =
                             ]
 
                     BuildTeam ->
+                        let
+                            numberOfPlayers =
+                                case maybeQuest of
+                                    Nothing ->
+                                        -1
+
+                                    Just quest ->
+                                        quest.team.num_players_required
+                        in
                         if player.king then
                             div []
-                                [ viewQuestSelectButton self maybeQuest
+                                [ p [] [ text ("Select your " ++ toString numberOfPlayers ++ " team members") ]
+                                , viewQuestSelectButton self maybeQuest
                                 , viewBeginVotingButton maybeQuest
                                 ]
+
                         else
                             text "waiting for quest members to be selected"
 
@@ -220,6 +233,7 @@ viewPlayerActions state player maybeSelf maybeQuest =
                             Just quest ->
                                 if List.any (\tuple -> Tuple.first tuple == player.name) quest.team.votes then
                                     text "Waiting for everyone else to vote..."
+
                                 else
                                     viewVotingButtons
 
@@ -238,6 +252,7 @@ viewPlayerActions state player maybeSelf maybeQuest =
                     GameEndAssassin ->
                         if player.role.name == Assassin then
                             text "Good wins? You have a chance to guess who Merlin is."
+
                         else
                             text "Good wins? The Assassin has a chance to guess who Merlin is."
 
@@ -249,18 +264,21 @@ viewPlayerActions state player maybeSelf maybeQuest =
 
                     Invalid state ->
                         text ("unknown game state: " ++ state)
+
             else
                 -- Viewing actions on another player
                 case state of
                     BuildTeam ->
                         if self.king then
                             div [] [ viewQuestSelectButton player maybeQuest ]
+
                         else
                             text ""
 
                     GameEndAssassin ->
                         if self.role.name == Assassin then
                             div [] [ viewAssassinateButton player ]
+
                         else
                             text ""
 
@@ -288,6 +306,7 @@ viewBeginVotingButton questMaybe =
         Just quest ->
             if List.length quest.team.players == quest.team.num_players_required then
                 Button.button [ Button.outlinePrimary, Button.attrs [ Spacing.ml1, onClick BeginVoting ] ] [ text "Begin Voting" ]
+
             else
                 text ""
 
@@ -323,8 +342,9 @@ viewQuestSelectButton player maybeQuest =
     in
     if onQuest then
         Button.button [ Button.outlineWarning, Button.attrs [ onClick (DeselectQuestMember player) ] ] [ text "Remove" ]
+
     else
-        Button.button [ Button.outlineInfo, Button.attrs [ onClick (SelectQuestMember player) ] ] [ text "Add" ]
+        Button.button [ Button.outlineInfo, Button.attrs [ onClick (SelectQuestMember player) ] ] [ text "Select" ]
 
 
 viewQuestCardButtons : Player -> Maybe Quest -> Html Msg
@@ -339,6 +359,7 @@ viewQuestCardButtons player maybeQuest =
                     if List.member player.name quest.team.players then
                         if List.member player.name quest.quest_card_players then
                             [ text "Waiting for other quest members to play a quest card..." ]
+
                         else if player.role.alignment == Evil then
                             [ text "Play a quest card:"
                             , div []
@@ -349,10 +370,12 @@ viewQuestCardButtons player maybeQuest =
                                     [ text "Fail" ]
                                 ]
                             ]
+
                         else
                             [ Button.button [ Button.success, Button.attrs [ onClick PlayQuestSuccessCard ] ]
                                 [ text "Success" ]
                             ]
+
                     else
                         [ text "Waiting for all quest members to play a quest card..." ]
     in

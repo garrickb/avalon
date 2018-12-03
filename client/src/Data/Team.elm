@@ -1,4 +1,4 @@
-module Data.Team exposing (..)
+module Data.Team exposing (Team, decodeTeam)
 
 import Json.Decode exposing (..)
 

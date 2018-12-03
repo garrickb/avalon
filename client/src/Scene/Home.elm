@@ -21,6 +21,7 @@ import Phoenix.Push as Push
 import Route exposing (Route)
 
 
+
 -- MODEL --
 
 
@@ -96,9 +97,7 @@ view session model =
                     ]
                 |> Card.view
             , div [ class "text-muted text-center font-weight-light", style [ ( "padding-top", "5%" ) ] ]
-                [ text "Made with "
-                , text "\x1F9D9"
-                , text "by "
+                [ text "Made by "
                 , a [ href "https://github.com/garrickb" ] [ text "Garrick" ]
                 ]
             ]
@@ -178,13 +177,14 @@ update msg model =
         RoomNameKeyDown key ->
             if key == 13 then
                 update JoinRoom model
+
             else
                 ( ( model, Cmd.none ), NoOp )
 
         JoinRoom ->
             let
                 roomName =
-                    String.trim model.roomName
+                    String.toUpper <| String.trim model.roomName
 
                 userName =
                     String.trim model.userName
@@ -193,6 +193,7 @@ update msg model =
                 ( ( model, Cmd.batch [ Route.modifyUrl (Route.Room roomName) ] )
                 , SetMessage EmptyMsg
                 )
+
             else
                 ( ( model, Cmd.none ), SetMessage (InfoMsg "Invalid username or room name.") )
 

@@ -255,4 +255,21 @@ defmodule Avalon.Game do
 
     Kernel.min(size, num_evil)
   end
+
+  def handle_out(game, username) do
+    # Mark the active quest
+    active_quest_id = Quest.get_active_quest(game.quests).id
+
+    quests =
+      game.quests
+      |> Enum.map(fn quest ->
+        Map.put(quest, :active, quest.id == active_quest_id)
+      end)
+
+    requester = Enum.find(game.players, fn player -> player.name == username end)
+    players_out = Enum.map(game.players, fn player -> Player.handle_out(player, requester) end)
+    quests_out = Enum.map(quests, fn quest -> Quest.handle_out(quest, requester) end)
+
+    %{game | players: players_out, quests: quests_out}
+  end
 end

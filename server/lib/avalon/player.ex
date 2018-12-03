@@ -82,4 +82,10 @@ defmodule Avalon.Player do
   def is_merlin?(players, player) do
     Enum.any?(players, fn p -> p.role.name == :merlin && p.name == player end)
   end
+
+  def handle_out(player, requester) do
+    if player.name == requester.name,
+      do: player,
+      else: %{player | role: Avalon.Role.peek(requester.role, player.role)}
+  end
 end

@@ -87,9 +87,8 @@ defmodule Avalon.Team do
   end
 
   def hide_votes(team) do
-      filtered_votes =
-          Enum.map((fn (p, v) -> (p, "unknown") end), team.votes)
+    filtered_votes = Enum.map(team.votes, fn {p, v} -> {p, "unknown"} end)
 
-      %{team | votes = filtered_votes}
+    %{team | votes: filtered_votes}
   end
 end
