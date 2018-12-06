@@ -144,15 +144,20 @@ defmodule Avalon.Game do
     active_quest = new_quests |> Avalon.Quest.get_active_quest()
 
     if active_quest |> Quest.team_done_voting?(length(game.players)) do
-      quests_after_finished =
-        active_quest
-        |> Quest.team_finished(game.players |> Player.get_king())
-        |> Quest.update_quest(new_quests)
-
       if active_quest |> Quest.team_voting_passed?() do
+        quests_after_finished =
+          active_quest
+          |> Quest.team_finished(game.players |> Player.get_king(), :accept)
+          |> Quest.update_quest(new_quests)
+
         new_fsm = GameState.accept(game.fsm)
         %{game | quests: quests_after_finished, fsm: new_fsm}
       else
+        quests_after_finished =
+          active_quest
+          |> Quest.team_finished(game.players |> Player.get_king(), :reject)
+          |> Quest.update_quest(new_quests)
+
         new_fsm = GameState.reject(game.fsm)
         new_players = Player.set_next_king(game.players)
         %{game | quests: quests_after_finished, fsm: new_fsm, players: new_players}

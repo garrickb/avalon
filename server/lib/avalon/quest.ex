@@ -207,13 +207,20 @@ defmodule Avalon.Quest do
   @doc """
   clears the vote history to start fresh, and stores the old quest in the history.
   """
-  def team_finished(quest, king) do
+  def team_finished(quest, king, :reject) do
     new_team = %{quest.team | votes: %{}}
 
     %{
       quest
       | team: new_team,
         team_history: [%{team: quest.team, king: king.name}] ++ quest.team_history
+    }
+  end
+
+  def team_finished(quest, king, :accept) do
+    %{
+      quest
+      | team_history: [%{team: quest.team, king: king.name}] ++ quest.team_history
     }
   end
 
