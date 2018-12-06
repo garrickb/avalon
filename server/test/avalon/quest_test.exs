@@ -43,7 +43,7 @@ defmodule Avalon.QuestTest do
       |> Quest.select_player("bob")
       |> Quest.player_reject_vote("alice")
       |> Quest.player_reject_vote("bob")
-      |> Quest.team_clear_votes()
+      |> Quest.team_finished(nil)
 
     assert quest |> Quest.team_done_voting?(2) == false
     assert quest.team_history |> length == 1
@@ -57,10 +57,10 @@ defmodule Avalon.QuestTest do
       |> Quest.select_player("bob")
       |> Quest.player_reject_vote("alice")
       |> Quest.player_reject_vote("bob")
-      |> Quest.team_clear_votes()
+      |> Quest.team_finished(nil)
       |> Quest.player_accept_vote("alice")
       |> Quest.player_reject_vote("bob")
-      |> Quest.team_clear_votes()
+      |> Quest.team_finished(nil)
 
     assert quest |> Quest.team_done_voting?(2) == false
     assert quest.team_history |> length == 2

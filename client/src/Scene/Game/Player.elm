@@ -1,4 +1,4 @@
-module Scene.Game.Player exposing (..)
+module Scene.Game.Player exposing (Modifier(..), alignmentColor, viewModifier, viewName)
 
 import Data.GameState as GameState exposing (..)
 import Data.Player exposing (Player)
@@ -43,12 +43,14 @@ viewModifier mod =
         AcceptedLastTeam val ->
             if val then
                 span [] [ text "(accepted)" ]
+
             else
                 span [] [ text "(rejected)" ]
 
         AcceptedTeam val ->
             if val then
                 span [] [ text "(accepted)" ]
+
             else
                 span [] [ text "(rejected)" ]
 
@@ -77,8 +79,10 @@ viewName player state maybeQuest =
                 [ text
                     (if player.role.name /= RoleUnknown then
                         " (" ++ toString player.role.name ++ ")"
+
                      else if player.role.alignment /= AlignmentUnknown then
                         " (" ++ toString player.role.alignment ++ ")"
+
                      else
                         ""
                     )
@@ -87,6 +91,7 @@ viewName player state maybeQuest =
         playerName =
             if player.king then
                 span [] [ viewModifier King, text " ", text player.name, role ]
+
             else
                 span [] [ text player.name, role ]
     in
@@ -99,6 +104,7 @@ viewName player state maybeQuest =
                 onQuest =
                     if List.member player.name quest.team.players then
                         viewModifier IsOnQuest
+
                     else
                         text ""
             in
@@ -116,8 +122,8 @@ viewName player state maybeQuest =
                                 Nothing ->
                                     text ""
 
-                                Just team ->
-                                    viewModifier (AcceptedLastTeam (List.any (\tuple -> tuple == ( player.name, "accept" )) team.votes))
+                                Just history ->
+                                    viewModifier (AcceptedLastTeam (List.any (\tuple -> tuple == ( player.name, "accept" )) history.team.votes))
                     in
                     span [] [ playerName, text " ", onQuest, lastVote ]
 
@@ -126,6 +132,7 @@ viewName player state maybeQuest =
                         hasVoted =
                             if List.any (\tuple -> Tuple.first tuple == player.name) quest.team.votes then
                                 viewModifier HasVotedOnTeam
+
                             else
                                 text ""
                     in
@@ -139,6 +146,7 @@ viewName player state maybeQuest =
                         playedQuestCard =
                             if List.member player.name quest.quest_card_players then
                                 viewModifier PlayedQuestCard
+
                             else
                                 text ""
                     in

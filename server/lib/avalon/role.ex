@@ -42,6 +42,9 @@ defmodule Avalon.Role do
 
       :minion ->
         :evil
+
+      :spectator ->
+        :spectator
     end
   end
 

@@ -1,4 +1,4 @@
-module Scene.Game.Quest exposing (Msg(..), update, view, viewAllTeamDetails, viewQuest, viewQuestDetails, viewQuestDetailsModal, viewQuests, viewTeamDetails)
+module Scene.Game.Quest exposing (Msg(..), update, view, viewQuest, viewQuestDetails, viewQuestDetailsModal, viewQuests, viewTeamDetails)
 
 import Bootstrap.Button as Button
 import Bootstrap.Modal as Modal
@@ -7,9 +7,11 @@ import Bootstrap.Table as Table
 import Bootstrap.Utilities.Spacing as Spacing
 import Data.Quest exposing (Quest, QuestScene)
 import Data.Team exposing (Team)
+import Data.TeamHistory exposing (TeamHistory)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
+import Scene.Game.Player as Player
 import Svg
 import Svg.Attributes as SvgAttr
 
@@ -30,7 +32,7 @@ viewQuest scene quest =
             if quest.active then
                 Svg.circle
                     [ SvgAttr.cx (toString (size - (size / 12)))
-                    , SvgAttr.cy (toString (size - (size / 10)))
+                    , SvgAttr.cy "35"
                     , SvgAttr.r (toString (size / 4))
                     , SvgAttr.fill "#B8860B"
                     , SvgAttr.stroke "black"
@@ -41,7 +43,7 @@ viewQuest scene quest =
             else
                 Svg.circle
                     [ SvgAttr.cx (toString (size - (size / 12)))
-                    , SvgAttr.cy (toString (size - (size / 10)))
+                    , SvgAttr.cy "35"
                     , SvgAttr.r (toString (size / 4))
                     , SvgAttr.fill "white"
                     , SvgAttr.stroke "black"
@@ -66,47 +68,64 @@ viewQuest scene quest =
         ]
         [ Svg.svg
             [ SvgAttr.width "60"
-            , SvgAttr.height "58.5"
+            , SvgAttr.height "70"
             ]
             [ Svg.circle
                 [ SvgAttr.cx (toString ((size / 2) + 1.25))
-                , SvgAttr.cy (toString ((size / 2) + 1.25))
+                , SvgAttr.cy "35"
                 , SvgAttr.r halfSizeStr
                 , SvgAttr.fill questColor
                 ]
                 []
             , Svg.text_
                 [ SvgAttr.x "16"
-                , SvgAttr.y "38"
+                , SvgAttr.y "47"
                 , SvgAttr.fontSize "35"
                 , SvgAttr.fill "black"
                 ]
                 [ Svg.text (toString quest.team.num_players_required) ]
             , Svg.circle
                 [ SvgAttr.cx (toString ((size / 2) + 1.25))
-                , SvgAttr.cy (toString ((size / 2) + 1.25))
+                , SvgAttr.cy "35"
                 , SvgAttr.r halfSizeStr
                 , SvgAttr.fill "none"
                 , SvgAttr.stroke "black"
                 , SvgAttr.strokeWidth "2px"
                 ]
                 []
+            , Svg.textPath
+                [ SvgAttr.fill "black"
+                , SvgAttr.stroke "#000"
+                , SvgAttr.strokeWidth "3px"
+                , SvgAttr.strokeLinejoin "round"
+                , SvgAttr.strokeLinecap "round"
+                , SvgAttr.d "M7,43 C9,1 56,-2 58,43"
+                , SvgAttr.xlinkHref "#curve"
+                ]
+                [ Svg.text "hello world" ]
             , questMarker
             ]
         ]
 
 
-viewTeamDetails : String -> Team -> Tab.Item Msg
-viewTeamDetails label team =
+viewTeamDetails : String -> Team -> String -> Tab.Item Msg
+viewTeamDetails label team king =
     let
         viewVote ( player, vote ) =
             let
-                formattedName =
-                    if List.member player team.players then
-                        span [] [ text (player ++ " "), span [ class "fa fa-small fa-shield-alt", style [ ( "color", "#B8860B" ) ] ] [] ]
+                king_crown =
+                    if player == king then
+                        span [] [ Player.viewModifier Player.King, text " " ]
 
                     else
-                        text player
+                        text ""
+
+                formattedName =
+                    if List.member player team.players then
+                        span [] [ text player, text " ", Player.viewModifier Player.IsOnQuest ]
+
+                    else
+                        span [] [ text player ]
 
                 formattedVote =
                     case vote of
@@ -120,7 +139,7 @@ viewTeamDetails label team =
                             text vote
             in
             Table.tr []
-                [ Table.td [] [ formattedName ]
+                [ Table.td [] [ king_crown, formattedName ]
                 , Table.td [] [ formattedVote ]
                 ]
     in
@@ -144,17 +163,15 @@ viewTeamDetails label team =
         }
 
 
-viewAllTeamDetails : QuestScene -> Team -> List Team -> Html Msg
-viewAllTeamDetails scene team teamHistory =
+viewAllTeamHistoryDetails : QuestScene -> Team -> List TeamHistory -> Html Msg
+viewAllTeamHistoryDetails scene team teamHistory =
     let
-        indexedTeams =
+        indexedTeamHistory =
             List.reverse (List.indexedMap (\index team -> ( index, team )) (List.reverse teamHistory))
     in
     Tab.config QuestTab
         |> Tab.items
-            (viewTeamDetails "Current" team
-                :: List.map (\( index, team ) -> viewTeamDetails ("Team " ++ toString (index + 1)) team) indexedTeams
-            )
+            (List.map (\( index, history ) -> viewTeamDetails ("Team " ++ toString (index + 1)) history.team history.king) indexedTeamHistory)
         |> Tab.view scene.tabState
 
 
@@ -174,12 +191,12 @@ viewQuestDetails scene quest =
     in
     div []
         [ questInfo
-        , viewAllTeamDetails scene quest.team quest.team_history
+        , viewAllTeamHistoryDetails scene quest.team quest.team_history
         ]
 
 
-viewQuestDetailsModal : QuestScene -> Html Msg
-viewQuestDetailsModal scene =
+viewQuestDetailsModal : QuestScene -> List Quest -> Html Msg
+viewQuestDetailsModal scene quests =
     let
         modalVisibility =
             case scene.selectedQuest of
@@ -214,7 +231,7 @@ viewQuestDetailsModal scene =
 
 viewQuests : QuestScene -> List Quest -> Html Msg
 viewQuests scene quests =
-    div [] ([ viewQuestDetailsModal scene ] ++ List.map (viewQuest scene) quests)
+    div [] ([ viewQuestDetailsModal scene quests ] ++ List.map (viewQuest scene) quests)
 
 
 view : QuestScene -> List Quest -> Html Msg

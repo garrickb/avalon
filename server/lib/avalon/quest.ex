@@ -15,7 +15,6 @@ defmodule Avalon.Quest do
 
   alias Avalon.Quest
   alias Avalon.Team
-
   require Logger
 
   @doc """
@@ -208,9 +207,14 @@ defmodule Avalon.Quest do
   @doc """
   clears the vote history to start fresh, and stores the old quest in the history.
   """
-  def team_clear_votes(quest) do
+  def team_finished(quest, king) do
     new_team = %{quest.team | votes: %{}}
-    %{quest | team: new_team, team_history: [quest.team] ++ quest.team_history}
+
+    %{
+      quest
+      | team: new_team,
+        team_history: [%{team: quest.team, king: king.name}] ++ quest.team_history
+    }
   end
 
   def player_quest_card(quest, player_name, card) do
@@ -269,7 +273,7 @@ defmodule Avalon.Quest do
     end)
   end
 
-  def handle_out(quest, requester) do
+  def handle_out(quest, num_players) do
     # Hide what cards a player played
     quest_card_players =
       quest.quest_cards
@@ -277,7 +281,7 @@ defmodule Avalon.Quest do
 
     # Show the player the quest card values if the quest is done
     quest_card_values =
-      if quest |> Avalon.Quest.quest_done_playing?() do
+      if quest |> quest_done_playing?() do
         quest.quest_cards
         |> Enum.map(fn {_, c} -> c end)
         |> Enum.shuffle()
@@ -292,5 +296,7 @@ defmodule Avalon.Quest do
     |> Map.put(:quest_card_players, quest_card_players)
     # Add the quest votes
     |> Map.put(:quest_cards, quest_card_values)
+    # And lastly, handle the current team
+    |> Map.put(:team, quest.team |> Avalon.Team.handle_out(num_players))
   end
 end

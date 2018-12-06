@@ -32,6 +32,7 @@ import Route
 import Scene.Game
 
 
+
 -- MODEL --
 
 
@@ -128,6 +129,7 @@ viewPlayer playerName ( name, values ) =
     in
     if name == playerName then
         Grid.col sizeAttrs [ text name, Badge.pillPrimary [ Spacing.ml1 ] [ text "you" ] ]
+
     else
         Grid.col sizeAttrs [ text name ]
 
@@ -153,6 +155,7 @@ viewRoom session model =
         players =
             if model.roomState == JoiningRoom then
                 viewPlayers userName (Dict.fromList [ ( userName, [] ) ])
+
             else
                 viewPlayers userName model.presence
 
@@ -167,7 +170,7 @@ viewRoom session model =
                             viewSettings room.settings model.settingsVisibility
 
                 _ ->
-                    text "No Room"
+                    text ""
     in
     Grid.row
         [ Row.centerXs, Row.attrs [ style [ ( "height", "100vh" ), ( "overflow", "auto" ) ] ] ]

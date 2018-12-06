@@ -84,8 +84,13 @@ defmodule Avalon.Player do
   end
 
   def handle_out(player, requester) do
-    if player.name == requester.name,
-      do: player,
-      else: %{player | role: Avalon.Role.peek(requester.role, player.role)}
+    if requester == nil do
+      spectator = Avalon.Role.new(:spectator, :spectator)
+      %{player | role: Avalon.Role.peek(spectator, player.role)}
+    else
+      if player.name != requester.name,
+        do: %{player | role: Avalon.Role.peek(requester.role, player.role)},
+        else: player
+    end
   end
 end

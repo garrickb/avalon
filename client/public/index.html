@@ -1,29 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8">
   <meta http-equiv="x-ua-compatible" content="ie=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
   <title>Avalon</title>
   <script src="bundle.js"></script>
-  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css" integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css" integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU"
+    crossorigin="anonymous">
 </head>
+
 <body>
   <noscript>
     You need to enable JavaScript to run this app.
   </noscript>
 
   <script type="text/javascript">
-    (function() {
+    (function () {
       var storedState = localStorage.getItem('avalon-app');
       var startingState = storedState ? JSON.parse(storedState) : null;
       var app = Elm.Main.fullscreen(startingState);
-      app.ports.setStorage.subscribe(function(state) {
-          console.log("Storing new state: ", state)
-          localStorage.setItem('avalon-app', JSON.stringify(state));
-        });
+      app.ports.setStorage.subscribe(function (state) {
+        console.log("Storing new state: ", state)
+        localStorage.setItem('avalon-app', JSON.stringify(state));
+      });
     })();
   </script>
 
 </body>
+
 </html>

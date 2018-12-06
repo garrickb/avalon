@@ -144,20 +144,18 @@ defmodule Avalon.Game do
     active_quest = new_quests |> Avalon.Quest.get_active_quest()
 
     if active_quest |> Quest.team_done_voting?(length(game.players)) do
+      quests_after_finished =
+        active_quest
+        |> Quest.team_finished(game.players |> Player.get_king())
+        |> Quest.update_quest(new_quests)
+
       if active_quest |> Quest.team_voting_passed?() do
         new_fsm = GameState.accept(game.fsm)
-        %{game | quests: new_quests, fsm: new_fsm}
+        %{game | quests: quests_after_finished, fsm: new_fsm}
       else
-        # TODO: Store prev votes
-        # Clear the vote that after a failure
-        quests_after_fail =
-          active_quest
-          |> Quest.team_clear_votes()
-          |> Quest.update_quest(new_quests)
-
         new_fsm = GameState.reject(game.fsm)
         new_players = Player.set_next_king(game.players)
-        %{game | quests: quests_after_fail, fsm: new_fsm, players: new_players}
+        %{game | quests: quests_after_finished, fsm: new_fsm, players: new_players}
       end
     else
       %{game | quests: new_quests}
@@ -268,7 +266,9 @@ defmodule Avalon.Game do
 
     requester = Enum.find(game.players, fn player -> player.name == username end)
     players_out = Enum.map(game.players, fn player -> Player.handle_out(player, requester) end)
-    quests_out = Enum.map(quests, fn quest -> Quest.handle_out(quest, requester) end)
+
+    quests_out =
+      Enum.map(quests, fn quest -> Quest.handle_out(quest, Kernel.length(game.players)) end)
 
     %{game | players: players_out, quests: quests_out}
   end

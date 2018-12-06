@@ -1,6 +1,6 @@
 defmodule Avalon.Team do
   @enforce_keys [:players, :num_players_required, :votes]
-  defstruct [:players, :num_players_required, :votes]
+  defstruct [:players, :num_players_required, :votes, :king]
 
   alias Avalon.Team
 
@@ -87,8 +87,17 @@ defmodule Avalon.Team do
   end
 
   def hide_votes(team) do
-    filtered_votes = Enum.map(team.votes, fn {p, v} -> {p, "unknown"} end)
+    filtered_votes =
+      Enum.reduce(team.votes, %{}, fn {p, _}, acc -> Map.put(acc, p, "unknown") end)
 
     %{team | votes: filtered_votes}
+  end
+
+  def handle_out(team, num_players) do
+    if num_players == Kernel.map_size(team.votes) do
+      team
+    else
+      team |> hide_votes()
+    end
   end
 end
