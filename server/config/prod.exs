@@ -21,12 +21,9 @@ config :avalon, AvalonWeb.Endpoint,
 
 # tell logger to load a LoggerFileBackend processes
 config :logger,
-  backends: [{LoggerFileBackend, :info_log}]
+  backends: [{LoggerFileBackend, :warn_log}, :console]
 
-# Do not print debug messages in production
-config :logger, :info_log,
-  level: :info,
-  path: "/tmp/avalon.log"
+config :logger, :warn_log, level: :warn, path: "/tmp/avalon.log"
 
 # ## SSL Support
 #
