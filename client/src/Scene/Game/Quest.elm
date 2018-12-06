@@ -32,7 +32,7 @@ viewQuest scene quest =
             if quest.active then
                 Svg.circle
                     [ SvgAttr.cx (toString (size - (size / 12)))
-                    , SvgAttr.cy "35"
+                    , SvgAttr.cy "55"
                     , SvgAttr.r (toString (size / 4))
                     , SvgAttr.fill "#B8860B"
                     , SvgAttr.stroke "black"
@@ -43,7 +43,7 @@ viewQuest scene quest =
             else
                 Svg.circle
                     [ SvgAttr.cx (toString (size - (size / 12)))
-                    , SvgAttr.cy "35"
+                    , SvgAttr.cy "55"
                     , SvgAttr.r (toString (size / 4))
                     , SvgAttr.fill "white"
                     , SvgAttr.stroke "black"
