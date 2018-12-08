@@ -207,20 +207,20 @@ defmodule Avalon.Quest do
   @doc """
   clears the vote history to start fresh, and stores the old quest in the history.
   """
-  def team_finished(quest, king, :reject) do
+  def team_finished(quest, king_name, :reject) when is_binary(king_name) do
     new_team = %{quest.team | votes: %{}}
 
     %{
       quest
       | team: new_team,
-        team_history: [%{team: quest.team, king: king.name}] ++ quest.team_history
+        team_history: [%{team: quest.team, king: king_name}] ++ quest.team_history
     }
   end
 
-  def team_finished(quest, king, :accept) do
+  def team_finished(quest, king_name, :accept) when is_binary(king_name) do
     %{
       quest
-      | team_history: [%{team: quest.team, king: king.name}] ++ quest.team_history
+      | team_history: [%{team: quest.team, king: king_name}] ++ quest.team_history
     }
   end
 

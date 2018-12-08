@@ -43,11 +43,11 @@ defmodule Avalon.QuestTest do
       |> Quest.select_player("bob")
       |> Quest.player_reject_vote("alice")
       |> Quest.player_reject_vote("bob")
-      |> Quest.team_finished(nil, :reject)
+      |> Quest.team_finished("alice", :reject)
 
     assert quest |> Quest.team_done_voting?(2) == false
     assert quest.team_history |> length == 1
-    assert quest.team_history |> List.first() |> Avalon.Team.num_votes() == 2
+    assert quest.team_history |> List.first() |> Map.get(:team) |> Avalon.Team.num_votes() == 2
   end
 
   test "clearing a rejected team twice adds it to the history" do
@@ -57,15 +57,16 @@ defmodule Avalon.QuestTest do
       |> Quest.select_player("bob")
       |> Quest.player_reject_vote("alice")
       |> Quest.player_reject_vote("bob")
-      |> Quest.team_finished(nil, :reject)
+      |> Quest.team_finished("alice", :reject)
       |> Quest.player_accept_vote("alice")
       |> Quest.player_reject_vote("bob")
-      |> Quest.team_finished(nil, :reject)
+      |> Quest.team_finished("bob", :reject)
 
     assert quest |> Quest.team_done_voting?(2) == false
     assert quest.team_history |> length == 2
-    assert quest.team_history |> List.first() |> Avalon.Team.num_votes() == 2
-    assert quest.team_history |> List.first() |> Avalon.Team.num_votes(:accept) == 1
+    last_team = quest.team_history |> List.first() |> Map.get(:team)
+    assert last_team |> Avalon.Team.num_votes() == 2
+    assert last_team |> Avalon.Team.num_votes(:accept) == 1
   end
 
   # Quest Completion Tests
