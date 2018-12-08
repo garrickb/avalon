@@ -65,6 +65,7 @@ defmodule Avalon.QuestTest do
     assert quest |> Quest.team_done_voting?(2) == false
     assert quest.team_history |> length == 2
     last_team = quest.team_history |> List.first() |> Map.get(:team)
+    assert quest.team_history |> List.first() |> Map.get(:king) == "bob"
     assert last_team |> Avalon.Team.num_votes() == 2
     assert last_team |> Avalon.Team.num_votes(:accept) == 1
   end
