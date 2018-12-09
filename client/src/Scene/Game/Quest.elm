@@ -19,21 +19,12 @@ import Svg.Attributes as SvgAttr
 viewQuest : QuestScene -> Quest -> Html Msg
 viewQuest scene quest =
     let
-        size =
-            50
-
-        sizeStr =
-            toString size
-
-        halfSizeStr =
-            toString (size / 2)
-
         questMarker =
             if quest.active then
                 Svg.circle
-                    [ SvgAttr.cx (toString (size - (size / 12)))
+                    [ SvgAttr.cx "55"
                     , SvgAttr.cy "55"
-                    , SvgAttr.r (toString (size / 4))
+                    , SvgAttr.r "10"
                     , SvgAttr.fill "#B8860B"
                     , SvgAttr.stroke "black"
                     , SvgAttr.strokeWidth "1.5px"
@@ -42,9 +33,9 @@ viewQuest scene quest =
 
             else
                 Svg.circle
-                    [ SvgAttr.cx (toString (size - (size / 12)))
+                    [ SvgAttr.cx "55"
                     , SvgAttr.cy "55"
-                    , SvgAttr.r (toString (size / 4))
+                    , SvgAttr.r "10"
                     , SvgAttr.fill "white"
                     , SvgAttr.stroke "black"
                     , SvgAttr.strokeWidth "1px"
@@ -61,48 +52,60 @@ viewQuest scene quest =
 
                 _ ->
                     "white"
+
+        numFails =
+            if quest.num_fails_required == 2 then
+                Svg.text_
+                    [ SvgAttr.fontSize "8px"
+                    ]
+                    [ Svg.textPath
+                        [ SvgAttr.xlinkHref "#curve", SvgAttr.startOffset "46", SvgAttr.textAnchor "middle" ]
+                        [ text "Two Fails Required" ]
+                    ]
+
+            else
+                text ""
     in
-    Button.button
-        [ Button.roleLink
-        , Button.attrs [ Spacing.ml1, onClick (SelectQuest (Just quest)), style [ ( "padding", "0px" ) ] ]
+    span
+        [ onClick (SelectQuest (Just quest))
+        , style [ ( "padding", "0px" ), ( "margin", "0px" ) ]
         ]
         [ Svg.svg
-            [ SvgAttr.width "60"
-            , SvgAttr.height "70"
+            [ SvgAttr.width "55"
+            , SvgAttr.height "55"
+            , SvgAttr.viewBox "0 0 70 70"
             ]
             [ Svg.circle
-                [ SvgAttr.cx (toString ((size / 2) + 1.25))
+                [ SvgAttr.cx "35"
                 , SvgAttr.cy "35"
-                , SvgAttr.r halfSizeStr
+                , SvgAttr.r "25"
                 , SvgAttr.fill questColor
                 ]
                 []
             , Svg.text_
-                [ SvgAttr.x "16"
+                [ SvgAttr.x "25"
                 , SvgAttr.y "47"
                 , SvgAttr.fontSize "35"
                 , SvgAttr.fill "black"
                 ]
                 [ Svg.text (toString quest.team.num_players_required) ]
             , Svg.circle
-                [ SvgAttr.cx (toString ((size / 2) + 1.25))
+                [ SvgAttr.cx "35"
                 , SvgAttr.cy "35"
-                , SvgAttr.r halfSizeStr
+                , SvgAttr.r "25"
                 , SvgAttr.fill "none"
                 , SvgAttr.stroke "black"
                 , SvgAttr.strokeWidth "2px"
                 ]
                 []
-            , Svg.textPath
-                [ SvgAttr.fill "black"
-                , SvgAttr.stroke "#000"
-                , SvgAttr.strokeWidth "3px"
-                , SvgAttr.strokeLinejoin "round"
-                , SvgAttr.strokeLinecap "round"
-                , SvgAttr.d "M7,43 C9,1 56,-2 58,43"
-                , SvgAttr.xlinkHref "#curve"
+            , Svg.path
+                [ SvgAttr.id "curve"
+                , SvgAttr.fill "none"
+                , SvgAttr.stroke "none"
+                , SvgAttr.d "M5,35 C5,-4 65,-4 65,35"
                 ]
-                [ Svg.text "hello world" ]
+                []
+            , numFails
             , questMarker
             ]
         ]
@@ -169,10 +172,14 @@ viewAllTeamHistoryDetails scene team teamHistory =
         indexedTeamHistory =
             List.reverse (List.indexedMap (\index team -> ( index, team )) (List.reverse teamHistory))
     in
-    Tab.config QuestTab
-        |> Tab.items
-            (List.map (\( index, history ) -> viewTeamDetails ("Team " ++ toString (index + 1)) history.team history.king) indexedTeamHistory)
-        |> Tab.view scene.tabState
+    if List.length indexedTeamHistory > 0 then
+        Tab.config QuestTab
+            |> Tab.items
+                (List.map (\( index, history ) -> viewTeamDetails ("Team " ++ toString (index + 1)) history.team history.king) indexedTeamHistory)
+            |> Tab.view scene.tabState
+
+    else
+        text "No quest history available"
 
 
 viewQuestDetails : QuestScene -> Quest -> Html Msg

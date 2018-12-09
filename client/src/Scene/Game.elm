@@ -29,6 +29,11 @@ import Scene.Game.Quest
 -- VIEW --
 
 
+viewRejectCounter : Int -> Html Msg
+viewRejectCounter rejectCount =
+    text ("Reject Counter: " ++ toString rejectCount)
+
+
 viewBoard : GameScene -> Game -> Html Msg
 viewBoard scene game =
     let
@@ -45,7 +50,7 @@ viewBoard scene game =
                 |> Card.block [ Block.attrs [ style [ ( "padding", "5px" ) ] ] ]
                     [ Block.text []
                         [ quests
-                        , text ("Reject Counter: " ++ toString game.fsm.gameStateData.rejectCount)
+                        , viewRejectCounter game.fsm.gameStateData.rejectCount
                         , text (", # Evil: " ++ toString game.numEvil)
                         ]
                     ]
@@ -196,6 +201,39 @@ viewPlayerActions state player maybeSelf maybeQuest =
                 case state of
                     Waiting ->
                         let
+                            roleDescription =
+                                case player.role.name of
+                                    Servant ->
+                                        text "You are a loyal servant of King Arthur"
+
+                                    Minion ->
+                                        text "You are a minion of mordred"
+
+                                    Merlin ->
+                                        -- Except Mordred, if the setting is enabled
+                                        text "You know all evil"
+
+                                    Assassin ->
+                                        -- If Merlin is enabled
+                                        text "If evil loses, you have the chance to win if you can guess who Merlin is and assassinate him"
+
+                                    Percival ->
+                                        -- You also see Morgana, if the setting is enabled
+                                        text "You know who Merlin is"
+
+                                    Mordred ->
+                                        -- If Merlin is enabled
+                                        text "Your identity is not revealed to Merlin"
+
+                                    Oberon ->
+                                        text "You gain no knowledge of other Evil players, nor do they gain knowledge of you"
+
+                                    Morgana ->
+                                        text "You appear to be Merlin to Percival"
+
+                                    RoleUnknown ->
+                                        text "You are an unknown role."
+
                             buttonText =
                                 if player.ready then
                                     "Waiting..."
@@ -204,7 +242,8 @@ viewPlayerActions state player maybeSelf maybeQuest =
                                     "Ready"
                         in
                         div []
-                            [ p [] [ text ("You are '" ++ toString player.role.name ++ "', who is '" ++ toString player.role.alignment ++ "'") ]
+                            [ p [ class "text-muted" ] [ text ("You are " ++ toString player.role.name ++ ", who is " ++ toString player.role.alignment ++ "") ]
+                            , p [] [ roleDescription ]
                             , Button.button [ Button.primary, Button.attrs [ onClick PlayerReady ], Button.disabled player.ready ] [ text buttonText ]
                             ]
 

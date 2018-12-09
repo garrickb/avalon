@@ -19,7 +19,7 @@ import Data.Settings exposing (Settings)
 import Data.Socket exposing (socketUrl)
 import Debug exposing (log)
 import Dict exposing (Dict)
-import Html exposing (Html, button, div, h1, h2, img, input, li, span, table, tbody, td, text, tr, ul)
+import Html exposing (Html, button, div, h1, h2, img, input, li, p, small, span, table, tbody, td, text, tr, ul)
 import Html.Attributes exposing (..)
 import Html.Events exposing (keyCode, on, onClick, onInput)
 import Json.Decode as JD exposing (Decoder)
@@ -175,7 +175,8 @@ viewRoom session model =
     Grid.row
         [ Row.centerXs, Row.attrs [ style [ ( "height", "100vh" ), ( "overflow", "auto" ) ] ] ]
         [ Grid.col [ Col.middleXs ]
-            [ h1 [ style [ ( "text-align", "center" ) ] ] [ text model.name ]
+            [ p [ style [ ( "text-align", "center" ), ( "margin-bottom", "0px" ) ], class "text-muted" ] [ small [] [ text "Invite Code" ] ]
+            , h1 [ style [ ( "text-align", "center" ) ] ] [ text model.name ]
             , Card.config [ Card.align Text.alignXsCenter ]
                 |> Card.block []
                     [ Block.text []
