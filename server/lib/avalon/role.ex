@@ -82,15 +82,17 @@ defmodule Avalon.Role do
         case target.alignment do
           :evil ->
             case target.name do
-              :mordred ->
-                # Mordred is not known by other evil
+              :oberon ->
+                # Oberon is not known by other evil
                 new(:unknown, :unknown)
 
               _ ->
-                case self.name do
-                  # Mordred does not know other evil
-                  :mordred -> new(:unknown, :unknown)
-                  _ -> new(:unknown, :evil)
+                if self.name == :oberon do
+                  # Oberon does not know other evil
+                  new(:unknown, :unknown)
+                else
+                  # Evil can see other evil
+                  new(:unknown, :evil)
                 end
             end
 
@@ -102,15 +104,26 @@ defmodule Avalon.Role do
         case self.name do
           :merlin ->
             case target.alignment do
-              :evil -> new(:unknown, :evil)
-              _ -> new(:unknown, :unknown)
+              :evil ->
+                case target.name do
+                  :mordred ->
+                    # Merlin cannot see mordred's role
+                    new(:unknown, :unknown)
+
+                  _ ->
+                    # Merlin can see evil
+                    new(:unknown, :evil)
+                end
+
+              _ ->
+                new(:unknown, :unknown)
             end
 
           :percival ->
             case target.name do
               # Percival sees both Merlin and Morgana as Merlin
-              :merlin -> new(:merlin, :unknown)
-              :morgana -> new(:merlin, :unknown)
+              :merlin -> new(:merlin)
+              :morgana -> new(:merlin)
               _ -> new(:unknown, :unknown)
             end
 
