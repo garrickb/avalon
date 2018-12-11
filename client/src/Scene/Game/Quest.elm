@@ -1,6 +1,9 @@
-module Scene.Game.Quest exposing (Msg(..), update, view, viewQuest, viewQuestDetails, viewQuestDetailsModal, viewQuests, viewTeamDetails)
+module Scene.Game.Quest exposing (Msg(..), update, view, viewQuest, viewQuestDetails, viewQuestDetailsModal, viewTeamDetails)
 
 import Bootstrap.Button as Button
+import Bootstrap.Grid as Grid
+import Bootstrap.Grid.Col as Col
+import Bootstrap.Grid.Row as Row
 import Bootstrap.Modal as Modal
 import Bootstrap.Tab as Tab
 import Bootstrap.Table as Table
@@ -16,7 +19,7 @@ import Svg
 import Svg.Attributes as SvgAttr
 
 
-viewQuest : QuestScene -> Quest -> Html Msg
+viewQuest : QuestScene -> Quest -> Grid.Column Msg
 viewQuest scene quest =
     let
         questMarker =
@@ -66,14 +69,16 @@ viewQuest scene quest =
             else
                 text ""
     in
-    span
-        [ onClick (SelectQuest (Just quest))
-        , style [ ( "padding", "0px" ), ( "margin", "0px" ) ]
+    Grid.col
+        [ Col.smAuto
+        , Col.attrs
+            [ onClick (SelectQuest (Just quest))
+            , style [ ( "height", "auto" ), ( "width", "13vmin" ), ( "padding", "0px" ), ( "margin", "0px" ) ]
+            ]
         ]
         [ Svg.svg
-            [ SvgAttr.width "55"
-            , SvgAttr.height "55"
-            , SvgAttr.viewBox "0 0 66 66"
+            [ SvgAttr.viewBox "0 0 66 66"
+            , SvgAttr.preserveAspectRatio "xMidYMid meet"
             ]
             [ Svg.circle
                 [ SvgAttr.cx "35"
@@ -236,14 +241,9 @@ viewQuestDetailsModal scene quests =
         |> Modal.view modalVisibility
 
 
-viewQuests : QuestScene -> List Quest -> Html Msg
-viewQuests scene quests =
-    div [] ([ viewQuestDetailsModal scene quests ] ++ List.map (viewQuest scene) quests)
-
-
 view : QuestScene -> List Quest -> Html Msg
 view scene quests =
-    viewQuests scene quests
+    Grid.row [ Row.attrs [ class "justify-content-center" ] ] (List.map (viewQuest scene) quests)
 
 
 type Msg

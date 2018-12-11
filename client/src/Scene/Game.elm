@@ -22,7 +22,7 @@ import Json.Encode as JE
 import Phoenix
 import Phoenix.Push as Push
 import Scene.Game.Player as PlayerView
-import Scene.Game.Quest
+import Scene.Game.Quest as QuestView
 import Svg
 import Svg.Attributes as SvgAttr
 
@@ -31,14 +31,16 @@ import Svg.Attributes as SvgAttr
 -- VIEW --
 
 
-viewRejectCounter : Int -> Bool -> Html Msg
+viewRejectCounter : Int -> Bool -> Grid.Column Msg
 viewRejectCounter number active =
-    span
-        []
+    Grid.col
+        [ Col.smAuto
+        , Col.attrs
+            [ style [ ( "height", "auto" ), ( "width", "8vmin" ), ( "padding", "0px" ), ( "margin", "0px" ) ]
+            ]
+        ]
         [ Svg.svg
-            [ SvgAttr.width "25"
-            , SvgAttr.height "25"
-            , SvgAttr.viewBox "0 0 100 100"
+            [ SvgAttr.viewBox "0 0 100 100"
             ]
             [ Svg.circle
                 [ SvgAttr.cx "50"
@@ -72,25 +74,20 @@ viewRejectCounter number active =
         ]
 
 
-viewVoteTrack : Int -> Html Msg
-viewVoteTrack rejectCount =
-    let
-        counters =
-            List.map (\i -> viewRejectCounter i (i == (rejectCount + 1))) [ 1, 2, 3, 4, 5 ]
-    in
-    div []
-        [ span [] counters
-        ]
-
-
 viewBoard : GameScene -> Game -> Html Msg
 viewBoard scene game =
     let
         activeQuest =
             Quest.activeQuest game.quests
 
-        quests =
-            Html.map QuestMsg <| Scene.Game.Quest.view scene.questScene game.quests
+        voteTrack =
+            List.map (\i -> viewRejectCounter i (i == (game.fsm.gameStateData.rejectCount + 1))) [ 1, 2, 3, 4, 5 ]
+
+        questDetailsModal =
+            Html.map QuestMsg <| span [] [ QuestView.viewQuestDetailsModal scene.questScene game.quests ]
+
+        questsRow =
+            Html.map QuestMsg <| QuestView.view scene.questScene game.quests
     in
     Grid.row
         [ Row.centerXs, Row.attrs [ style [ ( "height", "100vh" ), ( "overflow", "auto" ), ( "text-align", "center" ) ] ] ]
@@ -98,9 +95,19 @@ viewBoard scene game =
             [ Card.config []
                 |> Card.block [ Block.attrs [ style [ ( "padding", "5px" ) ] ] ]
                     [ Block.text []
-                        [ quests
-                        , viewVoteTrack game.fsm.gameStateData.rejectCount
-                        , p [] [ text ("# Evil: " ++ toString game.numEvil) ]
+                        [ questDetailsModal
+                        , Grid.container []
+                            [ questsRow
+                            , Grid.row [ Row.middleXs ]
+                                [ Grid.col [ Col.xs7 ] [ p [ class "", style [ ( "font-size", "2vmin" ), ( "margin", "0px" ) ] ] [ text "Vote Track:" ], Grid.row [ Row.attrs [ class "justify-content-center" ] ] voteTrack ]
+                                , Grid.col [ Col.xs5 ]
+                                    [ p [ style [ ( "margin", "0px" ), ( "font-size", "2vmin" ) ] ]
+                                        [ text (toString (List.length game.players) ++ " Players") ]
+                                    , p [ style [ ( "margin", "0px" ), ( "font-size", "2vmin" ) ] ]
+                                        [ text (toString game.numEvil ++ " Minions of Mordred") ]
+                                    ]
+                                ]
+                            ]
                         ]
                     ]
                 |> Card.view
@@ -482,7 +489,7 @@ type Msg
     | PlayQuestFailCard
     | AssassinatePlayer Player
     | RestartGame
-    | QuestMsg Scene.Game.Quest.Msg
+    | QuestMsg QuestView.Msg
 
 
 update : String -> Session -> Msg -> Game -> GameScene -> ( GameScene, Cmd Msg )
@@ -491,7 +498,7 @@ update room session msg game model =
         QuestMsg msg ->
             let
                 ( newQuestScene, cmd ) =
-                    Scene.Game.Quest.update msg model.questScene
+                    QuestView.update msg model.questScene
             in
             { model | questScene = newQuestScene } ! []
 
