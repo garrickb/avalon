@@ -73,7 +73,7 @@ viewQuest scene quest =
         [ Col.smAuto
         , Col.attrs
             [ onClick (SelectQuest (Just quest))
-            , style [ ( "height", "auto" ), ( "width", "13vmin" ), ( "padding", "0px" ), ( "margin", "0px" ) ]
+            , style [ ( "height", "auto" ), ( "width", "13vmin" ), ( "padding", "0px" ), ( "margin", "0px" ), ( "cursor", "pointer" ) ]
             ]
         ]
         [ Svg.svg
@@ -243,7 +243,7 @@ viewQuestDetailsModal scene quests =
 
 view : QuestScene -> List Quest -> Html Msg
 view scene quests =
-    Grid.row [ Row.attrs [ class "justify-content-center" ] ] (List.map (viewQuest scene) quests)
+    Grid.row [ Row.attrs [ class "justify-content-center", style [ ( "user-select", "none" ) ] ] ] (List.map (viewQuest scene) quests)
 
 
 type Msg
