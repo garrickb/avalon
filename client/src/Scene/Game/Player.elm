@@ -1,7 +1,7 @@
 module Scene.Game.Player exposing (Modifier(..), alignmentColor, viewModifier, viewName)
 
 import Data.GameState as GameState exposing (..)
-import Data.Player exposing (Player)
+import Data.Player exposing (Player, PlayerScene)
 import Data.Quest exposing (Quest)
 import Data.Role exposing (Alignment(..), RoleType(..))
 import Html exposing (..)
@@ -71,22 +71,26 @@ alignmentColor alignment =
             "green"
 
 
-viewName : Player -> GameState.FsmState -> Maybe Quest -> Html msg
-viewName player state maybeQuest =
+viewName : Player -> GameState.FsmState -> PlayerScene -> Maybe Quest -> Html msg
+viewName player state scene maybeQuest =
     let
         role =
-            span [ style [ ( "color", alignmentColor player.role.alignment ) ] ]
-                [ text
-                    (if player.role.name /= RoleUnknown then
-                        " (" ++ toString player.role.name ++ ")"
+            if scene.hideInformation then
+                text ""
 
-                     else if player.role.alignment /= AlignmentUnknown then
-                        " (" ++ toString player.role.alignment ++ ")"
+            else
+                span [ style [ ( "color", alignmentColor player.role.alignment ) ] ]
+                    [ text
+                        (if player.role.name /= RoleUnknown then
+                            " (" ++ toString player.role.name ++ ")"
 
-                     else
-                        ""
-                    )
-                ]
+                         else if player.role.alignment /= AlignmentUnknown then
+                            " (" ++ toString player.role.alignment ++ ")"
+
+                         else
+                            ""
+                        )
+                    ]
 
         playerName =
             if player.king then

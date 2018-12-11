@@ -129,13 +129,13 @@ view session scene game =
     in
     div []
         [ viewBoard scene game
-        , viewPlayers game.players maybeSelf game.fsm.state activeQuest
-        , viewPlayerSelf game.fsm.state activeQuest maybeSelf
+        , viewPlayers game.players maybeSelf game.fsm.state scene activeQuest
+        , viewPlayerSelf game.fsm.state scene activeQuest maybeSelf
         ]
 
 
-viewPlayerOther : FsmState -> Maybe Quest -> Maybe Player -> Player -> Grid.Column Msg
-viewPlayerOther state quest self player =
+viewPlayerOther : FsmState -> GameScene -> Maybe Quest -> Maybe Player -> Player -> Grid.Column Msg
+viewPlayerOther state scene quest self player =
     let
         playerAction =
             viewPlayerActions state player self
@@ -144,7 +144,7 @@ viewPlayerOther state quest self player =
         [ Card.config []
             |> Card.block []
                 [ Block.text []
-                    [ PlayerView.viewName player state quest
+                    [ PlayerView.viewName player state scene.playerScene quest
                     , viewPlayerActions state player self quest
                     ]
                 ]
@@ -152,9 +152,16 @@ viewPlayerOther state quest self player =
         ]
 
 
-viewPlayerSelf : FsmState -> Maybe Quest -> Maybe Player -> Html Msg
-viewPlayerSelf state quest maybeSelf =
+viewPlayerSelf : FsmState -> GameScene -> Maybe Quest -> Maybe Player -> Html Msg
+viewPlayerSelf state scene quest maybeSelf =
     let
+        hideInformationButton =
+            if scene.playerScene.hideInformation then
+                Button.button [ Button.roleLink, Button.attrs [ onClick (HideInformation False) ] ] [ text "show info" ]
+
+            else
+                Button.button [ Button.roleLink, Button.attrs [ onClick (HideInformation True) ] ] [ text "hide info" ]
+
         content =
             case maybeSelf of
                 Just self ->
@@ -162,7 +169,8 @@ viewPlayerSelf state quest maybeSelf =
                     Card.config []
                         |> Card.block []
                             [ Block.text []
-                                [ h5 [] [ PlayerView.viewName self state quest ]
+                                [ h5 [] [ PlayerView.viewName self state scene.playerScene quest ]
+                                , span [ style [ ( "position", "absolute" ), ( "top", "0" ), ( "right", "0" ) ] ] [ hideInformationButton ]
                                 , hr [] []
                                 , p [] []
                                 , viewPlayerActions state self (Just self) quest
@@ -181,8 +189,8 @@ viewPlayerSelf state quest maybeSelf =
         ]
 
 
-viewPlayers : List Player -> Maybe Player -> FsmState -> Maybe Quest -> Html Msg
-viewPlayers players maybeSelf state quest =
+viewPlayers : List Player -> Maybe Player -> FsmState -> GameScene -> Maybe Quest -> Html Msg
+viewPlayers players maybeSelf state scene quest =
     case maybeSelf of
         Nothing ->
             let
@@ -198,10 +206,10 @@ viewPlayers players maybeSelf state quest =
             span []
                 [ Grid.row
                     [ Row.middleXs, Row.attrs [ class "position-absolute text-center", style [ ( "top", "15px" ), ( "left", "15px" ), ( "width", "100%" ) ] ] ]
-                    (firstHalf |> List.map (viewPlayerOther state quest Nothing))
+                    (firstHalf |> List.map (viewPlayerOther state scene quest Nothing))
                 , Grid.row
                     [ Row.middleXs, Row.attrs [ class "position-absolute text-center", style [ ( "bottom", "15px" ), ( "left", "15px" ), ( "width", "100%" ) ] ] ]
-                    (secondHalf |> List.map (viewPlayerOther state quest Nothing))
+                    (secondHalf |> List.map (viewPlayerOther state scene quest Nothing))
                 ]
 
         Just self ->
@@ -237,7 +245,7 @@ viewPlayers players maybeSelf state quest =
 
                 content =
                     orderedPlayers
-                        |> List.map (viewPlayerOther state quest maybeSelf)
+                        |> List.map (viewPlayerOther state scene quest maybeSelf)
             in
             Grid.row
                 [ Row.middleXs, Row.attrs [ class "position-absolute text-center", style [ ( "top", "15px" ), ( "left", "15px" ), ( "width", "100%" ) ] ] ]
@@ -490,6 +498,7 @@ type Msg
     | AssassinatePlayer Player
     | RestartGame
     | QuestMsg QuestView.Msg
+    | HideInformation Bool
 
 
 update : String -> Session -> Msg -> Game -> GameScene -> ( GameScene, Cmd Msg )
@@ -534,6 +543,13 @@ update room session msg game model =
 
         RestartGame ->
             model ! [ pushMessage room "game:restart" ]
+
+        HideInformation val ->
+            let
+                newPlayerScene =
+                    { hideInformation = val }
+            in
+            { model | playerScene = newPlayerScene } ! []
 
 
 pushMessage : String -> String -> Cmd msg

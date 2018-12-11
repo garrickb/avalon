@@ -1,4 +1,4 @@
-module Data.Player exposing (..)
+module Data.Player exposing (Player, PlayerScene, decodePlayer, initPlayerScene)
 
 import Data.Role exposing (..)
 import Json.Decode exposing (..)
@@ -13,12 +13,12 @@ type alias Player =
 
 
 type alias PlayerScene =
-    {}
+    { hideInformation : Bool }
 
 
 initPlayerScene : PlayerScene
 initPlayerScene =
-    {}
+    { hideInformation = False }
 
 
 decodePlayer : Decoder Player
