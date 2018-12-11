@@ -23,15 +23,64 @@ import Phoenix
 import Phoenix.Push as Push
 import Scene.Game.Player as PlayerView
 import Scene.Game.Quest
+import Svg
+import Svg.Attributes as SvgAttr
 
 
 
 -- VIEW --
 
 
-viewRejectCounter : Int -> Html Msg
-viewRejectCounter rejectCount =
-    text ("Reject Counter: " ++ toString rejectCount)
+viewRejectCounter : Int -> Bool -> Html Msg
+viewRejectCounter number active =
+    span
+        []
+        [ Svg.svg
+            [ SvgAttr.width "25"
+            , SvgAttr.height "25"
+            , SvgAttr.viewBox "0 0 100 100"
+            ]
+            [ Svg.circle
+                [ SvgAttr.cx "50"
+                , SvgAttr.cy "50"
+                , SvgAttr.r "45"
+                , SvgAttr.fill
+                    (if active then
+                        "purple"
+
+                     else
+                        "white"
+                    )
+                , SvgAttr.stroke "black"
+                , SvgAttr.strokeWidth "5px"
+                ]
+                []
+            , Svg.text_
+                [ SvgAttr.x "33"
+                , SvgAttr.y "70"
+                , SvgAttr.fontSize "60"
+                , SvgAttr.fill
+                    (if active then
+                        "white"
+
+                     else
+                        "black"
+                    )
+                ]
+                [ Svg.text (toString number) ]
+            ]
+        ]
+
+
+viewVoteTrack : Int -> Html Msg
+viewVoteTrack rejectCount =
+    let
+        counters =
+            List.map (\i -> viewRejectCounter i (i == (rejectCount + 1))) [ 1, 2, 3, 4, 5 ]
+    in
+    div []
+        [ span [] counters
+        ]
 
 
 viewBoard : GameScene -> Game -> Html Msg
@@ -50,8 +99,8 @@ viewBoard scene game =
                 |> Card.block [ Block.attrs [ style [ ( "padding", "5px" ) ] ] ]
                     [ Block.text []
                         [ quests
-                        , viewRejectCounter game.fsm.gameStateData.rejectCount
-                        , text (", # Evil: " ++ toString game.numEvil)
+                        , viewVoteTrack game.fsm.gameStateData.rejectCount
+                        , p [] [ text ("# Evil: " ++ toString game.numEvil) ]
                         ]
                     ]
                 |> Card.view

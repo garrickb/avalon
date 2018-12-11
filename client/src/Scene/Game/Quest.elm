@@ -56,7 +56,7 @@ viewQuest scene quest =
         numFails =
             if quest.num_fails_required == 2 then
                 Svg.text_
-                    [ SvgAttr.fontSize "8px"
+                    [ SvgAttr.fontSize "7px"
                     ]
                     [ Svg.textPath
                         [ SvgAttr.xlinkHref "#curve", SvgAttr.startOffset "46", SvgAttr.textAnchor "middle" ]
@@ -73,7 +73,7 @@ viewQuest scene quest =
         [ Svg.svg
             [ SvgAttr.width "55"
             , SvgAttr.height "55"
-            , SvgAttr.viewBox "0 0 70 70"
+            , SvgAttr.viewBox "0 0 66 66"
             ]
             [ Svg.circle
                 [ SvgAttr.cx "35"

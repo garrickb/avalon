@@ -270,7 +270,14 @@ defmodule Avalon.Game do
       end)
 
     requester = Enum.find(game.players, fn player -> player.name == username end)
-    players_out = Enum.map(game.players, fn player -> Player.handle_out(player, requester) end)
+
+    # At the end of the game, do not hide roles
+    players_out =
+      if game.fsm.state == :game_end_good || game.fsm.state == :game_end_evil do
+        game.players
+      else
+        Enum.map(game.players, fn player -> Player.handle_out(player, requester) end)
+      end
 
     quests_out =
       Enum.map(quests, fn quest -> Quest.handle_out(quest, Kernel.length(game.players)) end)

@@ -66,8 +66,8 @@ view session model =
                         , Input.text [ Input.attrs [ value model.userName, onInput InputUserName, placeholder "Username" ] ]
                         ]
                     , Form.group []
-                        [ Form.label [] [ text "Room Name" ]
-                        , Input.text [ Input.attrs [ value model.roomName, onInput InputRoomName, onKeyDown RoomNameKeyDown, placeholder "Room Name" ] ]
+                        [ Form.label [] [ text "Invite Code" ]
+                        , Input.text [ Input.attrs [ value model.roomName, onInput InputRoomName, onKeyDown RoomNameKeyDown, placeholder "Invite Code" ] ]
                         ]
                     , div [ class "text-center" ]
                         [ Button.button [ Button.primary, Button.attrs [ onClick JoinRoom ] ] [ text "Join Room" ]
@@ -195,7 +195,7 @@ update msg model =
                 )
 
             else
-                ( ( model, Cmd.none ), SetMessage (InfoMsg "Invalid username or room name.") )
+                ( ( model, Cmd.none ), SetMessage (InfoMsg "Invalid username or invite code.") )
 
         CreateRoom ->
             ( model ! [ createRoomPush model ], NoOp )
