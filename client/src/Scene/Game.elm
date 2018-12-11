@@ -157,10 +157,10 @@ viewPlayerSelf state scene quest maybeSelf =
     let
         hideInformationButton =
             if scene.playerScene.hideInformation then
-                Button.button [ Button.roleLink, Button.attrs [ onClick (HideInformation False) ] ] [ text "show info" ]
+                Button.button [ Button.roleLink, Button.attrs [ onClick (HideInformation False) ] ] [ text "show role" ]
 
             else
-                Button.button [ Button.roleLink, Button.attrs [ onClick (HideInformation True) ] ] [ text "hide info" ]
+                Button.button [ Button.roleLink, Button.attrs [ onClick (HideInformation True) ] ] [ text "hide role" ]
 
         content =
             case maybeSelf of
