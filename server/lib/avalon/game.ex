@@ -261,7 +261,8 @@ defmodule Avalon.Game do
 
   def handle_out(game, username) do
     # Mark the active quest
-    active_quest_id = Quest.get_active_quest(game.quests).id
+    active_quest = Quest.get_active_quest(game.quests)
+    active_quest_id = if active_quest == nil, do: -1, else: active_quest.id
 
     quests =
       game.quests
